@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Primary SEO -->
+    <title>RelaySchool | Power System Protection Simulator & Engineering Tools</title>
+    <meta name="description" content="Free online engineering suite for Power System Protection. Features TCC Coordination, IEC 61850 GOOSE Simulator, CT Saturation analysis, and Digital Twin modeling for electrical engineers." />
+    <meta name="keywords" content="Power Systems, Protection Coordination, TCC Curve, IEC 61850, Relay Testing, Electrical Engineering, Short Circuit Analysis, Digital Substation, Smart Grid" />
+    <meta name="author" content="RelaySchool" />
+    
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://relayschool.com/" />
+    <meta property="og:title" content="RelaySchool - Advanced Protection Engineering Simulator" />
+    <meta property="og:description" content="Simulate faults, coordinate relays, and analyze IEC 61850 networks directly in your browser. The professional standard for offline-capable engineering training." />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="RelaySchool | Master Power Protection" />
+    <meta property="twitter:description" content="Interactive TCC Curves, Digital Twins, and Forensic Failure Analysis for Protection Engineers." />
+
+    <!-- Schema.org JSON-LD for Google Rich Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "RelaySchool",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "A comprehensive simulation suite for electrical power system protection, including TCC coordination, fault analysis, and digital substation protocols.",
+      "featureList": [
+        "Time-Current Curve (TCC) Coordination",
+        "IEC 61850 GOOSE Sniffer & Simulator",
+        "CT Saturation Forensic Lab",
+        "Digital Twin Substation Topology"
+      ],
+      "audience": {
+        "@type": "Audience",
+        "audienceType": "Electrical Engineers"
+      }
+    }
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+            colors: {
+              engineering: {
+                50: '#f0f9ff',
+                100: '#e0f2fe',
+                500: '#0ea5e9',
+                600: '#0284c7',
+                900: '#0c4a6e',
+              },
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.5s ease-out',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #0f172a; 
+        color: #f8fafc;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #475569;
+      }
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+      .bg-grid {
+        background-size: 40px 40px;
+        background-image: linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
+      }
+      .dark .bg-grid {
+        background-image: linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+      }
+      
+      @media print {
+        @page { margin: 1cm; size: landscape; }
+        body { background-color: white !important; color: black !important; -webkit-print-color-adjust: exact; }
+        aside, header, footer, .no-print { display: none !important; }
+        main { width: 100% !important; margin: 0 !important; padding: 0 !important; max-width: none !important; }
+        .bg-grid { background-image: none !important; }
+        * { box-shadow: none !important; }
+      }
+    </style>
+
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
