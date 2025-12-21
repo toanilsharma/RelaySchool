@@ -1,468 +1,728 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { 
-    Radar, Sliders, Target, Map, Shield, Activity, RefreshCcw, 
-    CheckCircle, AlertTriangle, EyeOff, Layers, BookOpen, 
-    MousePointer2, ZoomIn, X, ChevronUp, PanelLeftClose, 
-    PanelLeftOpen, PanelRightClose, PanelRightOpen, GraduationCap,
-    Zap, Settings, Info, AlertOctagon, Maximize2
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+    Zap, Activity, Shield, Target, Layers, BookOpen,
+    Settings, Info, Check, X, MousePointer2, AlertOctagon,
+    Trophy, RefreshCw, Sliders, Move, Printer,
+    Volume2, VolumeX, GraduationCap, Microscope,
+    ArrowRight, FileText, Share2, HelpCircle, Triangle,
+    ShieldCheck, BrainCircuit, Lightbulb
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// --- 1. TYPES & CONSTANTS ---
+// --- Engineering Constants ---
+const SCALE = 12; // Pixels per Ohm
+const CANVAS_SIZE = 500;
+const CENTER = CANVAS_SIZE / 2;
+const RAD_TO_DEG = 180 / Math.PI;
+const DEG_TO_RAD = Math.PI / 180;
 
-const ProtectionZone = {
-    Z1: 'Zone 1',
-    Z2: 'Zone 2',
-    Z3: 'Zone 3 (Reverse/Offset)'
+// --- Technical Data & Standards ---
+const INFO_DB = {
+    default: {
+        title: "Ready for Simulation",
+        desc: "Hover over any element to view technical specifications, IEEE/IEC standards, and operational logic.",
+        std: "IEEE C37.113 / IEC 60255"
+    },
+    chart: {
+        title: "R-X Impedance Plane",
+        desc: "A complex plane diagram representing the impedance phasor seen by the relay. The horizontal axis represents Resistance (R) and the vertical axis represents Reactance (jX).",
+        std: "ANSI 21 Distance"
+    },
+    fault_point: {
+        title: "Fault Impedance Locus",
+        desc: "The calculated impedance vector Z = V/I. If this point falls within a characteristic zone, the relay logic initiates a trip timer.",
+        std: "V = I x Z"
+    },
+    zone1: {
+        title: "Zone 1 (Underreaching)",
+        desc: "Instantaneous protection covering 80-85% of the protected line. Set to underreach to prevent overtripping for external faults due to CT/VT errors.",
+        std: "IEEE C37.113 Sec 5.2.1"
+    },
+    zone2: {
+        title: "Zone 2 (Overreaching)",
+        desc: "Time-delayed protection (typically 15-30 cycles). Covers 100% of the line plus a safety margin (usually 120% total reach) to handle end-zone faults.",
+        std: "IEEE C37.113 Sec 5.2.2"
+    },
+    zone3: {
+        title: "Zone 3 (Remote Backup)",
+        desc: "Remote backup protection with the longest time delay. Designed to detect faults on adjacent lines if primary protection fails.",
+        std: "IEEE C37.113 Sec 5.2.3"
+    },
+    mho: {
+        title: "Mho Characteristic",
+        desc: "A circular impedance characteristic passing through the origin. Inherently directional but has limited resistive reach (arc resistance coverage).",
+        std: "Self-Polarized / Cross-Polarized"
+    },
+    quad: {
+        title: "Quadrilateral Characteristic",
+        desc: "A polygonal characteristic defined by independent reactance and resistance settings. Superior for ground faults with high arc resistance.",
+        std: "Polygonal Earth Fault Element"
+    },
+    mta: {
+        title: "Max Torque Angle (MTA/RCA)",
+        desc: "The angle of maximum sensitivity, typically set to match the transmission line's impedance angle to ensure optimal reach accuracy.",
+        std: "Range: 75-85 deg typical"
+    },
+    sir: {
+        title: "Source Impedance Ratio (SIR)",
+        desc: "Ratio of source impedance to line impedance. High SIR (>30) indicates a weak source, leading to slow voltage recovery and challenging measurement conditions.",
+        std: "ZS / ZL"
+    }
 };
 
-const DEFAULT_SETTINGS = {
-    z1Reach: 8,    // Ohms
-    z2Reach: 12,   // Ohms
-    z3Reach: 15,   // Ohms
-    mta: 75,       // Degrees (Max Torque Angle)
-    loadAngle: 30, // Degrees
-    enableBlinder: false
-};
+// --- Theory Modules Data ---
+const THEORY_MODULES = [
+    {
+        id: 'fundamentals',
+        title: "Protection Philosophy",
+        icon: <Shield className="w-5 h-5 text-blue-600" />,
+        content: (
+            <div className="space-y-3">
+                <p>Distance protection is the most common method for protecting high-voltage transmission lines. It measures the impedance (Z = V/I) from the relay location to the fault point. Since impedance is proportional to line length, the relay can pinpoint the fault location.</p>
+                <div className="bg-slate-100 p-3 rounded-lg border-l-4 border-blue-500 text-xs">
+                    <strong>Key Standard:</strong> IEEE C37.113 Guide for Protective Relay Applications to Transmission Lines.
+                </div>
+            </div>
+        )
+    },
+    {
+        id: 'calculations',
+        title: "Setting Calculations & Zones",
+        icon: <Target className="w-5 h-5 text-emerald-600" />,
+        content: (
+            <ul className="list-disc pl-4 space-y-2">
+                <li><strong>Zone 1:</strong> Set to 80-85% of line impedance (ZL1). Instantaneous trip. Never set to 100% to avoid overreach due to CT/VT errors (approx 10%) and line parameter inaccuracies (approx 5%).</li>
+                <li><strong>Zone 2:</strong> Set to 120% of ZL1. Time delayed (typically 300-400ms). Ensures coverage of the end of the line (arc resistance, errors).</li>
+                <li><strong>Zone 3:</strong> Remote backup. Set to cover ZL1 + (Longest Adjacent Line x 1.2). Longest delay (800ms-1s).</li>
+            </ul>
+        )
+    },
+    {
+        id: 'realworld',
+        title: "Real-Life Study Considerations",
+        icon: <AlertOctagon className="w-5 h-5 text-amber-600" />,
+        content: (
+            <div className="space-y-4">
+                <div>
+                    <strong className="text-slate-900 block">1. Load Encroachment</strong>
+                    <span className="block mt-1">Heavy loading reduces the measured impedance, potentially moving the load point into Zone 3. Blinders or shaped characteristics (like Peanut or Lens) must be used to discriminate load from faults.</span>
+                </div>
+                <div>
+                    <strong className="text-slate-900 block">2. Infeed Effect</strong>
+                    <span className="block mt-1">Current injection from an intermediate source makes the fault appear further away (impedance increase). This causes Zone 2 to underreach.</span>
+                </div>
+                <div>
+                    <strong className="text-slate-900 block">3. Mutual Coupling</strong>
+                    <span className="block mt-1">On parallel lines, zero-sequence mutual coupling (Z0M) affects ground fault measurement, causing overreach or underreach depending on current direction.</span>
+                </div>
+            </div>
+        )
+    }
+];
 
-// --- 2. MATH ENGINE ---
+// --- Quiz Question Bank ---
+const QUESTION_BANK = [
+    // EASY
+    { id: 1, difficulty: 'easy', q: "What is the primary input required for a distance relay to calculate impedance?", options: ["Current only", "Voltage only", "Voltage and Current", "Frequency"], a: 2, explanation: "Z = V/I. Both voltage and current quantities are needed." },
+    { id: 2, difficulty: 'easy', q: "Why is Zone 1 typically set to less than 100% of the line length?", options: ["To save energy", "To allow for Zone 2 backup", "To prevent overreaching due to errors", "Because the relay cannot see further"], a: 2, explanation: "CT/VT errors and line parameter inaccuracies can cause the relay to 'see' further than reality." },
+    { id: 3, difficulty: 'easy', q: "Which characteristic is inherently directional?", options: ["Impedance (Plain)", "Reactance", "Mho", "Offset Mho"], a: 2, explanation: "The Mho characteristic passes through the origin, providing inherent directionality." },
+    { id: 4, difficulty: 'easy', q: "What is the typical time delay for Zone 1?", options: ["Instantaneous (0s)", "300ms", "500ms", "1000ms"], a: 0, explanation: "Zone 1 is the primary protection for the line itself and must operate immediately." },
+    { id: 5, difficulty: 'easy', q: "What does SIR stand for in protection engineering?", options: ["System Integrity Report", "Source Impedance Ratio", "Signal Input Range", "Series Inductance Reactance"], a: 1, explanation: "Source Impedance Ratio = Z_source / Z_line." },
 
-// Check if a point (r, x) is inside a Mho circle defined by Reach and MTA
-// Self-polarized Mho characteristic passing through origin
-const checkMho = (reach, r, x, mtaAngle) => {
-    // Convert MTA to radians
-    const angRad = mtaAngle * Math.PI / 180;
-    
-    // Mho Circle Geometry
-    // Diameter is the Reach vector at MTA.
-    // Center is at (Reach/2 * cos(MTA), Reach/2 * sin(MTA))
-    // Radius is Reach / 2
-    
+    // MEDIUM
+    { id: 6, difficulty: 'medium', q: "Which fault type typically has the highest arc resistance?", options: ["3-Phase", "Phase-to-Phase", "Single Line to Ground", "Bolted Fault"], a: 2, explanation: "Ground faults often involve trees or high-resistance soil paths, resulting in significant arc resistance." },
+    { id: 7, difficulty: 'medium', q: "How does the 'Infeed Effect' influence a distance relay?", options: ["Causes Overreach", "Causes Underreach", "No Effect", "Causes instant trip"], a: 1, explanation: "Infeed from another source increases the voltage at the relay point for the same current, making impedance appear larger (Underreach)." },
+    { id: 8, difficulty: 'medium', q: "What is the purpose of 'Load Encroachment' logic?", options: ["To trip on high load", "To prevent tripping on high load", "To monitor power quality", "To measure line length"], a: 1, explanation: "It prevents Zone 3 tripping during heavy load conditions when impedance Z = V/I drops significantly." },
+    { id: 9, difficulty: 'medium', q: "Ideally, the MTA (Maximum Torque Angle) should match:", options: ["The Load Angle", "The Source Angle", "The Line Impedance Angle", "90 Degrees"], a: 2, explanation: "Matching the line angle ensures the characteristic aligns with the fault locus." },
+    { id: 10, difficulty: 'medium', q: "What is K0 factor used for?", options: ["Phase Faults", "Ground Fault Compensation", "Power Swing Blocking", "Load Shedding"], a: 1, explanation: "K0 compensates for the difference between positive and zero sequence impedance in ground distance calculations." },
+
+    // HARD
+    { id: 11, difficulty: 'hard', q: "In a Quadrilateral characteristic, the resistive reach is set independently to cover:", options: ["Line Reactance", "Arc Resistance", "Source Impedance", "Mutual Coupling"], a: 1, explanation: "Quad relays allow expanding the R-axis coverage for arc resistance without affecting the X-axis reach." },
+    { id: 12, difficulty: 'hard', q: "Zero-sequence mutual coupling typically affects which protection element?", options: ["Zone 1 Phase", "Ground Distance Elements", "Overvoltage", "Negative Sequence Overcurrent"], a: 1, explanation: "Mutual coupling induces zero-sequence voltage on parallel lines, distorting the Z0 measurement." },
+    { id: 13, difficulty: 'hard', q: "Power Swing Blocking (PSB) logic differentiates a swing from a fault by monitoring:", options: ["Rate of change of Impedance (dZ/dt)", "Voltage Magnitude", "Current Magnitude", "Frequency"], a: 0, explanation: "Faults cause an instant jump in Z, while power swings cause a gradual change. dZ/dt detects this speed." },
+    { id: 14, difficulty: 'hard', q: "A 'Weak Infeed' logic is typically associated with:", options: ["Zone 1", "POTT / PUTT Schemes", "Differential Protection", "Overcurrent"], a: 1, explanation: "In communication schemes, weak infeed logic ensures a trip even if one end cannot supply enough current to pick up." },
+    { id: 15, difficulty: 'hard', q: "What happens to the reach of a Mho relay if it is Cross-Polarized?", options: ["It decreases", "It expands for resistive faults", "It becomes non-directional", "It oscillates"], a: 1, explanation: "Cross-polarization uses healthy phase voltage to maintain directionality and expand the characteristic during unbalanced faults." },
+];
+
+// --- Helper Functions ---
+
+const toRad = (deg) => deg * DEG_TO_RAD;
+
+// Check if point (r, x) is inside a Mho circle
+const checkMho = (reach, r, x, mta) => {
+    const mtaRad = toRad(mta);
     const radius = reach / 2;
-    const centerX = radius * Math.cos(angRad); // R-axis coordinate
-    const centerY = radius * Math.sin(angRad); // X-axis coordinate
-    
-    // Distance from fault point to center
-    const dist = Math.sqrt(Math.pow(r - centerX, 2) + Math.pow(x - centerY, 2));
-    
-    return dist <= radius;
+    const centerX = radius * Math.cos(mtaRad);
+    const centerY = radius * Math.sin(mtaRad);
+    const distance = Math.sqrt(Math.pow(r - centerX, 2) + Math.pow(x - centerY, 2));
+    return distance <= radius;
 };
 
-// --- 3. SUB-COMPONENTS ---
+// Check if point (r, x) is inside a Quad
+const checkQuad = (reachX, reachR, r, x, mta, tilt = 0) => {
+    const isForward = x > -0.2 * reachX; // Directional element
+    const topBoundary = x <= (reachX + (r * Math.tan(toRad(tilt)))); // Reactance Line
+    const rightBoundary = r <= reachR; // Resistive Blinder
+    const leftBoundary = r >= -0.3 * reachR; // Reverse Reach (Close-in faults)
+    return isForward && topBoundary && rightBoundary && leftBoundary;
+};
 
-const HelpModal = ({ onClose }) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800">
-                <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-                    <BookOpen className="w-6 h-6 text-blue-600"/> User Guide
-                </h2>
-                <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><X className="w-5 h-5"/></button>
+// --- Components ---
+
+const InfoPanel = ({ context }) => (
+    <div className="bg-slate-50 border-t border-slate-200 p-4 min-h-[140px] transition-all duration-300">
+        <div className="flex items-start gap-4">
+            <div className="bg-blue-600 p-2 rounded-lg shrink-0 mt-1">
+                <Microscope className="w-6 h-6 text-white" />
             </div>
-            <div className="p-6 overflow-y-auto space-y-6 text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
-                <section>
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2"><MousePointer2 className="w-4 h-4"/> 1. Simulating Faults</h3>
-                    <ul className="list-disc pl-5 space-y-1">
-                        <li><strong>Fault Impedance:</strong> Use the sliders in the right panel to adjust the Fault Resistance (R) and Reactance (X).</li>
-                        <li><strong>Visual Feedback:</strong> The white dot on the graph represents the calculated impedance vector ($Z_f = R + jX$).</li>
-                        <li><strong>Trip Zones:</strong> Watch the "Protection Status" indicator to see if the fault falls within Zone 1, 2, or 3.</li>
-                    </ul>
-                </section>
-                <section>
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2"><Shield className="w-4 h-4"/> 2. Relay Settings</h3>
-                    <p>Configure the Mho characteristics in the left panel:</p>
-                    <ul className="list-disc pl-5 space-y-1 mt-2">
-                        <li><strong>Reach (Ω):</strong> Sets the diameter of the Mho circle for each zone.</li>
-                        <li><strong>MTA (Max Torque Angle):</strong> Rotates the characteristic to match the line angle (typically 75°-85°).</li>
-                        <li><strong>Load Blinder:</strong> Enable this to prevent tripping on heavy load current (resistive region).</li>
-                    </ul>
-                </section>
-                <section>
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2"><ZoomIn className="w-4 h-4"/> 3. Analysis</h3>
-                    <p>Use the "Impedance Plane" to visualize coordination. Ensure Zone 1 covers 80% of the line, while Zone 2 overreaches to 120%.</p>
-                </section>
-            </div>
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 rounded-b-2xl flex justify-end">
-                <button onClick={onClose} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors">Got it</button>
+            <div className="space-y-2 w-full">
+                <div className="flex justify-between items-center">
+                    <h4 className="font-bold text-slate-900 text-lg flex items-center gap-2">
+                        {context.title}
+                    </h4>
+                    <span className="text-[10px] font-mono bg-slate-200 text-slate-600 px-2 py-1 rounded uppercase tracking-wider border border-slate-300">
+                        {context.std}
+                    </span>
+                </div>
+                <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                    {context.desc}
+                </p>
             </div>
         </div>
     </div>
 );
 
-// --- 4. MAIN COMPONENT ---
+const Knob = ({ value, onChange, min, max, label, unit, step = 0.1, onHover, onLeave }) => (
+    <div
+        className="flex flex-col gap-2 p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-400 transition-colors shadow-sm"
+        onMouseEnter={onHover}
+        onMouseLeave={onLeave}
+    >
+        <div className="flex justify-between items-center">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</label>
+            <span className="text-sm font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{value.toFixed(1)}{unit}</span>
+        </div>
+        <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(e) => onChange(parseFloat(e.target.value))}
+            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500"
+        />
+    </div>
+);
 
-const DistanceLab = () => {
-    // --- STATE ---
-    const [z1Reach, setZ1Reach] = useState(DEFAULT_SETTINGS.z1Reach);
-    const [z2Reach, setZ2Reach] = useState(DEFAULT_SETTINGS.z2Reach);
-    const [z3Reach, setZ3Reach] = useState(DEFAULT_SETTINGS.z3Reach);
-    const [mta, setMta] = useState(DEFAULT_SETTINGS.mta);
-    const [loadAngle, setLoadAngle] = useState(DEFAULT_SETTINGS.loadAngle);
-    const [enableBlinder, setEnableBlinder] = useState(DEFAULT_SETTINGS.enableBlinder);
-    
-    const [faultR, setFaultR] = useState(4);
-    const [faultX, setFaultX] = useState(6);
-    const [showHelp, setShowHelp] = useState(false);
+const TabButton = ({ active, onClick, icon, label, onHover }) => (
+    <button
+        onClick={onClick}
+        onMouseEnter={onHover}
+        className={`flex items-center gap-2 px-4 lg:px-6 py-3 text-sm font-bold transition-all duration-200 border-b-2 ${active
+            ? 'text-blue-600 border-blue-600 bg-blue-50'
+            : 'text-slate-500 border-transparent hover:text-slate-800 hover:bg-slate-50'
+            }`}
+    >
+        {icon}
+        <span className="hidden sm:inline">{label}</span>
+    </button>
+);
 
-    // Layout State
-    const [leftPanelOpen, setLeftPanelOpen] = useState(true);
-    const [rightPanelOpen, setRightPanelOpen] = useState(true);
-    const [footerOpen, setFooterOpen] = useState(false);
+// --- Main Application ---
 
-    // --- LOGIC ENGINE ---
-    
-    // Zone Checks
-    const inZ1 = checkMho(z1Reach, faultR, faultX, mta);
-    const inZ2 = checkMho(z2Reach, faultR, faultX, mta);
-    const inZ3 = checkMho(z3Reach, faultR, faultX, mta); // Treated as fwd overreach for simplicity in this demo
+export default function RelaySimUltra() {
+    const [activeTab, setActiveTab] = useState('sim'); // sim, theory, quiz
+    const [context, setContext] = useState(INFO_DB.default);
 
-    // Load Blinder Check
-    // Angle of fault vector
-    const faultAngRad = Math.atan2(faultX, faultR);
-    const faultAngDeg = faultAngRad * 180 / Math.PI;
-    const isLoad = enableBlinder && Math.abs(faultAngDeg) < loadAngle && Math.abs(faultAngDeg) > -loadAngle; // Simplified sector check +/- loadAngle around R axis
-
-    // Trip Decision Logic
-    let status = 'MONITOR';
-    let zone = '';
-    let delay = '';
-    let statusColor = 'text-slate-500';
-    let borderColor = 'border-slate-300';
-    let bg = 'bg-slate-50 dark:bg-slate-800';
-
-    if (isLoad) {
-        status = 'BLOCKED';
-        zone = 'Load Encroachment';
-        delay = 'No Trip';
-        statusColor = 'text-amber-600 dark:text-amber-400';
-        borderColor = 'border-amber-500';
-        bg = 'bg-amber-50 dark:bg-amber-900/20';
-    } else if (inZ1) {
-        status = 'TRIP';
-        zone = 'ZONE 1';
-        delay = 'Instantaneous';
-        statusColor = 'text-red-600 dark:text-red-400';
-        borderColor = 'border-red-500';
-        bg = 'bg-red-50 dark:bg-red-900/20';
-    } else if (inZ2) {
-        status = 'TRIP';
-        zone = 'ZONE 2';
-        delay = '0.4s Delay'; // Standard Z2 delay
-        statusColor = 'text-orange-600 dark:text-orange-400';
-        borderColor = 'border-orange-500';
-        bg = 'bg-orange-50 dark:bg-orange-900/20';
-    } else if (inZ3) {
-        status = 'TRIP';
-        zone = 'ZONE 3';
-        delay = '1.0s Delay'; // Standard Z3 delay
-        statusColor = 'text-green-600 dark:text-green-400';
-        borderColor = 'border-green-500';
-        bg = 'bg-green-50 dark:bg-green-900/20';
-    }
-
-    // --- VISUALIZATION HELPERS ---
-    const width = 600;
-    const height = 600;
-    const scale = 20; // pixels per Ohm
-    const originX = 100;
-    const originY = height - 100;
-
-    const toPx = (r, x) => ({
-        x: originX + (r * scale),
-        y: originY - (x * scale)
+    // Settings
+    const [settings, setSettings] = useState({
+        charType: 'MHO', // MHO, QUAD
+        mta: 75,
+        tilt: 5,
+        z1Reach: 8.0,
+        z2Reach: 12.0,
+        z3Reach: 18.0,
+        z1Time: 0,
+        z2Time: 300,
+        z3Time: 1000,
+        quadResReach: 10.0,
     });
 
-    const fp = toPx(faultR, faultX);
+    const [fault, setFault] = useState({ r: 5, x: 5 });
+    const [status, setStatus] = useState({ trip: false, zone: 'NONE', time: 0 });
+    const [voiceEnabled, setVoiceEnabled] = useState(false);
+    const svgRef = useRef(null);
 
-    // SVG Generator for Mho Circle
-    const getMhoPath = (reach, mtaAngle) => {
-        const radius = (reach * scale) / 2;
-        const angRad = mtaAngle * Math.PI / 180;
-        const cx = originX + radius * Math.cos(angRad);
-        const cy = originY - radius * Math.sin(angRad);
-        return { cx, cy, r: radius };
+    // Quiz State
+    const [quizState, setQuizState] = useState({
+        active: false,
+        difficulty: null,
+        questions: [],
+        currentIdx: 0,
+        score: 0,
+        showResult: false,
+        feedback: null
+    });
+
+    // --- Handlers ---
+    const handleHover = (key) => setContext(INFO_DB[key] || INFO_DB.default);
+    const clearHover = () => setContext(INFO_DB.default);
+
+    // Quiz Logic
+    const startQuiz = (difficulty) => {
+        // Select 5 random questions of the chosen difficulty
+        const pool = QUESTION_BANK.filter(q => q.difficulty === difficulty);
+        const shuffled = [...pool].sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, 5);
+
+        setQuizState({
+            active: true,
+            difficulty,
+            questions: selected,
+            currentIdx: 0,
+            score: 0,
+            showResult: false,
+            feedback: null
+        });
     };
 
-    const z1 = getMhoPath(z1Reach, mta);
-    const z2 = getMhoPath(z2Reach, mta);
-    const z3 = getMhoPath(z3Reach, mta);
+    const handleQuizAnswer = (optionIdx) => {
+        const currentQ = quizState.questions[quizState.currentIdx];
+        const isCorrect = optionIdx === currentQ.a;
+
+        setQuizState(prev => ({
+            ...prev,
+            feedback: {
+                correct: isCorrect,
+                text: isCorrect ? "Correct!" : "Incorrect.",
+                explanation: currentQ.explanation
+            },
+            score: isCorrect ? prev.score + 1 : prev.score
+        }));
+    };
+
+    const nextQuestion = () => {
+        if (quizState.currentIdx < 4) {
+            setQuizState(prev => ({
+                ...prev,
+                currentIdx: prev.currentIdx + 1,
+                feedback: null
+            }));
+        } else {
+            setQuizState(prev => ({ ...prev, showResult: true }));
+        }
+    };
+
+    // Trip Logic
+    useEffect(() => {
+        let activeZone = 'NONE';
+        const { r, x } = fault;
+        const { z1Reach, z2Reach, z3Reach, mta, tilt, charType, quadResReach } = settings;
+
+        const inZ1 = charType === 'MHO' ? checkMho(z1Reach, r, x, mta) : checkQuad(z1Reach, quadResReach * 0.8, r, x, mta, tilt);
+        const inZ2 = charType === 'MHO' ? checkMho(z2Reach, r, x, mta) : checkQuad(z2Reach, quadResReach, r, x, mta, tilt);
+        const inZ3 = charType === 'MHO' ? checkMho(z3Reach, r, x, mta) : checkQuad(z3Reach, quadResReach * 1.2, r, x, mta, tilt);
+
+        if (inZ1) activeZone = 'Z1';
+        else if (inZ2) activeZone = 'Z2';
+        else if (inZ3) activeZone = 'Z3';
+
+        if (activeZone !== 'NONE') {
+            setStatus({
+                trip: true,
+                zone: activeZone,
+                time: activeZone === 'Z1' ? settings.z1Time : activeZone === 'Z2' ? settings.z2Time : settings.z3Time
+            });
+        } else {
+            setStatus({ trip: false, zone: 'NONE', time: 0 });
+        }
+    }, [fault, settings]);
+
+    const handleSvgClick = (e) => {
+        if (!svgRef.current) return;
+        const rect = svgRef.current.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+
+        // Scale Logic
+        const r = (clickX - CENTER) / SCALE;
+        const x = -(clickY - CENTER) / SCALE;
+
+        setFault({ r, x });
+    };
+
+    // --- Render Helpers ---
+    const getMhoPath = (reach, mta) => {
+        const radiusVal = reach / 2;
+        const cx = CENTER + (radiusVal * Math.cos(toRad(mta))) * SCALE;
+        const cy = CENTER - (radiusVal * Math.sin(toRad(mta))) * SCALE;
+        const rPixels = radiusVal * SCALE;
+        return <circle cx={cx} cy={cy} r={rPixels} fill="currentColor" fillOpacity="0.1" stroke="currentColor" strokeWidth="2" />;
+    };
+
+    const getQuadPath = (reachX, reachR, mta, tilt) => {
+        const p1 = { r: -0.2 * reachR, x: -0.2 * reachX };
+        const p2 = { r: -0.2 * reachR, x: reachX - (0.2 * reachR * Math.tan(toRad(tilt))) };
+        const p3 = { r: reachR, x: reachX + (reachR * Math.tan(toRad(tilt))) };
+        const p4 = { r: reachR, x: -0.2 * reachX };
+        const toSVG = (pt) => `${CENTER + pt.r * SCALE},${CENTER - pt.x * SCALE}`;
+        return <polygon points={`${toSVG(p1)} ${toSVG(p2)} ${toSVG(p3)} ${toSVG(p4)}`} fill="currentColor" fillOpacity="0.1" stroke="currentColor" strokeWidth="2" />;
+    };
 
     return (
-        <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden select-none font-sans">
-            
-            {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+        <div className="min-h-screen bg-slate-100 text-slate-900 font-sans flex flex-col overflow-hidden">
 
-            {/* HEADER TOOLBAR */}
-            <div className="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-4 shadow-sm z-20 print:hidden shrink-0">
+            {/* --- Professional Header --- */}
+            <header className="bg-white border-b border-slate-300 px-6 py-4 flex items-center justify-between shadow-sm z-20 shrink-0">
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        {/* Left Toggle */}
-                        <button onClick={() => setLeftPanelOpen(!leftPanelOpen)} className={`p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!leftPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
-                            {leftPanelOpen ? <PanelLeftClose className="w-4 h-4"/> : <PanelLeftOpen className="w-4 h-4"/>}
-                        </button>
-                        
-                        <div className="bg-blue-600 p-1.5 rounded-lg text-white shadow-lg shadow-blue-500/30"><Radar className="w-4 h-4"/></div>
-                        <div>
-                            <h1 className="font-bold text-sm leading-tight">DistanceLab <span className="text-blue-600">PRO</span></h1>
-                        </div>
+                    <div className="bg-slate-900 text-white p-2 rounded-lg">
+                        <Zap className="w-6 h-6" />
                     </div>
-                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                    
-                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                        <Activity className="w-4 h-4" />
-                        <span>Impedance Protection Simulator (ANSI 21)</span>
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900 tracking-tight">RELAY SIM <span className="text-blue-600">ULTRA</span></h1>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono uppercase tracking-widest">
+                            <span>Ver 2.5.0</span>
+                            <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                            <span>IEEE C37.113 Compliant</span>
+                        </div>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button onClick={() => { setFaultR(4); setFaultX(6); }} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-bold transition-colors text-slate-600 dark:text-slate-300">
-                        <RefreshCcw className="w-3 h-3"/> Reset Fault
+                    <button
+                        onClick={() => setVoiceEnabled(!voiceEnabled)}
+                        className={`p-2 rounded-md border transition-all ${voiceEnabled ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                        title={voiceEnabled ? "Mute Voice Guide" : "Enable Voice Guide"}
+                    >
+                        {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                     </button>
-                    <button onClick={() => setShowHelp(true)} className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors" title="Guide">
-                        <BookOpen className="w-4 h-4" />
+                    <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-md text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
+                        <Printer className="w-4 h-4" /> EXPORT REPORT
                     </button>
-                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                    {/* Right Toggle */}
-                    <button onClick={() => setRightPanelOpen(!rightPanelOpen)} className={`p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
-                        {rightPanelOpen ? <PanelRightClose className="w-4 h-4"/> : <PanelRightOpen className="w-4 h-4"/>}
-                    </button>
-                </div>
-            </div>
-
-            {/* MAIN WORKSPACE */}
-            <div className="flex flex-1 overflow-hidden relative">
-                
-                {/* LEFT: SETTINGS PANEL */}
-                <div className={`border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col z-10 shrink-0 transition-all duration-300 ease-in-out ${leftPanelOpen ? 'w-80 translate-x-0' : 'w-0 -translate-x-full opacity-0 overflow-hidden'}`}>
-                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
-                        <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2 tracking-wider">
-                            <Layers className="w-4 h-4 text-slate-400"/> Relay Settings
-                        </span>
+                    <div className="h-8 w-px bg-slate-300 mx-2 hidden md:block" />
+                    <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded border border-slate-200">
+                        <div className={`w-2 h-2 rounded-full ${status.trip ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
+                        <span className="text-xs font-bold text-slate-700">{status.trip ? 'TRIP ACTIVE' : 'SYSTEM HEALTHY'}</span>
                     </div>
-                    
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-                        {/* Zone Reach Settings */}
-                        <div className="space-y-6">
-                            <div>
-                                <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
-                                    <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500"></div> Zone 1 Reach</span>
-                                    <span className="font-mono text-slate-900 dark:text-white">{z1Reach} Ω</span>
-                                </div>
-                                <input type="range" min="1" max="10" step="0.5" value={z1Reach} onChange={(e) => setZ1Reach(Number(e.target.value))} className="w-full h-1.5 bg-red-100 dark:bg-red-900/30 rounded-lg appearance-none cursor-pointer accent-red-500" />
-                                <p className="text-[10px] text-slate-400 mt-1">Primary protection (typically 80% of line length).</p>
-                            </div>
+                </div>
+            </header>
 
-                            <div>
-                                <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
-                                    <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-orange-500"></div> Zone 2 Reach</span>
-                                    <span className="font-mono text-slate-900 dark:text-white">{z2Reach} Ω</span>
-                                </div>
-                                <input type="range" min={z1Reach} max="20" step="0.5" value={z2Reach} onChange={(e) => setZ2Reach(Number(e.target.value))} className="w-full h-1.5 bg-orange-100 dark:bg-orange-900/30 rounded-lg appearance-none cursor-pointer accent-orange-500" />
-                                <p className="text-[10px] text-slate-400 mt-1">Overreaching backup (typically 120% of line length).</p>
-                            </div>
+            {/* --- Main Workspace --- */}
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
 
-                            <div>
-                                <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
-                                    <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500"></div> Zone 3 Reach</span>
-                                    <span className="font-mono text-slate-900 dark:text-white">{z3Reach} Ω</span>
-                                </div>
-                                <input type="range" min={z2Reach} max="30" step="0.5" value={z3Reach} onChange={(e) => setZ3Reach(Number(e.target.value))} className="w-full h-1.5 bg-green-100 dark:bg-green-900/30 rounded-lg appearance-none cursor-pointer accent-green-500" />
-                                <p className="text-[10px] text-slate-400 mt-1">Remote backup (covers adjacent line).</p>
-                            </div>
+                {/* --- Left Panel: R-X Diagram (Visible only in Sim & Theory modes) --- */}
+                <div className={`flex-1 p-4 lg:p-8 overflow-y-auto flex flex-col items-center justify-center bg-slate-50 relative ${activeTab === 'quiz' ? 'hidden lg:flex' : ''} min-h-[400px] lg:min-h-auto border-b lg:border-b-0 lg:border-r border-slate-200`}>
+
+                    {/* Axis Labels */}
+                    <div className="absolute top-8 left-1/2 -translate-x-1/2 font-mono text-xs text-slate-400 font-bold">+ jX (Reactance Ω)</div>
+                    <div className="absolute top-1/2 right-8 -translate-y-1/2 font-mono text-xs text-slate-400 font-bold rotate-90">+ R (Resistance Ω)</div>
+
+                    {/* Chart Container */}
+                    <div
+                        className="relative bg-white rounded-xl border border-slate-300 shadow-xl overflow-hidden cursor-crosshair group w-full max-w-[500px] aspect-square"
+                        onMouseEnter={() => handleHover('chart')}
+                        onMouseLeave={clearHover}
+                    >
+                        {/* SVG Layer */}
+                        <div
+                            className="absolute inset-0 z-10"
+                            onClick={handleSvgClick}
+                            ref={svgRef}
+                        >
+                            <svg width="100%" height="100%" viewBox={`0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}`}>
+                                {/* Grid */}
+                                <defs>
+                                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" strokeWidth="1" />
+                                    </pattern>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                                {/* Axes */}
+                                <line x1="0" y1={CENTER} x2={CANVAS_SIZE} y2={CENTER} stroke="#94a3b8" strokeWidth="2" />
+                                <line x1={CENTER} y1="0" x2={CENTER} y2={CANVAS_SIZE} stroke="#94a3b8" strokeWidth="2" />
+
+                                {/* Zones (Interactive) */}
+                                <g className="text-emerald-500 hover:text-emerald-600 transition-colors" onMouseEnter={(e) => { e.stopPropagation(); handleHover('zone3'); }}>
+                                    {settings.charType === 'MHO'
+                                        ? getMhoPath(settings.z3Reach, settings.mta)
+                                        : getQuadPath(settings.z3Reach, settings.quadResReach * 1.2, settings.mta, settings.tilt)}
+                                </g>
+                                <g className="text-amber-500 hover:text-amber-600 transition-colors" onMouseEnter={(e) => { e.stopPropagation(); handleHover('zone2'); }}>
+                                    {settings.charType === 'MHO'
+                                        ? getMhoPath(settings.z2Reach, settings.mta)
+                                        : getQuadPath(settings.z2Reach, settings.quadResReach, settings.mta, settings.tilt)}
+                                </g>
+                                <g className="text-red-500 hover:text-red-600 transition-colors" onMouseEnter={(e) => { e.stopPropagation(); handleHover('zone1'); }}>
+                                    {settings.charType === 'MHO'
+                                        ? getMhoPath(settings.z1Reach, settings.mta)
+                                        : getQuadPath(settings.z1Reach, settings.quadResReach * 0.8, settings.mta, settings.tilt)}
+                                </g>
+
+                                {/* Vector & Fault */}
+                                <line
+                                    x1={CENTER} y1={CENTER}
+                                    x2={CENTER + fault.r * SCALE} y2={CENTER - fault.x * SCALE}
+                                    stroke={status.trip ? "#ef4444" : "#3b82f6"}
+                                    strokeWidth="2"
+                                    strokeDasharray="5,5"
+                                />
+                                <circle
+                                    cx={CENTER + fault.r * SCALE}
+                                    cy={CENTER - fault.x * SCALE}
+                                    r="6"
+                                    className={`${status.trip ? 'fill-red-500 animate-pulse' : 'fill-blue-600'}`}
+                                    onMouseEnter={(e) => { e.stopPropagation(); handleHover('fault_point'); }}
+                                />
+                            </svg>
                         </div>
 
-                        <hr className="border-slate-100 dark:border-slate-800"/>
+                        {/* Live Measurements Overlay */}
+                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur border border-slate-200 p-3 rounded-lg text-xs font-mono shadow-sm pointer-events-none">
+                            <div className="flex justify-between gap-4"><span>Z_mag:</span> <span className="font-bold text-slate-900">{Math.sqrt(fault.r ** 2 + fault.x ** 2).toFixed(2)}Ω</span></div>
+                            <div className="flex justify-between gap-4"><span>Angle:</span> <span className="font-bold text-slate-900">{(Math.atan2(fault.x, fault.r) * RAD_TO_DEG).toFixed(1)}°</span></div>
+                        </div>
+                    </div>
 
-                        {/* Characteristic Settings */}
-                        <div className="space-y-4">
-                            <div>
-                                <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
-                                    <span>Max Torque Angle (MTA)</span>
-                                    <span className="font-mono text-slate-900 dark:text-white">{mta}°</span>
-                                </div>
-                                <input type="range" min="30" max="85" step="1" value={mta} onChange={(e) => setMta(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" />
-                            </div>
+                    <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-slate-500 font-medium">
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-red-100 border border-red-500 rounded-sm"></div> Zone 1 (Inst.)</div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-amber-100 border border-amber-500 rounded-sm"></div> Zone 2 (Delayed)</div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-emerald-100 border border-emerald-500 rounded-sm"></div> Zone 3 (Backup)</div>
+                    </div>
+                </div>
 
-                            <div className="bg-amber-50 dark:bg-amber-900/10 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-bold text-amber-800 dark:text-amber-200">Load Blinder</span>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" className="sr-only peer" checked={enableBlinder} onChange={(e) => setEnableBlinder(e.target.checked)} />
-                                        <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                                    </label>
-                                </div>
-                                {enableBlinder && (
-                                    <div className="animate-fade-in">
-                                        <div className="flex justify-between text-[10px] text-amber-600/70 dark:text-amber-400/70 mb-1">
-                                            <span>Angle Limit</span>
-                                            <span>+/- {loadAngle}°</span>
+                {/* --- Right Panel: Controls, Theory & Quiz --- */}
+                <div className={`w-full lg:w-[480px] bg-white flex flex-col shadow-xl z-10 ${activeTab === 'quiz' ? 'w-full lg:w-full' : ''}`}>
+
+                    {/* Tabs */}
+                    <div className="flex border-b border-slate-200 bg-white shrink-0 overflow-x-auto">
+                        <TabButton active={activeTab === 'sim'} onClick={() => setActiveTab('sim')} icon={<Sliders className="w-4 h-4" />} label="Parameters" onHover={() => handleHover('default')} />
+                        <TabButton active={activeTab === 'theory'} onClick={() => setActiveTab('theory')} icon={<BookOpen className="w-4 h-4" />} label="Theory Hub" onHover={() => handleHover('default')} />
+                        <TabButton active={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} icon={<BrainCircuit className="w-4 h-4" />} label="Quiz" onHover={() => handleHover('default')} />
+                    </div>
+
+                    {/* Scrollable Content */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+
+                        {/* SIMULATION MODE */}
+                        {activeTab === 'sim' && (
+                            <div className="space-y-6">
+                                {/* Trip Status Banner */}
+                                <div className={`p-4 rounded-lg border-l-4 shadow-sm transition-all ${status.trip ? 'bg-red-50 border-red-500' : 'bg-slate-50 border-slate-300'}`}>
+                                    <h3 className={`font-bold text-sm uppercase flex items-center gap-2 ${status.trip ? 'text-red-700' : 'text-slate-600'}`}>
+                                        {status.trip ? <AlertOctagon className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+                                        Relay Status: {status.trip ? 'TRIPPED' : 'MONITORING'}
+                                    </h3>
+                                    <div className="mt-2 grid grid-cols-2 gap-4 text-xs">
+                                        <div>
+                                            <span className="text-slate-500 block">Active Zone</span>
+                                            <span className="font-mono font-bold text-slate-900 text-lg">{status.zone}</span>
                                         </div>
-                                        <input type="range" min="15" max="45" step="1" value={loadAngle} onChange={(e) => setLoadAngle(Number(e.target.value))} className="w-full h-1.5 bg-amber-200 dark:bg-amber-800 rounded-lg appearance-none cursor-pointer accent-amber-600" />
+                                        <div>
+                                            <span className="text-slate-500 block">Operating Time</span>
+                                            <span className="font-mono font-bold text-slate-900 text-lg">{status.time}ms</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Characteristic Selection */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">Characteristic Shape</h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            onClick={() => setSettings(s => ({ ...s, charType: 'MHO' }))}
+                                            onMouseEnter={() => handleHover('mho')}
+                                            onMouseLeave={clearHover}
+                                            className={`p-3 rounded-lg border text-sm font-bold flex items-center justify-center gap-2 transition-all ${settings.charType === 'MHO' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                        >
+                                            <div className="w-4 h-4 rounded-full border-2 border-current" /> Mho Circle
+                                        </button>
+                                        <button
+                                            onClick={() => setSettings(s => ({ ...s, charType: 'QUAD' }))}
+                                            onMouseEnter={() => handleHover('quad')}
+                                            onMouseLeave={clearHover}
+                                            className={`p-3 rounded-lg border text-sm font-bold flex items-center justify-center gap-2 transition-all ${settings.charType === 'QUAD' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                        >
+                                            <div className="w-4 h-4 border-2 border-current" /> Quadrilateral
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Settings Sliders */}
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">Reach Configuration</h4>
+
+                                    <Knob
+                                        label="Line Angle (MTA)" value={settings.mta} min={30} max={90} unit="°"
+                                        onChange={v => setSettings(s => ({ ...s, mta: v }))}
+                                        onHover={() => handleHover('mta')} onLeave={clearHover}
+                                    />
+
+                                    <Knob
+                                        label="Zone 1 Reach (80%)" value={settings.z1Reach} min={1} max={25} unit="Ω"
+                                        onChange={v => setSettings(s => ({ ...s, z1Reach: v }))}
+                                        onHover={() => handleHover('zone1')} onLeave={clearHover}
+                                    />
+
+                                    <Knob
+                                        label="Zone 2 Reach (120%)" value={settings.z2Reach} min={1} max={25} unit="Ω"
+                                        onChange={v => setSettings(s => ({ ...s, z2Reach: v }))}
+                                        onHover={() => handleHover('zone2')} onLeave={clearHover}
+                                    />
+
+                                    <Knob
+                                        label="Zone 3 Reach (Backup)" value={settings.z3Reach} min={1} max={25} unit="Ω"
+                                        onChange={v => setSettings(s => ({ ...s, z3Reach: v }))}
+                                        onHover={() => handleHover('zone3')} onLeave={clearHover}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* THEORY MODE */}
+                        {activeTab === 'theory' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+                                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-900">
+                                    <h3 className="font-bold flex items-center gap-2 mb-2"><BookOpen className="w-4 h-4" /> The Relay Engineer's Handbook</h3>
+                                    <p>Comprehensive guide to Distance Protection as per IEEE C37.113. Understanding these concepts is critical for real-world application.</p>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {THEORY_MODULES.map((module) => (
+                                        <div key={module.id} className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+                                            <div className="bg-slate-50 p-3 border-b border-slate-200 flex items-center gap-3">
+                                                <div className="p-1.5 bg-white rounded-md border border-slate-200 shadow-sm">{module.icon}</div>
+                                                <h4 className="font-bold text-slate-800">{module.title}</h4>
+                                            </div>
+                                            <div className="p-4 text-sm text-slate-600 leading-relaxed">
+                                                {module.content}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* QUIZ MODE */}
+                        {activeTab === 'quiz' && (
+                            <div className="space-y-6 h-full flex flex-col animate-in fade-in slide-in-from-right-4">
+                                {!quizState.active ? (
+                                    <div className="flex flex-col items-center justify-center h-full space-y-6 py-12">
+                                        <div className="p-6 bg-blue-50 rounded-full border-4 border-blue-100">
+                                            <BrainCircuit className="w-16 h-16 text-blue-600" />
+                                        </div>
+                                        <div className="text-center space-y-2">
+                                            <h3 className="text-2xl font-bold text-slate-900">Protection Knowledge Check</h3>
+                                            <p className="text-slate-500 max-w-xs mx-auto">Select your difficulty level. 5 questions will be randomly selected from the bank.</p>
+                                        </div>
+                                        <div className="grid grid-cols-1 w-full max-w-xs gap-3">
+                                            <button onClick={() => startQuiz('easy')} className="p-4 bg-white border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 rounded-xl font-bold text-slate-700 transition-all shadow-sm">
+                                                Easy Mode
+                                            </button>
+                                            <button onClick={() => startQuiz('medium')} className="p-4 bg-white border border-slate-200 hover:border-amber-500 hover:bg-amber-50 rounded-xl font-bold text-slate-700 transition-all shadow-sm">
+                                                Medium Mode
+                                            </button>
+                                            <button onClick={() => startQuiz('hard')} className="p-4 bg-white border border-slate-200 hover:border-red-500 hover:bg-red-50 rounded-xl font-bold text-slate-700 transition-all shadow-sm">
+                                                Specialist Mode
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : quizState.showResult ? (
+                                    <div className="flex flex-col items-center justify-center h-full space-y-6 py-12">
+                                        <Trophy className={`w-20 h-20 ${quizState.score >= 4 ? 'text-yellow-500' : 'text-slate-300'}`} />
+                                        <div className="text-center">
+                                            <h3 className="text-3xl font-bold text-slate-900">{quizState.score} / 5</h3>
+                                            <p className="text-slate-500 mt-2">
+                                                {quizState.score === 5 ? "Perfect Score! You are a Protection Engineer." :
+                                                    quizState.score >= 3 ? "Good job! Keep studying." : "Needs more practice."}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setQuizState(prev => ({ ...prev, active: false }))}
+                                            className="px-8 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                                        >
+                                            Try Another Quiz
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col h-full">
+                                        <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Question {quizState.currentIdx + 1} of 5</span>
+                                            <span className={`text-xs font-bold px-2 py-1 rounded uppercase ${quizState.difficulty === 'easy' ? 'bg-emerald-100 text-emerald-700' :
+                                                quizState.difficulty === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                                                }`}>{quizState.difficulty}</span>
+                                        </div>
+
+                                        <h3 className="text-lg font-bold text-slate-900 mb-6 leading-relaxed">
+                                            {quizState.questions[quizState.currentIdx].q}
+                                        </h3>
+
+                                        <div className="space-y-3 mb-6">
+                                            {quizState.questions[quizState.currentIdx].options.map((opt, i) => (
+                                                <button
+                                                    key={i}
+                                                    disabled={!!quizState.feedback}
+                                                    onClick={() => handleQuizAnswer(i)}
+                                                    className={`w-full p-4 rounded-xl border text-left text-sm font-medium transition-all ${quizState.feedback
+                                                        ? i === quizState.questions[quizState.currentIdx].a
+                                                            ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                                                            : quizState.feedback && i !== quizState.questions[quizState.currentIdx].a
+                                                                ? 'opacity-50 bg-slate-50'
+                                                                : ''
+                                                        : 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-md'
+                                                        }`}
+                                                >
+                                                    <div className="flex justify-between items-center">
+                                                        <span>{opt}</span>
+                                                        {quizState.feedback && i === quizState.questions[quizState.currentIdx].a && <Check className="w-5 h-5 text-emerald-600" />}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {quizState.feedback && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className={`p-4 rounded-lg mb-6 ${quizState.feedback.correct ? 'bg-emerald-50 border border-emerald-100' : 'bg-red-50 border border-red-100'}`}
+                                            >
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    {quizState.feedback.correct ? <Check className="w-5 h-5 text-emerald-600" /> : <X className="w-5 h-5 text-red-600" />}
+                                                    <span className={`font-bold ${quizState.feedback.correct ? 'text-emerald-800' : 'text-red-800'}`}>{quizState.feedback.text}</span>
+                                                </div>
+                                                <p className="text-sm text-slate-700">{quizState.feedback.explanation}</p>
+                                            </motion.div>
+                                        )}
+
+                                        {quizState.feedback && (
+                                            <div className="mt-auto">
+                                                <button
+                                                    onClick={nextQuestion}
+                                                    className="w-full py-3 bg-slate-900 text-white rounded-lg font-bold hover:bg-slate-800 flex items-center justify-center gap-2"
+                                                >
+                                                    {quizState.currentIdx < 4 ? "Next Question" : "See Results"} <ArrowRight className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        )}
+
                     </div>
-                </div>
 
-                {/* CENTER: R-X DIAGRAM */}
-                <div className="flex-1 bg-slate-100 dark:bg-slate-950 relative overflow-hidden flex flex-col">
-                    <div className="flex-1 relative m-4 bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden">
-                        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
-                            {/* Grid Pattern */}
-                            <defs>
-                                <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                                    <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#1e293b" strokeWidth="1"/>
-                                </pattern>
-                            </defs>
-                            <rect width="100%" height="100%" fill="url(#grid)" />
+                    {/* --- Live Context Panel (Bottom of Sidebar) - Only in Sim Mode --- */}
+                    {activeTab === 'sim' && <InfoPanel context={context} />}
 
-                            {/* Axes */}
-                            <line x1={originX} y1={0} x2={originX} y2={height} stroke="#475569" strokeWidth="2" />
-                            <line x1={0} y1={originY} x2={width} y2={originY} stroke="#475569" strokeWidth="2" />
-                            <text x={originX + 10} y={20} fill="#94a3b8" fontSize="12" fontWeight="bold">X (+jΩ)</text>
-                            <text x={width - 40} y={originY - 10} fill="#94a3b8" fontSize="12" fontWeight="bold">R (Ω)</text>
-
-                            {/* Load Blinder Wedge */}
-                            {enableBlinder && (
-                                <path 
-                                    d={`M ${originX} ${originY} 
-                                       L ${width} ${originY - (width-originX)*Math.tan(loadAngle*Math.PI/180)} 
-                                       L ${width} ${originY + (width-originX)*Math.tan(loadAngle*Math.PI/180)} Z`}
-                                    fill="#f59e0b" fillOpacity="0.15" stroke="none"
-                                />
-                            )}
-
-                            {/* Zone Circles */}
-                            {/* Z3 */}
-                            <circle cx={z3.cx} cy={z3.cy} r={z3.r} fill="#22c55e" fillOpacity="0.1" stroke="#22c55e" strokeWidth="2" strokeDasharray="4,4" />
-                            <text x={z3.cx + z3.r * 0.7} y={z3.cy - z3.r * 0.7} fill="#22c55e" fontSize="12" fontWeight="bold">Z3</text>
-                            
-                            {/* Z2 */}
-                            <circle cx={z2.cx} cy={z2.cy} r={z2.r} fill="#f97316" fillOpacity="0.1" stroke="#f97316" strokeWidth="2" strokeDasharray="4,4" />
-                            <text x={z2.cx + z2.r * 0.7} y={z2.cy - z2.r * 0.7} fill="#f97316" fontSize="12" fontWeight="bold">Z2</text>
-                            
-                            {/* Z1 */}
-                            <circle cx={z1.cx} cy={z1.cy} r={z1.r} fill="#ef4444" fillOpacity="0.1" stroke="#ef4444" strokeWidth="2" strokeDasharray="4,4" />
-                            <text x={z1.cx + z1.r * 0.7} y={z1.cy - z1.r * 0.7} fill="#ef4444" fontSize="12" fontWeight="bold">Z1</text>
-
-                            {/* Fault Vector */}
-                            <line x1={originX} y1={originY} x2={fp.x} y2={fp.y} stroke="white" strokeWidth="2" />
-                            <circle cx={fp.x} cy={fp.y} r="6" fill={status.includes('TRIP') ? '#ef4444' : '#3b82f6'} stroke="white" strokeWidth="2" />
-                            
-                            {/* Live Value Tag */}
-                            <rect x={fp.x + 10} y={fp.y - 25} width="80" height="40" rx="4" fill="rgba(15, 23, 42, 0.8)" />
-                            <text x={fp.x + 15} y={fp.y - 10} fill="white" fontSize="10" fontWeight="bold">Zf = {Math.sqrt(faultR**2 + faultX**2).toFixed(1)}Ω</text>
-                            <text x={fp.x + 15} y={fp.y + 5} fill="#94a3b8" fontSize="10">{faultR.toFixed(1)} + j{faultX.toFixed(1)}</text>
-                        </svg>
-
-                        {/* Status Overlay */}
-                        <div className={`absolute bottom-6 right-6 p-4 rounded-xl border-2 shadow-2xl backdrop-blur-md min-w-[200px] flex items-center justify-between gap-4 ${bg} ${borderColor}`}>
-                            <div>
-                                <div className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${statusColor}`}>Relay Status</div>
-                                <div className={`text-2xl font-black ${statusColor}`}>{status}</div>
-                                <div className="text-xs font-bold opacity-70 mt-1">{zone} {delay && `• ${delay}`}</div>
-                            </div>
-                            {status === 'TRIP' ? <Zap className={`w-8 h-8 ${statusColor} animate-pulse`} /> : status === 'BLOCKED' ? <Shield className={`w-8 h-8 ${statusColor}`} /> : <Activity className={`w-8 h-8 ${statusColor}`} />}
-                        </div>
-                    </div>
-                </div>
-
-                {/* RIGHT: FAULT SIMULATION */}
-                <div className={`border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col z-10 shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out ${rightPanelOpen ? 'w-80 translate-x-0' : 'w-0 translate-x-full opacity-0 overflow-hidden'}`}>
-                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
-                        <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2 tracking-wider">
-                            <Target className="w-4 h-4 text-slate-400"/> Fault Simulation
-                        </span>
-                    </div>
-                    
-                    <div className="p-6 space-y-8 flex-1 overflow-y-auto">
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
-                            <div className="text-xs text-slate-500 font-bold uppercase mb-2">Impedance Vector (Z)</div>
-                            <div className="text-3xl font-black text-slate-900 dark:text-white font-mono">{Math.sqrt(faultR**2 + faultX**2).toFixed(2)} Ω</div>
-                            <div className="text-xs text-slate-400 mt-1 font-mono">{Math.atan2(faultX, faultR).toFixed(2)} rad / {(Math.atan2(faultX, faultR) * 180 / Math.PI).toFixed(1)}°</div>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div>
-                                <div className="flex justify-between items-end mb-2">
-                                    <label className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase">Resistance (R)</label>
-                                    <span className="font-mono text-sm font-bold text-purple-600 dark:text-purple-400">{faultR.toFixed(1)} Ω</span>
-                                </div>
-                                <input 
-                                    type="range" min="0" max="25" step="0.1" value={faultR} 
-                                    onChange={(e) => setFaultR(Number(e.target.value))}
-                                    className="w-full h-2 bg-purple-200 dark:bg-purple-900 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                                />
-                                <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                                    <span>0 Ω</span>
-                                    <span>Arc Resistance</span>
-                                    <span>25 Ω</span>
-                                </div>
-                            </div>
-
-                            <div>
-                                <div className="flex justify-between items-end mb-2">
-                                    <label className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">Reactance (X)</label>
-                                    <span className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">{faultX.toFixed(1)} Ω</span>
-                                </div>
-                                <input 
-                                    type="range" min="0" max="25" step="0.1" value={faultX} 
-                                    onChange={(e) => setFaultX(Number(e.target.value))}
-                                    className="w-full h-2 bg-blue-200 dark:bg-blue-900 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                />
-                                <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                                    <span>0 Ω</span>
-                                    <span>Line Length</span>
-                                    <span>25 Ω</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30">
-                            <div className="flex items-start gap-3">
-                                <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                                <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                                    <strong>Tip:</strong> Moving the sliders effectively moves the fault location along the transmission line. High X means the fault is further away from the substation.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            {/* --- ENGINEERING FOOTER (COLLAPSIBLE) --- */}
-            <div className={`bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out shrink-0 ${footerOpen ? 'h-auto max-h-[40vh]' : 'h-8'} overflow-hidden flex flex-col`}>
-                <button 
-                    onClick={() => setFooterOpen(!footerOpen)} 
-                    className="w-full h-8 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 flex items-center justify-center gap-2 text-[10px] font-bold uppercase text-slate-500 tracking-widest border-b border-slate-100 dark:border-slate-800 transition-colors shrink-0"
-                >
-                    <GraduationCap className="w-3 h-3"/> Knowledge Base <ChevronUp className={`w-3 h-3 transition-transform duration-300 ${footerOpen ? 'rotate-180' : ''}`}/>
-                </button>
-                <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-8 overflow-y-auto">
-                    <div className="space-y-3">
-                        <h4 className="font-bold text-sm text-slate-500 uppercase tracking-wider flex items-center gap-2"><Map className="w-4 h-4"/> R-X Diagram</h4>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                            Distance relays measure voltage and current to calculate Impedance ($Z=V/I$). Since the line impedance is proportional to length, this measures distance to the fault. The <strong>R-X Diagram</strong> plots this calculated Z in the complex plane.
-                        </p>
-                    </div>
-                    <div className="space-y-3">
-                        <h4 className="font-bold text-sm text-slate-500 uppercase tracking-wider flex items-center gap-2"><Target className="w-4 h-4"/> Protection Zones</h4>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                            <strong className="text-red-500">Zone 1:</strong> Instantaneous trip. Reaches 80-85% of the line to avoid overreaching the remote terminal.
-                            <br/>
-                            <strong className="text-orange-500">Zone 2:</strong> Time delayed (0.3-0.4s). Reaches 120% to cover the remaining line end and part of the next line.
-                        </p>
-                    </div>
-                    <div className="space-y-3">
-                        <h4 className="font-bold text-sm text-slate-500 uppercase tracking-wider flex items-center gap-2"><Shield className="w-4 h-4"/> Mho Characteristic</h4>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                            The circular shape is called a "Mho" characteristic. It is inherently directional—it only trips for faults in the forward direction (quadrant 1) and does not operate for reverse faults (quadrant 3), providing security.
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+      `}</style>
         </div>
     );
-};
-
-export default DistanceLab;
+}

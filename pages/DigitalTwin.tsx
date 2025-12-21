@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-  Activity, Zap, Power, AlertTriangle, 
-  RotateCcw, Play, Pause, Info, 
-  ShieldAlert, CheckCircle2, 
+import {
+  Activity, Zap, Power, AlertTriangle,
+  RotateCcw, Play, Pause, Info,
+  ShieldAlert, CheckCircle2,
   MousePointer2, BookOpen, GraduationCap,
   ArrowRight, X, Menu, ChevronDown, List, Clock
 } from 'lucide-react';
@@ -20,9 +20,9 @@ interface NodeData {
   label: string;
   voltagekV: number;
   // State
-  status?: 'CLOSED' | 'OPEN' | 'TRIPPED'; 
-  loadMW?: number; 
-  ratingAmps?: number; 
+  status?: 'CLOSED' | 'OPEN' | 'TRIPPED';
+  loadMW?: number;
+  ratingAmps?: number;
   faulted?: boolean;
   // Engineering Data
   ansi?: string[]; // e.g. ['50', '51']
@@ -49,13 +49,13 @@ interface LogEntry {
 // --- SCENARIOS ---
 
 const SCENARIOS = {
-  normal: { 
-    name: "Normal Operations", 
+  normal: {
+    name: "Normal Operations",
     desc: "System nominal. Verify CT ratios and breaker status.",
     setup: (nodes: NodeData[]) => nodes.map(n => ({ ...n, status: n.type === 'BREAKER' ? 'CLOSED' : undefined, faulted: false, loadMW: n.type === 'LOAD' ? 10 : undefined }))
   },
   overload: {
-    name: "Scenario: ANSI 51 (Overload)", 
+    name: "Scenario: ANSI 51 (Overload)",
     desc: "Feeder 2 is overloaded. Monitor Inverse Time Overcurrent (51) element.",
     setup: (nodes: NodeData[]) => nodes.map(n => {
       if (n.id === 'load2') return { ...n, loadMW: 35 }; // High load
@@ -64,7 +64,7 @@ const SCENARIOS = {
     })
   },
   fault: {
-    name: "Scenario: ANSI 50 (Short Circuit)", 
+    name: "Scenario: ANSI 50 (Short Circuit)",
     desc: "Fault on Main Bus. Testing Instantaneous Overcurrent (50) element.",
     setup: (nodes: NodeData[]) => nodes.map(n => {
       if (n.id === 'bus_mv') return { ...n, faulted: true };
@@ -78,36 +78,36 @@ const SCENARIOS = {
 
 const INITIAL_NODES: NodeData[] = [
   { id: 'grid', type: 'GRID', x: 400, y: 60, label: 'Utility Grid', voltagekV: 132 },
-  { 
-    id: 'cb_main', type: 'BREAKER', x: 400, y: 140, label: 'Main Breaker 52-M', voltagekV: 132, 
-    status: 'CLOSED', ratingAmps: 2000, 
+  {
+    id: 'cb_main', type: 'BREAKER', x: 400, y: 140, label: 'Main Breaker 52-M', voltagekV: 132,
+    status: 'CLOSED', ratingAmps: 2000,
     ansi: ['50', '51', '50N', '51N'], ctRatio: '2000:5'
   },
-  { 
+  {
     id: 'tx1', type: 'TRANSFORMER', x: 400, y: 220, label: 'TX-01', voltagekV: 132,
     vectorGroup: 'Dyn11', ansi: ['87T', '63', '49']
   },
   { id: 'bus_mv', type: 'BUS', x: 400, y: 300, label: '33kV Bus', voltagekV: 33 },
 
   // Feeder 1
-  { 
-    id: 'cb_f1', type: 'BREAKER', x: 150, y: 380, label: 'Feeder 52-F1', voltagekV: 33, 
+  {
+    id: 'cb_f1', type: 'BREAKER', x: 150, y: 380, label: 'Feeder 52-F1', voltagekV: 33,
     status: 'CLOSED', ratingAmps: 800,
     ansi: ['50', '51'], ctRatio: '800:5'
   },
   { id: 'load1', type: 'LOAD', x: 150, y: 500, label: 'Residential', voltagekV: 33, loadMW: 5 },
 
   // Feeder 2
-  { 
-    id: 'cb_f2', type: 'BREAKER', x: 400, y: 380, label: 'Feeder 52-F2', voltagekV: 33, 
+  {
+    id: 'cb_f2', type: 'BREAKER', x: 400, y: 380, label: 'Feeder 52-F2', voltagekV: 33,
     status: 'CLOSED', ratingAmps: 800,
     ansi: ['50', '51'], ctRatio: '800:5'
   },
   { id: 'load2', type: 'LOAD', x: 400, y: 500, label: 'Industrial', voltagekV: 33, loadMW: 15 },
 
   // Feeder 3
-  { 
-    id: 'cb_f3', type: 'BREAKER', x: 650, y: 380, label: 'Feeder 52-F3', voltagekV: 33, 
+  {
+    id: 'cb_f3', type: 'BREAKER', x: 650, y: 380, label: 'Feeder 52-F3', voltagekV: 33,
     status: 'CLOSED', ratingAmps: 800,
     ansi: ['50', '51'], ctRatio: '800:5'
   },
@@ -131,7 +131,7 @@ const INITIAL_LINKS: LinkData[] = [
 const calculatePhysics = (nodes: NodeData[], links: LinkData[]) => {
   const energized = new Set<string>();
   const currents: Record<string, number> = {};
-  
+
   // 1. Energization Trace (BFS)
   const queue = ['grid'];
   if (nodes.find(n => n.id === 'grid')) energized.add('grid');
@@ -139,7 +139,7 @@ const calculatePhysics = (nodes: NodeData[], links: LinkData[]) => {
   while (queue.length > 0) {
     const currId = queue.shift()!;
     const node = nodes.find(n => n.id === currId);
-    
+
     // Power stops at Open/Tripped breakers
     if (node?.type === 'BREAKER' && node.status !== 'CLOSED') continue;
 
@@ -159,7 +159,7 @@ const calculatePhysics = (nodes: NodeData[], links: LinkData[]) => {
   nodes.forEach(n => {
     if (n.type === 'LOAD') {
       const mw = energized.has(n.id) ? (n.loadMW || 0) : 0;
-      currents[n.id] = (mw * 1000) / n.voltagekV; 
+      currents[n.id] = (mw * 1000) / n.voltagekV;
       if (n.faulted && energized.has(n.id)) currents[n.id] = 10000; // Fault current
     } else {
       currents[n.id] = 0;
@@ -168,10 +168,10 @@ const calculatePhysics = (nodes: NodeData[], links: LinkData[]) => {
 
   // Aggregate currents (Simplified tree structure)
   ['cb_f1', 'cb_f2', 'cb_f3'].forEach((cbId, i) => {
-    const loadId = `load${i+1}`;
+    const loadId = `load${i + 1}`;
     currents[cbId] = currents[loadId];
   });
-  
+
   const i_feeders = currents['cb_f1'] + currents['cb_f2'] + currents['cb_f3'];
   currents['bus_mv'] = i_feeders;
   if (nodes.find(n => n.id === 'bus_mv')?.faulted && energized.has('bus_mv')) currents['bus_mv'] += 20000;
@@ -236,61 +236,60 @@ const InstructorContent = ({ selectedNode, physics, setNodes, logs }: any) => {
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Asset ID: {selectedNode.id}</div>
           <h3 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">{selectedNode.label}</h3>
         </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-             selectedNode.faulted ? 'bg-red-100 text-red-600' : 
-             selectedNode.status === 'TRIPPED' ? 'bg-red-100 text-red-600' : 
-             selectedNode.status === 'OPEN' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-600'
-           }`}>
-             {selectedNode.faulted ? 'FAULT' : selectedNode.status || 'ONLINE'}
+        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${selectedNode.faulted ? 'bg-red-100 text-red-600' :
+            selectedNode.status === 'TRIPPED' ? 'bg-red-100 text-red-600' :
+              selectedNode.status === 'OPEN' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-600'
+          }`}>
+          {selectedNode.faulted ? 'FAULT' : selectedNode.status || 'ONLINE'}
         </div>
       </div>
 
       {/* 2. Engineering Data */}
       <div className="grid grid-cols-2 gap-2 text-xs">
-         <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-           <span className="text-slate-500 block">Nominal Voltage</span>
-           <span className="font-mono font-bold">{selectedNode.voltagekV} kV</span>
-         </div>
-         {selectedNode.ctRatio && (
-           <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-             <span className="text-slate-500 block">CT Ratio</span>
-             <span className="font-mono font-bold">{selectedNode.ctRatio}</span>
-           </div>
-         )}
-         {selectedNode.vectorGroup && (
-           <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-             <span className="text-slate-500 block">Vector Group</span>
-             <span className="font-mono font-bold">{selectedNode.vectorGroup}</span>
-           </div>
-         )}
-         {selectedNode.ansi && (
-           <div className="col-span-2 p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 flex gap-2 items-center">
-             <span className="text-slate-500">Protection:</span>
-             <div className="flex gap-1">
-               {selectedNode.ansi.map((code: string) => (
-                 <span key={code} className="bg-slate-200 dark:bg-slate-700 px-1.5 rounded text-[10px] font-mono font-bold">{code}</span>
-               ))}
-             </div>
-           </div>
-         )}
+        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+          <span className="text-slate-500 block">Nominal Voltage</span>
+          <span className="font-mono font-bold">{selectedNode.voltagekV} kV</span>
+        </div>
+        {selectedNode.ctRatio && (
+          <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+            <span className="text-slate-500 block">CT Ratio</span>
+            <span className="font-mono font-bold">{selectedNode.ctRatio}</span>
+          </div>
+        )}
+        {selectedNode.vectorGroup && (
+          <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+            <span className="text-slate-500 block">Vector Group</span>
+            <span className="font-mono font-bold">{selectedNode.vectorGroup}</span>
+          </div>
+        )}
+        {selectedNode.ansi && (
+          <div className="col-span-2 p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 flex gap-2 items-center">
+            <span className="text-slate-500">Protection:</span>
+            <div className="flex gap-1">
+              {selectedNode.ansi.map((code: string) => (
+                <span key={code} className="bg-slate-200 dark:bg-slate-700 px-1.5 rounded text-[10px] font-mono font-bold">{code}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 3. Live Metrics */}
       <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-         <div className="flex justify-between items-end mb-2">
-           <span className="text-xs font-bold text-slate-500 uppercase">Primary Current (RMS)</span>
-           <span className={`text-2xl font-mono font-bold ${physics.currents[selectedNode.id] > (selectedNode.ratingAmps || 9999) ? 'text-red-500' : 'text-slate-900 dark:text-white'}`}>
-             {physics.currents[selectedNode.id]?.toFixed(0)} <span className="text-sm">A</span>
-           </span>
-         </div>
-         {selectedNode.ratingAmps && (
-           <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-             <div 
-                className={`h-full transition-all duration-500 ${physics.currents[selectedNode.id] > selectedNode.ratingAmps ? 'bg-red-500' : 'bg-emerald-500'}`}
-                style={{ width: `${Math.min(100, (physics.currents[selectedNode.id] / selectedNode.ratingAmps) * 100)}%` }}
-             />
-           </div>
-         )}
+        <div className="flex justify-between items-end mb-2">
+          <span className="text-xs font-bold text-slate-500 uppercase">Primary Current (RMS)</span>
+          <span className={`text-2xl font-mono font-bold ${physics.currents[selectedNode.id] > (selectedNode.ratingAmps || 9999) ? 'text-red-500' : 'text-slate-900 dark:text-white'}`}>
+            {physics.currents[selectedNode.id]?.toFixed(0)} <span className="text-sm">A</span>
+          </span>
+        </div>
+        {selectedNode.ratingAmps && (
+          <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+            <div
+              className={`h-full transition-all duration-500 ${physics.currents[selectedNode.id] > selectedNode.ratingAmps ? 'bg-red-500' : 'bg-emerald-500'}`}
+              style={{ width: `${Math.min(100, (physics.currents[selectedNode.id] / selectedNode.ratingAmps) * 100)}%` }}
+            />
+          </div>
+        )}
       </div>
 
       {/* 4. Controls */}
@@ -317,10 +316,10 @@ const InstructorContent = ({ selectedNode, physics, setNodes, logs }: any) => {
         {selectedNode.type === 'LOAD' && (
           <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl">
             <div className="flex justify-between mb-2">
-               <span className="font-bold text-sm">Load Demand</span>
-               <span className="font-mono text-sm">{selectedNode.loadMW} MW</span>
+              <span className="font-bold text-sm">Load Demand</span>
+              <span className="font-mono text-sm">{selectedNode.loadMW} MW</span>
             </div>
-            <input 
+            <input
               type="range" min="0" max="40" step="1"
               value={selectedNode.loadMW}
               onChange={(e) => setNodes((prev: any) => prev.map((n: any) => n.id === selectedNode.id ? { ...n, loadMW: Number(e.target.value) } : n))}
@@ -331,13 +330,12 @@ const InstructorContent = ({ selectedNode, physics, setNodes, logs }: any) => {
 
         <button
           onClick={() => setNodes((prev: any) => prev.map((n: any) => n.id === selectedNode.id ? { ...n, faulted: !n.faulted } : n))}
-          className={`w-full py-3 font-bold rounded-lg border-2 flex items-center justify-center gap-2 transition-all text-sm ${
-            selectedNode.faulted 
-              ? 'border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' 
+          className={`w-full py-3 font-bold rounded-lg border-2 flex items-center justify-center gap-2 transition-all text-sm ${selectedNode.faulted
+              ? 'border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
               : 'border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-900/20'
-          }`}
+            }`}
         >
-          {selectedNode.faulted ? <CheckCircle2 className="w-4 h-4"/> : <AlertTriangle className="w-4 h-4"/>}
+          {selectedNode.faulted ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
           {selectedNode.faulted ? 'CLEAR FAULT' : 'INJECT SHORT CIRCUIT'}
         </button>
       </div>
@@ -379,8 +377,8 @@ const DigitalSubstation = () => {
   const addLog = (device: string, event: string, details: string, type: 'INFO' | 'TRIP' | 'ALARM') => {
     const newLog = {
       // FIX: Added random component to avoid duplicate keys on simultaneous events in the simulation loop
-      id: Date.now() + Math.random(), 
-      time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' }),
+      id: Date.now() + Math.random(),
+      time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       device, event, details, type
     };
     setLogs(prev => [newLog, ...prev].slice(0, 20));
@@ -400,7 +398,7 @@ const DigitalSubstation = () => {
           const limit = n.ratingAmps || 1000;
 
           // ANSI 50: Instantaneous Overcurrent
-          if (amps > limit * 5) { 
+          if (amps > limit * 5) {
             tripped = true;
             const msg = `ANSI 50 Trip (I >> ${amps.toFixed(0)}A)`;
             setAlert(`${n.label}: ${msg}`);
@@ -408,14 +406,14 @@ const DigitalSubstation = () => {
             return { ...n, status: 'TRIPPED' as const };
           }
           // ANSI 51: Time Inverse Overcurrent
-          if (amps > limit * 1.2) { 
-             if (Math.random() > 0.85) { 
-                tripped = true;
-                const msg = `ANSI 51 Trip (Overload ${amps.toFixed(0)}A)`;
-                setAlert(`${n.label}: ${msg}`);
-                addLog(n.label, 'TRIP', msg, 'TRIP');
-                return { ...n, status: 'TRIPPED' as const };
-             }
+          if (amps > limit * 1.2) {
+            if (Math.random() > 0.85) {
+              tripped = true;
+              const msg = `ANSI 51 Trip (Overload ${amps.toFixed(0)}A)`;
+              setAlert(`${n.label}: ${msg}`);
+              addLog(n.label, 'TRIP', msg, 'TRIP');
+              return { ...n, status: 'TRIPPED' as const };
+            }
           }
         }
         return n;
@@ -427,7 +425,7 @@ const DigitalSubstation = () => {
   }, [nodes, isRunning]);
 
   const handleScenario = (key: keyof typeof SCENARIOS) => {
-    setNodes(SCENARIOS[key].setup(INITIAL_NODES));
+    setNodes(SCENARIOS[key].setup(INITIAL_NODES) as NodeData[]);
     setAlert(null);
     setSelectedId(null);
     setIsPanelOpen(false);
@@ -437,21 +435,21 @@ const DigitalSubstation = () => {
 
   const getLinkColor = (link: LinkData) => {
     const isEnergized = physics.energized.has(link.source) && physics.energized.has(link.target);
-    if (!isEnergized) return '#94a3b8'; 
-    
+    if (!isEnergized) return '#94a3b8';
+
     const amps = physics.currents[link.target] || physics.currents[link.source] || 0;
     const load = amps / link.ratingAmps;
 
-    if (load > 1.0) return '#ef4444'; 
-    if (load > 0.8) return '#f59e0b'; 
-    return '#3b82f6'; 
+    if (load > 1.0) return '#ef4444';
+    if (load > 0.8) return '#f59e0b';
+    return '#3b82f6';
   };
 
   const selectedNode = nodes.find(n => n.id === selectedId);
 
   return (
     <div className="h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-sans flex flex-col overflow-hidden">
-      
+
       {/* 1. TOP NAVBAR */}
       <div className="flex-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm z-20">
         <div className="flex items-center justify-between px-4 h-16">
@@ -466,46 +464,46 @@ const DigitalSubstation = () => {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4 overflow-x-auto no-scrollbar ml-4">
-             <div className="flex gap-2">
-               {Object.entries(SCENARIOS).map(([key, data]) => (
-                 <button
-                   key={key}
-                   onClick={() => handleScenario(key as any)}
-                   className="whitespace-nowrap px-3 py-1.5 text-xs font-bold uppercase tracking-wide rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 transition-colors"
-                 >
-                   {data.name.replace('Scenario: ', '')}
-                 </button>
-               ))}
-             </div>
-             <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
-             <div className="flex gap-2 shrink-0">
-               <button 
-                 onClick={() => setIsRunning(!isRunning)}
-                 className={`p-2 rounded-full ${isRunning ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'}`}
-               >
-                 {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-               </button>
-               <button 
-                 onClick={() => { setNodes(INITIAL_NODES); setLogs([]); }} 
-                 className="p-2 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
-               >
-                 <RotateCcw className="w-5 h-5" />
-               </button>
-             </div>
+            <div className="flex gap-2">
+              {Object.entries(SCENARIOS).map(([key, data]) => (
+                <button
+                  key={key}
+                  onClick={() => handleScenario(key as any)}
+                  className="whitespace-nowrap px-3 py-1.5 text-xs font-bold uppercase tracking-wide rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 transition-colors"
+                >
+                  {data.name.replace('Scenario: ', '')}
+                </button>
+              ))}
+            </div>
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={() => setIsRunning(!isRunning)}
+                className={`p-2 rounded-full ${isRunning ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'}`}
+              >
+                {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={() => { setNodes(INITIAL_NODES); setLogs([]); }}
+                className="p-2 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
+              >
+                <RotateCcw className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden relative">
-        
+
         {/* 2. CANVAS AREA */}
-        <div 
+        <div
           className="flex-1 relative bg-slate-100 dark:bg-slate-950 cursor-move"
           onClick={() => { setSelectedId(null); setIsPanelOpen(false); }}
         >
           <div className="absolute inset-0 flex items-center justify-center p-4">
-            <svg 
-              viewBox="0 0 800 600" 
+            <svg
+              viewBox="0 0 800 600"
               className="w-full h-full max-w-[1000px] max-h-[800px] select-none"
               preserveAspectRatio="xMidYMid meet"
             >
@@ -525,17 +523,17 @@ const DigitalSubstation = () => {
 
                 return (
                   <g key={link.id}>
-                    <line 
-                      x1={src.x} y1={src.y} x2={tgt.x} y2={tgt.y} 
-                      stroke={color} 
-                      strokeWidth="4" 
+                    <line
+                      x1={src.x} y1={src.y} x2={tgt.x} y2={tgt.y}
+                      stroke={color}
+                      strokeWidth="4"
                       strokeLinecap="round"
                       opacity={isEnergized ? 1 : 0.3}
                     />
                     {isEnergized && (
                       <circle r="3" fill="white">
-                        <animateMotion 
-                          dur="2s" 
+                        <animateMotion
+                          dur="2s"
                           repeatCount="indefinite"
                           path={`M ${src.x} ${src.y} L ${tgt.x} ${tgt.y}`}
                         />
@@ -552,8 +550,8 @@ const DigitalSubstation = () => {
                 const color = node.type === 'GRID' ? '#3b82f6' : node.type === 'LOAD' ? '#a855f7' : '#64748b';
 
                 return (
-                  <g 
-                    key={node.id} 
+                  <g
+                    key={node.id}
                     transform={`translate(${node.x}, ${node.y})`}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -581,7 +579,7 @@ const DigitalSubstation = () => {
                       {node.type === 'BUS' && <CheckCircle2 className="w-6 h-6 text-slate-500" />}
                     </g>
                     {node.faulted && (
-                       <circle r="30" fill="red" opacity="0.5" className="animate-ping pointer-events-none" />
+                      <circle r="30" fill="red" opacity="0.5" className="animate-ping pointer-events-none" />
                     )}
                     <text y="42" textAnchor="middle" className="text-[12px] font-bold fill-slate-600 uppercase tracking-tight bg-white/80" style={{ textShadow: '0 0 4px white' }}>
                       {node.label}
@@ -591,10 +589,10 @@ const DigitalSubstation = () => {
               })}
             </svg>
           </div>
-          
+
           <AnimatePresence>
             {alert && (
-              <motion.div 
+              <motion.div
                 initial={{ y: -50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -50, opacity: 0 }}
@@ -627,16 +625,16 @@ const DigitalSubstation = () => {
         <AnimatePresence>
           {isPanelOpen && (
             <>
-              <motion.div 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="md:hidden absolute inset-0 bg-black/40 z-30 backdrop-blur-sm"
                 onClick={() => setIsPanelOpen(false)}
               />
-              <motion.div 
-                initial={{ y: "100%" }} 
-                animate={{ y: 0 }} 
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
                 className="md:hidden absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl z-40 max-h-[70vh] flex flex-col"
@@ -645,7 +643,7 @@ const DigitalSubstation = () => {
                   <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
                 </div>
                 <div className="p-6 overflow-y-auto">
-                   <InstructorContent selectedNode={selectedNode} physics={physics} setNodes={setNodes} logs={logs} />
+                  <InstructorContent selectedNode={selectedNode} physics={physics} setNodes={setNodes} logs={logs} />
                 </div>
               </motion.div>
             </>
