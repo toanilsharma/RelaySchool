@@ -8,7 +8,7 @@ import {
     AlertOctagon, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
     Maximize2, Minimize2, BrainCircuit, School, Calculator, ArrowRight,
     Trophy, XCircle, RefreshCw, Flame, Factory, Gauge, GitCompare,
-    ArrowUpFromLine, ArrowDownToLine, Ruler
+    ArrowUpFromLine, ArrowDownToLine, Ruler, Menu, Book, MousePointerClick
 } from 'lucide-react';
 
 // --- 1. CONSTANTS & DATA BANKS ---
@@ -700,23 +700,118 @@ const SimulatorView = ({ isActive }) => {
 
     const selectedDevice = devices.find(d => d.id === selectedId);
 
-    // Help Modal
-    const HelpModal = ({ onClose }) => (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
-                <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800">
-                    <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white"><BookOpen className="w-6 h-6 text-blue-600" /> Quick Start</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><X className="w-5 h-5" /></button>
+    // Help Modal - Commercial Grade
+    const HelpModal = ({ onClose }) => {
+        const [tab, setTab] = useState('quick');
+        const HelpTab = ({ id, label, icon }) => (
+            <button onClick={() => setTab(id)} className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}>
+                {icon} {label}
+            </button>
+        );
+
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
+                    <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                        <h2 className="text-xl font-black flex items-center gap-2 text-slate-900 dark:text-white uppercase tracking-wider"><BookOpen className="w-6 h-6 text-blue-600" /> TCC Studio Operations Manual</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                    </div>
+                    <div className="flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto">
+                        <HelpTab id="quick" label="Quick Start" icon={<MousePointerClick className="w-4 h-4" />} />
+                        <HelpTab id="params" label="Device Parameters" icon={<Settings className="w-4 h-4" />} />
+                        <HelpTab id="coord" label="Coordination Guide" icon={<GitCompare className="w-4 h-4" />} />
+                        <HelpTab id="equip" label="Equipment Protection" icon={<Shield className="w-4 h-4" />} />
+                    </div>
+                    <div className="p-8 overflow-y-auto space-y-6 text-slate-600 dark:text-slate-300 text-sm leading-relaxed bg-white dark:bg-slate-900 flex-1">
+                        {tab === 'quick' && (
+                            <div className="space-y-6 animate-fade-in">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 dark:text-white mb-4 text-lg">Graph Controls</h3>
+                                        <ul className="space-y-3">
+                                            <li className="flex gap-3"><span className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs shrink-0">1</span><span><strong>Select Curve:</strong> Click directly on any curve to select it. The settings panel on the right will activate.</span></li>
+                                            <li className="flex gap-3"><span className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs shrink-0">2</span><span><strong>Drag Handles:</strong> Selected curves show a <span className="font-bold text-blue-500">Square</span> handle for Pickup (Current) and a <span className="font-bold text-purple-500">Circle</span> handle for Time Dial (Vertical Shift).</span></li>
+                                            <li className="flex gap-3"><span className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs shrink-0">3</span><span><strong>Fault Slider:</strong> Drag the vertical <span className="font-bold text-red-500">Red Dashed Line</span> to simulate different fault levels. The analysis panel updates in real-time.</span></li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 dark:text-white mb-4 text-lg">Toolbar Functions</h3>
+                                        <ul className="space-y-3">
+                                            <li className="flex gap-3"><Layers className="w-5 h-5 text-blue-500 shrink-0" /> <span><strong>Scenarios:</strong> Load pre-configured industry examples (e.g., Transformer Damage, Motor Start).</span></li>
+                                            <li className="flex gap-3"><Plus className="w-5 h-5 text-blue-500 shrink-0" /> <span><strong>Add Device:</strong> Adds a new generic relay to the graph. Default is IEC Standard Inverse.</span></li>
+                                            <li className="flex gap-3"><Zap className="w-5 h-5 text-amber-500 shrink-0" /> <span><strong>Sim Fault:</strong> Numeric input for precise fault current simulation.</span></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {tab === 'params' && (
+                            <div className="space-y-6 animate-fade-in">
+                                <p>Understanding the core parameters of Overcurrent Protection relays (50/51).</p>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <h4 className="font-bold text-blue-600 dark:text-blue-400 mb-2">Pickup / Plug Setting (Is)</h4>
+                                        <p>The minimum current required to initiate the timing mechanism. Below this value, the relay never trips. Usually set based on Full Load Amps (FLA).</p>
+                                    </div>
+                                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <h4 className="font-bold text-purple-600 dark:text-purple-400 mb-2">Time Dial / TMS (Time Multiplier Setting)</h4>
+                                        <p>Shifts the curve vertically. A higher TMS means a longer trip time for the same fault current. Used to achieve selectivity between upstream and downstream devices.</p>
+                                    </div>
+                                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <h4 className="font-bold text-slate-800 dark:text-white mb-2">Instantaneous (50)</h4>
+                                        <p>Defines a current threshold above which the relay trips immediately (typically &lt;0.05s) with no intentional delay. Used for high-current close-in faults.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {tab === 'coord' && (
+                            <div className="space-y-6 animate-fade-in">
+                                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800 mb-4">
+                                    <h3 className="font-bold text-green-800 dark:text-green-300 text-lg mb-2">Coordination Margin (CTI)</h3>
+                                    <p>The <strong>Coordination Time Interval (CTI)</strong> is the minimum time difference required between the primary (downstream) and backup (upstream) protective devices to ensure only the nearest breaker trips.</p>
+                                    <ul className="list-disc pl-5 mt-3 space-y-1">
+                                        <li><strong>IEEE 242 (Buff Book) Recommendation:</strong> 0.2s - 0.4s</li>
+                                        <li><strong>Components:</strong> Breaker operating time (0.08s) + Relay Overshoot (0.05s) + Safety Margin.</li>
+                                    </ul>
+                                </div>
+                                <h4 className="font-bold text-slate-900 dark:text-white">How to use the Coordinator Tool:</h4>
+                                <ol className="list-decimal pl-5 space-y-2">
+                                    <li>Open the <strong>Coordinator</strong> tab in the right panel.</li>
+                                    <li>Select an <strong>Upstream Device</strong> (e.g., Main Incomer).</li>
+                                    <li>Select a <strong>Downstream Device</strong> (e.g., Feeder).</li>
+                                    <li>Move the <strong>Fault Line</strong> to the maximum fault current.</li>
+                                    <li>Observe the calculated margin. If it is red (&lt;0.2s), increase the TMS of the upstream device using the quick-edit controls provided in the panel.</li>
+                                </ol>
+                            </div>
+                        )}
+                        {tab === 'equip' && (
+                            <div className="space-y-6 animate-fade-in">
+                                <h3 className="font-bold text-slate-900 dark:text-white text-lg">Equipment Limits</h3>
+                                <p>Protective devices must operate <em>before</em> equipment damage occurs but <em>after</em> normal transient events.</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                    <div className="border border-slate-200 dark:border-slate-700 p-4 rounded-xl">
+                                        <h4 className="font-bold flex items-center gap-2 mb-2"><Flame className="w-5 h-5 text-red-500" /> Transformer Damage</h4>
+                                        <p className="mb-2"><strong>ANSI C57.109:</strong> Defines thermal and mechanical withstand limits.</p>
+                                        <p>The relay curve must remain <strong>below</strong> and to the <strong>left</strong> of the damage curve for all fault currents.</p>
+                                    </div>
+                                    <div className="border border-slate-200 dark:border-slate-700 p-4 rounded-xl">
+                                        <h4 className="font-bold flex items-center gap-2 mb-2"><Factory className="w-5 h-5 text-amber-500" /> Motor Starting</h4>
+                                        <p className="mb-2"><strong>Inrush Current:</strong> Motors draw 6-10x FLA during start.</p>
+                                        <p>The relay curve must remain <strong>above</strong> and to the <strong>right</strong> of the motor starting curve to avoid nuisance tripping during startup.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex justify-end">
+                        <button onClick={onClose} className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95">
+                            Close Manual
+                        </button>
+                    </div>
                 </div>
-                <div className="p-6 overflow-y-auto space-y-6 text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
-                    <section><h3 className="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2"><MousePointer2 className="w-4 h-4" /> 1. Manipulation</h3><ul className="list-disc pl-5 space-y-1"><li><strong>Select:</strong> Click any curve.</li><li><strong>Drag Pickup:</strong> Adjust current (Square handle).</li><li><strong>Drag TDS:</strong> Adjust time delay (Circle handle).</li><li><strong>Fault Slider:</strong> Drag red line to test faults.</li></ul></section>
-                    <section><h3 className="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2"><Layers className="w-4 h-4" /> 2. Scenarios</h3><p>Use the "Scenarios" dropdown to load complex setups like Transformer Damage or Motor Starting.</p></section>
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-800 dark:text-blue-300 text-center font-bold">Pro Feature: Transformer Damage & Motor Start Curves included.</div>
-                </div>
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 rounded-b-2xl flex justify-end"><button onClick={onClose} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg">Got it</button></div>
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden select-none font-sans"
@@ -902,78 +997,116 @@ const SimulatorView = ({ isActive }) => {
                                 </h3>
 
                                 <div className="space-y-4">
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Upstream Device (Source Side)</label>
-                                        <div className="relative">
-                                            <select
-                                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 pr-8 text-xs font-bold"
-                                                value={analysisPair.up || ''}
-                                                onChange={(e) => setAnalysisPair(prev => ({ ...prev, up: e.target.value }))}
-                                            >
-                                                <option value="">Select Upstream...</option>
-                                                {devices.filter(d => !d.locked).map(d => (
-                                                    <option key={d.id} value={d.id}>{d.name} ({d.pickup}A)</option>
-                                                ))}
-                                            </select>
-                                            <ArrowUpFromLine className="absolute right-2 top-2.5 w-3 h-3 text-slate-400 pointer-events-none" />
+                                    {/* UPSTREAM CONFIGURATION */}
+                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                        <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Upstream (Source)</label>
+                                            <div className="relative">
+                                                <select
+                                                    className="w-full bg-transparent font-bold text-xs outline-none"
+                                                    value={analysisPair.up || ''}
+                                                    onChange={(e) => setAnalysisPair(prev => ({ ...prev, up: e.target.value }))}
+                                                >
+                                                    <option value="">Select Device...</option>
+                                                    {devices.filter(d => !d.locked).map(d => (
+                                                        <option key={d.id} value={d.id}>{d.name} ({d.pickup}A)</option>
+                                                    ))}
+                                                </select>
+                                                <ArrowUpFromLine className="absolute right-0 top-0.5 w-3 h-3 text-blue-500 pointer-events-none" />
+                                            </div>
                                         </div>
-                                        {/* Quick Edit Upstream */}
                                         {analysisPair.up && (
-                                            <div className="mt-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md grid grid-cols-2 gap-2">
+                                            <div className="p-3 grid grid-cols-2 gap-2">
+                                                <div className="col-span-2">
+                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Curve Type</label>
+                                                    <select className="w-full text-[10px] bg-slate-100 dark:bg-slate-900 rounded p-1 border-none font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.up)?.curve}
+                                                        onChange={(e) => updateDevice(analysisPair.up, { curve: e.target.value })}
+                                                    >
+                                                        {CURVE_LIB.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                                                    </select>
+                                                </div>
                                                 <div>
-                                                    <label className="text-[9px] text-slate-400 font-bold block">Pickup</label>
-                                                    <input type="number" className="w-full bg-transparent border-b border-slate-300 text-xs font-mono font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.up)?.pickup}
+                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Pickup (A)</label>
+                                                    <input type="number" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.up)?.pickup ?? ''}
                                                         onChange={(e) => updateDevice(analysisPair.up, { pickup: Number(e.target.value) })}
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="text-[9px] text-slate-400 font-bold block">TDS</label>
-                                                    <input type="number" step="0.05" className="w-full bg-transparent border-b border-slate-300 text-xs font-mono font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.up)?.tds}
+                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Time Dial</label>
+                                                    <input type="number" step="0.05" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.up)?.tds ?? ''}
                                                         onChange={(e) => updateDevice(analysisPair.up, { tds: Number(e.target.value) })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Inst (50)</label>
+                                                    <input type="number" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.up)?.instantaneous ?? ''}
+                                                        placeholder="None"
+                                                        onChange={(e) => updateDevice(analysisPair.up, { instantaneous: e.target.value ? Number(e.target.value) : undefined })}
                                                     />
                                                 </div>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="flex justify-center -my-2 z-10 relative">
-                                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 rounded-full text-slate-400">
+                                    <div className="flex justify-center -my-3 z-10 relative">
+                                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1.5 rounded-full text-slate-400 shadow-sm">
                                             <ArrowDownToLine className="w-3 h-3" />
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Downstream Device (Load Side)</label>
-                                        <div className="relative">
-                                            <select
-                                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 pr-8 text-xs font-bold"
-                                                value={analysisPair.down || ''}
-                                                onChange={(e) => setAnalysisPair(prev => ({ ...prev, down: e.target.value }))}
-                                            >
-                                                <option value="">Select Downstream...</option>
-                                                {devices.filter(d => !d.locked && d.id !== analysisPair.up).map(d => (
-                                                    <option key={d.id} value={d.id}>{d.name} ({d.pickup}A)</option>
-                                                ))}
-                                            </select>
-                                            <ArrowDownToLine className="absolute right-2 top-2.5 w-3 h-3 text-slate-400 pointer-events-none" />
+                                    {/* DOWNSTREAM CONFIGURATION */}
+                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                        <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Downstream (Load)</label>
+                                            <div className="relative">
+                                                <select
+                                                    className="w-full bg-transparent font-bold text-xs outline-none"
+                                                    value={analysisPair.down || ''}
+                                                    onChange={(e) => setAnalysisPair(prev => ({ ...prev, down: e.target.value }))}
+                                                >
+                                                    <option value="">Select Device...</option>
+                                                    {devices.filter(d => !d.locked && d.id !== analysisPair.up).map(d => (
+                                                        <option key={d.id} value={d.id}>{d.name} ({d.pickup}A)</option>
+                                                    ))}
+                                                </select>
+                                                <ArrowDownToLine className="absolute right-0 top-0.5 w-3 h-3 text-blue-500 pointer-events-none" />
+                                            </div>
                                         </div>
-                                        {/* Quick Edit Downstream */}
                                         {analysisPair.down && (
-                                            <div className="mt-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md grid grid-cols-2 gap-2">
+                                            <div className="p-3 grid grid-cols-2 gap-2">
+                                                <div className="col-span-2">
+                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Curve Type</label>
+                                                    <select className="w-full text-[10px] bg-slate-100 dark:bg-slate-900 rounded p-1 border-none font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.down)?.curve}
+                                                        onChange={(e) => updateDevice(analysisPair.down, { curve: e.target.value })}
+                                                    >
+                                                        {CURVE_LIB.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                                                    </select>
+                                                </div>
                                                 <div>
-                                                    <label className="text-[9px] text-slate-400 font-bold block">Pickup</label>
-                                                    <input type="number" className="w-full bg-transparent border-b border-slate-300 text-xs font-mono font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.down)?.pickup}
+                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Pickup (A)</label>
+                                                    <input type="number" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.down)?.pickup ?? ''}
                                                         onChange={(e) => updateDevice(analysisPair.down, { pickup: Number(e.target.value) })}
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="text-[9px] text-slate-400 font-bold block">TDS</label>
-                                                    <input type="number" step="0.05" className="w-full bg-transparent border-b border-slate-300 text-xs font-mono font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.down)?.tds}
+                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Time Dial</label>
+                                                    <input type="number" step="0.05" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.down)?.tds ?? ''}
                                                         onChange={(e) => updateDevice(analysisPair.down, { tds: Number(e.target.value) })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Inst (50)</label>
+                                                    <input type="number" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.down)?.instantaneous ?? ''}
+                                                        placeholder="None"
+                                                        onChange={(e) => updateDevice(analysisPair.down, { instantaneous: e.target.value ? Number(e.target.value) : undefined })}
                                                     />
                                                 </div>
                                             </div>
