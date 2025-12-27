@@ -7,7 +7,8 @@ import {
     GraduationCap, X, Zap, Clock, Shield, Info, FileText, CheckCircle2,
     AlertOctagon, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
     Maximize2, Minimize2, BrainCircuit, School, Calculator, ArrowRight,
-    Trophy, XCircle, RefreshCw, Flame, Factory, Gauge
+    Trophy, XCircle, RefreshCw, Flame, Factory, Gauge, GitCompare,
+    ArrowUpFromLine, ArrowDownToLine, Ruler
 } from 'lucide-react';
 
 // --- 1. CONSTANTS & DATA BANKS ---
@@ -20,21 +21,24 @@ const CurveType = {
     ANSI_VERY_INVERSE: 'ANSI_VI',
     ANSI_EXTREMELY_INVERSE: 'ANSI_EI',
     DT_DEFINITE_TIME: 'DT',
-    // Special Types for Limits
+    // Special Types
     EQUIP_TRANSFORMER_DAMAGE: 'EQ_TX_DMG',
-    EQUIP_MOTOR_START: 'EQ_MOT_START'
+    EQUIP_MOTOR_START: 'EQ_MOT_START',
+    // New Fuse Type
+    GENERIC_FUSE: 'FUSE_GEN'
 };
 
 const COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
 
 const CURVE_LIB = [
-    { label: "IEC Standard Inverse (SI)", value: CurveType.IEC_STANDARD_INVERSE },
-    { label: "IEC Very Inverse (VI)", value: CurveType.IEC_VERY_INVERSE },
-    { label: "IEC Extremely Inverse (EI)", value: CurveType.IEC_EXTREMELY_INVERSE },
-    { label: "ANSI Moderately Inverse", value: CurveType.ANSI_MODERATELY_INVERSE },
-    { label: "ANSI Very Inverse", value: CurveType.ANSI_VERY_INVERSE },
-    { label: "ANSI Extremely Inverse", value: CurveType.ANSI_EXTREMELY_INVERSE },
-    { label: "Definite Time (50)", value: CurveType.DT_DEFINITE_TIME },
+    { label: "IEC Standard Inverse (SI)", value: CurveType.IEC_STANDARD_INVERSE, group: 'Relay' },
+    { label: "IEC Very Inverse (VI)", value: CurveType.IEC_VERY_INVERSE, group: 'Relay' },
+    { label: "IEC Extremely Inverse (EI)", value: CurveType.IEC_EXTREMELY_INVERSE, group: 'Relay' },
+    { label: "ANSI Moderately Inverse", value: CurveType.ANSI_MODERATELY_INVERSE, group: 'Relay' },
+    { label: "ANSI Very Inverse", value: CurveType.ANSI_VERY_INVERSE, group: 'Relay' },
+    { label: "ANSI Extremely Inverse", value: CurveType.ANSI_EXTREMELY_INVERSE, group: 'Relay' },
+    { label: "Definite Time (50)", value: CurveType.DT_DEFINITE_TIME, group: 'Relay' },
+    { label: "Generic Fuse (Fast)", value: CurveType.GENERIC_FUSE, group: 'Fuse' },
 ];
 
 const SCENARIOS = [
@@ -190,17 +194,25 @@ const calculateTripTime = (current, pickup, tds, curveType, instantaneous) => {
     // Special Logic for Equipment Limits (Non-Relay Curves)
     if (curveType === CurveType.EQUIP_TRANSFORMER_DAMAGE) {
         // Approximate ANSI Damage Curve: t = k / I^2
-        // We'll simulate a fixed logic for visual representation
         if (current < pickup) return null;
         return (tds * 2000000) / (current * current); // Simplified I2t
     }
 
     if (curveType === CurveType.EQUIP_MOTOR_START) {
         // Motor Start is a vertical line (Current limit) and horizontal line (Time limit)
-        // Returning a simplified inverse curve for visual 'wall' effect in this prototype
         if (current < pickup) return 20; // Pre-start
         if (current > pickup * 6) return null; // Post start
         return Math.max(0.1, 1000 / current); // Arbitrary start curve
+    }
+
+    // Generic Fuse Model (Approximation: I^2.5 * t = K)
+    if (curveType === CurveType.GENERIC_FUSE) {
+        if (current < pickup) return null;
+        // Simplified steep inverse curve for fuse viz
+        // t = multiplier / (M^2.2)
+        const M = current / pickup;
+        if (M <= 1) return null;
+        return (tds * 100) / Math.pow(M, 2.2);
     }
 
     // Standard Relay Logic
@@ -400,7 +412,7 @@ const QuizModule = () => {
 };
 
 const SimulatorView = ({ isActive }) => {
-    // Simulator State (Lifted or preserved via display style)
+    // Simulator State
     const [devices, setDevices] = useState(JSON.parse(JSON.stringify(SCENARIOS[0].devices)));
     const [selectedId, setSelectedId] = useState(SCENARIOS[0].devices[0].id);
     const [faultAmps, setFaultAmps] = useState(2000);
@@ -410,6 +422,10 @@ const SimulatorView = ({ isActive }) => {
     const [leftPanelOpen, setLeftPanelOpen] = useState(true);
     const [rightPanelOpen, setRightPanelOpen] = useState(true);
     const [footerOpen, setFooterOpen] = useState(false);
+    const [settingsTab, setSettingsTab] = useState('params'); // 'params' | 'analysis'
+
+    // Coordination Analysis State
+    const [analysisPair, setAnalysisPair] = useState({ up: null, down: null });
 
     // Viewport
     const [view, setView] = useState({ minX: 10, maxX: 100000, minY: 0.01, maxY: 1000 });
@@ -434,13 +450,14 @@ const SimulatorView = ({ isActive }) => {
     const addDevice = () => {
         const id = `dev_${Date.now()}`;
         const newDev = {
-            id, name: `Relay ${devices.length + 1}`, type: 'Relay', curve: CurveType.IEC_STANDARD_INVERSE,
+            id, name: `New Device ${devices.length + 1}`, type: 'Relay', curve: CurveType.IEC_STANDARD_INVERSE,
             pickup: 100, tds: 0.1, ctRatio: 100, color: COLORS[devices.length % COLORS.length],
             visible: true, locked: false, showBand: false
         };
         setDevices([...devices, newDev]);
         setSelectedId(id);
         setRightPanelOpen(true);
+        setSettingsTab('params');
     };
 
     const updateDevice = (id, patch) => setDevices(prev => prev.map(d => d.id === id ? { ...d, ...patch } : d));
@@ -497,16 +514,14 @@ const SimulatorView = ({ isActive }) => {
         let d = "";
         let dMin = "", dMax = "";
         const isEquipment = dev.type === 'Limit';
+        const isFuse = dev.curve === CurveType.GENERIC_FUSE;
         const startI = Math.max(dev.pickup, view.minX);
         const endI = dev.instantaneous ? Math.min(dev.instantaneous, view.maxX) : view.maxX;
 
-        // Visual distinction for equipment limits
         const strokeDash = isEquipment ? "4,4" : (dev.locked ? "5,5" : "");
         const strokeWidth = isEquipment ? 3 : (selectedId === dev.id ? 3 : 2);
 
-        // Handle Equipment (e.g., Transformer Damage point or Motor Start) differently
         if (dev.curve === CurveType.EQUIP_TRANSFORMER_DAMAGE) {
-            // Draw a simplified damage curve visual
             const points = [];
             for (let i = dev.pickup; i <= view.maxX; i *= 1.1) {
                 const t = calculateTripTime(i, dev.pickup, dev.tds, dev.curve, null);
@@ -515,14 +530,12 @@ const SimulatorView = ({ isActive }) => {
             points.forEach((p, i) => d += `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y} `);
         }
         else if (dev.curve === CurveType.EQUIP_MOTOR_START) {
-            // Draw motor start "corner"
             const x = toPxX(dev.pickup);
-            const y = toPxY(20); // 20s start time approx
-            const xEnd = toPxX(dev.pickup * 6); // LRA
+            const y = toPxY(20);
+            const xEnd = toPxX(dev.pickup * 6);
             d = `M ${x} ${dims.h} L ${x} ${y} L ${xEnd} ${y} L ${xEnd} ${dims.h}`;
         }
         else {
-            // Standard Relay Drawing
             if (dev.pickup >= view.minX && dev.pickup <= view.maxX) {
                 const x = toPxX(dev.pickup);
                 const topT = calculateTripTime(dev.pickup * 1.01, dev.pickup, dev.tds, dev.curve, dev.instantaneous);
@@ -561,7 +574,7 @@ const SimulatorView = ({ isActive }) => {
                     onClick={(e) => { e.stopPropagation(); setSelectedId(dev.id); if (!rightPanelOpen) setRightPanelOpen(true); }}
                 />
                 {!isEquipment && (
-                    <text x={handlePickX + 5} y={dims.h - 20} fill={dev.color} fontSize="10" fontWeight="bold" className="pointer-events-none select-none shadow-sm">{dev.name}</text>
+                    <text x={handlePickX + 5} y={dims.h - 20} fill={dev.color} fontSize="10" fontWeight="bold" className="pointer-events-none select-none shadow-sm">{dev.name} {isFuse ? '(Fuse)' : ''}</text>
                 )}
                 {isSelected && !dev.locked && !isEquipment && (
                     <g>
@@ -576,11 +589,52 @@ const SimulatorView = ({ isActive }) => {
     const FaultLine = () => {
         const x = toPxX(faultAmps);
         if (x < 0 || x > dims.w) return null;
+
+        // Coordination Arrow Visual logic
+        let coordArrow = null;
+        if (settingsTab === 'analysis' && analysisPair.up && analysisPair.down) {
+            const upDev = devices.find(d => d.id === analysisPair.up);
+            const downDev = devices.find(d => d.id === analysisPair.down);
+
+            if (upDev && downDev) {
+                const tUp = calculateTripTime(faultAmps, upDev.pickup, upDev.tds, upDev.curve, upDev.instantaneous);
+                const tDown = calculateTripTime(faultAmps, downDev.pickup, downDev.tds, downDev.curve, downDev.instantaneous);
+
+                if (tUp && tDown) {
+                    const yUp = toPxY(tUp);
+                    const yDown = toPxY(tDown);
+                    const margin = tUp - tDown;
+                    const isOk = margin >= 0.2;
+                    const midX = x + 20;
+
+                    coordArrow = (
+                        <g className="animate-fade-in">
+                            <line x1={midX} y1={yDown} x2={midX} y2={yUp} stroke={isOk ? '#10b981' : '#ef4444'} strokeWidth="2" markerEnd="url(#arrowhead)" markerStart="url(#arrowtail)" />
+                            <rect x={midX + 5} y={(yUp + yDown) / 2 - 10} width="60" height="20" rx="4" fill={isOk ? '#ecfdf5' : '#fef2f2'} stroke={isOk ? '#10b981' : '#ef4444'} />
+                            <text x={midX + 35} y={(yUp + yDown) / 2 + 3} textAnchor="middle" fill={isOk ? '#059669' : '#b91c1c'} fontSize="10" fontWeight="bold">
+                                Δ {margin.toFixed(2)}s
+                            </text>
+                            {/* Definition of markers */}
+                            <defs>
+                                <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="0" refY="2" orient="auto">
+                                    <polygon points="0 0, 6 2, 0 4" fill={isOk ? '#10b981' : '#ef4444'} />
+                                </marker>
+                                <marker id="arrowtail" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
+                                    <polygon points="6 0, 0 2, 6 4" fill={isOk ? '#10b981' : '#ef4444'} />
+                                </marker>
+                            </defs>
+                        </g>
+                    );
+                }
+            }
+        }
+
         return (
             <g className="group cursor-ew-resize" onMouseDown={(e) => { e.stopPropagation(); setDraggingId('FAULT'); setDragType('FAULT'); }}>
                 <line x1={x} y1={0} x2={x} y2={dims.h} stroke="#ef4444" strokeWidth="2" strokeDasharray="4,4" className="opacity-70 group-hover:opacity-100 transition-opacity" />
                 <polygon points={`${x},0 ${x - 6},10 ${x + 6},10`} fill="#ef4444" className="drop-shadow-md group-hover:scale-125 transition-transform origin-top" />
                 <text x={x + 8} y={20} fill="#ef4444" fontSize="11" fontWeight="bold" className="pointer-events-none select-none">Fault: {faultAmps.toFixed(0)}A</text>
+                {coordArrow}
             </g>
         );
     };
@@ -607,8 +661,7 @@ const SimulatorView = ({ isActive }) => {
 
     const coordinationReport = useMemo(() => {
         const active = devices.filter(d => d.visible);
-        // Separate relays from limits
-        const relays = active.filter(d => d.type === 'Relay');
+        const relays = active.filter(d => d.type === 'Relay' || d.type === 'Fuse'); // Treat Fuse as Relay for report
         const limits = active.filter(d => d.type === 'Limit');
 
         const trips = relays.map(d => ({
@@ -618,25 +671,20 @@ const SimulatorView = ({ isActive }) => {
 
         const report = [];
 
-        // Check against limits (Equipment Protection)
         limits.forEach(limit => {
             const limitTime = calculateTripTime(faultAmps, limit.pickup, limit.tds, limit.curve, null);
             if (limitTime) {
-                // If a limit exists at this fault current, ALL relays must trip faster than it
                 const slowerRelays = trips.filter(t => t.time > limitTime);
                 if (slowerRelays.length > 0) {
                     report.push({
                         type: 'VIOLATION',
                         msg: `Equipment Damage! ${limit.name} exceeded by ${slowerRelays[0].name}`,
-                        violation: true,
-                        val: 0,
-                        color: '#ef4444'
+                        violation: true, val: 0, color: '#ef4444'
                     });
                 }
             }
         });
 
-        // Check Relay-Relay Coordination
         for (let i = 0; i < trips.length; i++) {
             const trip = trips[i];
             report.push({ type: 'TRIP', ...trip });
@@ -710,7 +758,7 @@ const SimulatorView = ({ isActive }) => {
                         <span className="text-[10px] text-slate-500 font-bold">A</span>
                     </div>
                     <button onClick={addDevice} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-                        <Plus className="w-3 h-3" /> Add Relay
+                        <Plus className="w-3 h-3" /> Add Device
                     </button>
                     <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
                     <button onClick={() => setRightPanelOpen(!rightPanelOpen)} className={`p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
@@ -794,48 +842,203 @@ const SimulatorView = ({ isActive }) => {
 
                 {/* RIGHT: SETTINGS PANEL */}
                 <div className={`border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col z-10 shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out ${rightPanelOpen ? 'w-80 translate-x-0' : 'w-0 translate-x-full opacity-0 overflow-hidden'}`}>
-                    {selectedDevice ? (
-                        <>
-                            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-between items-center">
-                                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: selectedDevice.color }}></div><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{selectedDevice.type} Parameters</span></div>
-                                {!selectedDevice.locked && <button onClick={() => removeDevice(selectedDevice.id)} className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>}
-                            </div>
-                            <div className="p-5 space-y-6 flex-1 overflow-y-auto">
-                                {selectedDevice.locked ? (
-                                    <div className="text-center p-6 text-slate-500 text-xs italic bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                                        <Lock className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                                        This is a protected system curve (Damage or Start Limit). It cannot be edited in this view.
+
+                    {/* TABS */}
+                    <div className="flex p-1 m-4 mb-0 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                        <button onClick={() => setSettingsTab('params')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${settingsTab === 'params' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Parameters</button>
+                        <button onClick={() => setSettingsTab('analysis')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${settingsTab === 'analysis' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Coordinator</button>
+                    </div>
+
+                    {settingsTab === 'params' && (
+                        selectedDevice ? (
+                            <>
+                                <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-between items-center">
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: selectedDevice.color }}></div><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{selectedDevice.type} Settings</span></div>
+                                    {!selectedDevice.locked && <button onClick={() => removeDevice(selectedDevice.id)} className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>}
+                                </div>
+                                <div className="p-5 space-y-6 flex-1 overflow-y-auto">
+                                    {selectedDevice.locked ? (
+                                        <div className="text-center p-6 text-slate-500 text-xs italic bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                                            <Lock className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                            This is a protected system curve (Damage or Start Limit). It cannot be edited in this view.
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="space-y-4">
+                                                <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Device Name</label><input type="text" value={selectedDevice.name} onChange={(e) => updateDevice(selectedDevice.id, { name: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">CT Ratio</label><div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2"><input type="number" value={selectedDevice.ctRatio} onChange={(e) => updateDevice(selectedDevice.id, { ctRatio: Number(e.target.value) })} className="w-full bg-transparent border-none py-1.5 text-xs font-mono font-bold outline-none" /><span className="text-[10px] text-slate-400 font-bold">:1</span></div></div>
+                                                    <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Color</label><div className="flex gap-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">{COLORS.slice(0, 4).map(c => (<button key={c} onClick={() => updateDevice(selectedDevice.id, { color: c })} className={`w-4 h-4 rounded-full border-2 transition-transform ${selectedDevice.color === c ? 'border-slate-900 scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />))}</div></div>
+                                                </div>
+                                            </div>
+                                            <hr className="border-slate-100 dark:border-slate-800" />
+                                            <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Characteristic Curve</label><div className="relative"><select value={selectedDevice.curve} onChange={(e) => updateDevice(selectedDevice.id, { curve: e.target.value })} className="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 pr-8 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer truncate">{CURVE_LIB.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select><ChevronDown className="absolute right-2 top-3 w-3 h-3 text-slate-400 pointer-events-none" /></div></div>
+                                            <div className="space-y-4">
+                                                <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
+                                                    <div className="flex justify-between items-end mb-2"><label className="text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase">Pickup (Is)</label><div className="text-right"><div className="text-sm font-black text-blue-600 dark:text-blue-400 font-mono leading-none">{selectedDevice.pickup} A</div></div></div>
+                                                    <input type="range" min="10" max="2000" step="10" value={selectedDevice.pickup} onChange={(e) => updateDevice(selectedDevice.id, { pickup: Number(e.target.value) })} className="w-full h-1.5 bg-blue-200 dark:bg-blue-900 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                                                </div>
+                                                <div className="bg-purple-50 dark:bg-purple-900/10 p-3 rounded-xl border border-purple-100 dark:border-purple-900/30">
+                                                    <div className="flex justify-between items-end mb-2"><label className="text-[10px] font-bold text-purple-800 dark:text-purple-300 uppercase">Time Dial (TMS)</label><div className="text-sm font-black text-purple-600 dark:text-purple-400 font-mono leading-none">{selectedDevice.tds}</div></div>
+                                                    <input type="range" min="0.01" max="1.5" step="0.01" value={selectedDevice.tds} onChange={(e) => updateDevice(selectedDevice.id, { tds: Number(e.target.value) })} className="w-full h-1.5 bg-purple-200 dark:bg-purple-900 rounded-lg appearance-none cursor-pointer accent-purple-600" />
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"><div><div className="text-xs font-bold text-slate-700 dark:text-slate-200">Instantaneous (50)</div></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" className="sr-only peer" checked={!!selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: e.target.checked ? selectedDevice.pickup * 10 : undefined })} /><div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div></label></div>
+                                            {selectedDevice.instantaneous && (<div className="animate-fade-in -mt-4 p-3 pt-0 bg-slate-50 dark:bg-slate-800 rounded-b-xl border-x border-b border-slate-200 dark:border-slate-700"><input type="number" value={selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: Number(e.target.value) })} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-1.5 text-xs font-mono font-bold" /></div>)}
+                                        </>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-xs p-8 text-center"><MousePointer2 className="w-10 h-10 mb-4 opacity-20" /><p>Select a curve to edit settings</p></div>
+                        )
+                    )}
+
+                    {settingsTab === 'analysis' && (
+                        <div className="flex flex-col h-full overflow-hidden">
+                            <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <GitCompare className="w-4 h-4" /> Pair Analysis
+                                </h3>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Upstream Device (Source Side)</label>
+                                        <div className="relative">
+                                            <select
+                                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 pr-8 text-xs font-bold"
+                                                value={analysisPair.up || ''}
+                                                onChange={(e) => setAnalysisPair(prev => ({ ...prev, up: e.target.value }))}
+                                            >
+                                                <option value="">Select Upstream...</option>
+                                                {devices.filter(d => !d.locked).map(d => (
+                                                    <option key={d.id} value={d.id}>{d.name} ({d.pickup}A)</option>
+                                                ))}
+                                            </select>
+                                            <ArrowUpFromLine className="absolute right-2 top-2.5 w-3 h-3 text-slate-400 pointer-events-none" />
+                                        </div>
+                                        {/* Quick Edit Upstream */}
+                                        {analysisPair.up && (
+                                            <div className="mt-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold block">Pickup</label>
+                                                    <input type="number" className="w-full bg-transparent border-b border-slate-300 text-xs font-mono font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.up)?.pickup}
+                                                        onChange={(e) => updateDevice(analysisPair.up, { pickup: Number(e.target.value) })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold block">TDS</label>
+                                                    <input type="number" step="0.05" className="w-full bg-transparent border-b border-slate-300 text-xs font-mono font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.up)?.tds}
+                                                        onChange={(e) => updateDevice(analysisPair.up, { tds: Number(e.target.value) })}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                ) : (
-                                    <>
-                                        <div className="space-y-4">
-                                            <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Relay Name</label><input type="text" value={selectedDevice.name} onChange={(e) => updateDevice(selectedDevice.id, { name: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">CT Ratio</label><div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2"><input type="number" value={selectedDevice.ctRatio} onChange={(e) => updateDevice(selectedDevice.id, { ctRatio: Number(e.target.value) })} className="w-full bg-transparent border-none py-1.5 text-xs font-mono font-bold outline-none" /><span className="text-[10px] text-slate-400 font-bold">:1</span></div></div>
-                                                <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Color</label><div className="flex gap-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">{COLORS.slice(0, 4).map(c => (<button key={c} onClick={() => updateDevice(selectedDevice.id, { color: c })} className={`w-4 h-4 rounded-full border-2 transition-transform ${selectedDevice.color === c ? 'border-slate-900 scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />))}</div></div>
+
+                                    <div className="flex justify-center -my-2 z-10 relative">
+                                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 rounded-full text-slate-400">
+                                            <ArrowDownToLine className="w-3 h-3" />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Downstream Device (Load Side)</label>
+                                        <div className="relative">
+                                            <select
+                                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 pr-8 text-xs font-bold"
+                                                value={analysisPair.down || ''}
+                                                onChange={(e) => setAnalysisPair(prev => ({ ...prev, down: e.target.value }))}
+                                            >
+                                                <option value="">Select Downstream...</option>
+                                                {devices.filter(d => !d.locked && d.id !== analysisPair.up).map(d => (
+                                                    <option key={d.id} value={d.id}>{d.name} ({d.pickup}A)</option>
+                                                ))}
+                                            </select>
+                                            <ArrowDownToLine className="absolute right-2 top-2.5 w-3 h-3 text-slate-400 pointer-events-none" />
+                                        </div>
+                                        {/* Quick Edit Downstream */}
+                                        {analysisPair.down && (
+                                            <div className="mt-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold block">Pickup</label>
+                                                    <input type="number" className="w-full bg-transparent border-b border-slate-300 text-xs font-mono font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.down)?.pickup}
+                                                        onChange={(e) => updateDevice(analysisPair.down, { pickup: Number(e.target.value) })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold block">TDS</label>
+                                                    <input type="number" step="0.05" className="w-full bg-transparent border-b border-slate-300 text-xs font-mono font-bold"
+                                                        value={devices.find(d => d.id === analysisPair.down)?.tds}
+                                                        onChange={(e) => updateDevice(analysisPair.down, { tds: Number(e.target.value) })}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 p-4 overflow-y-auto">
+                                {analysisPair.up && analysisPair.down ? (() => {
+                                    const upDev = devices.find(d => d.id === analysisPair.up);
+                                    const downDev = devices.find(d => d.id === analysisPair.down);
+                                    if (!upDev || !downDev) return null;
+
+                                    const tUp = calculateTripTime(faultAmps, upDev.pickup, upDev.tds, upDev.curve, upDev.instantaneous);
+                                    const tDown = calculateTripTime(faultAmps, downDev.pickup, downDev.tds, downDev.curve, downDev.instantaneous);
+
+                                    if (tUp === null || tDown === null) return <div className="text-center text-xs text-slate-500 italic mt-4">One or both devices do not operate at {faultAmps}A. Adjust Fault current.</div>;
+
+                                    const margin = tUp - tDown;
+                                    const isCoordinated = margin >= 0.2; // IEC/IEEE simplified standard
+
+                                    return (
+                                        <div className="space-y-4 animate-fade-in">
+                                            <div className={`p-4 rounded-xl border-l-4 shadow-sm ${isCoordinated ? 'bg-green-50 border-green-500 text-green-800' : 'bg-red-50 border-red-500 text-red-800'}`}>
+                                                <div className="flex items-center gap-2 mb-2 font-bold text-sm">
+                                                    {isCoordinated ? <CheckCircle className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                                                    {isCoordinated ? 'Coordinated' : 'Coordination Violation'}
+                                                </div>
+                                                <div className="text-3xl font-black mb-1">{margin.toFixed(3)}s</div>
+                                                <div className="text-xs opacity-75">Margin at {faultAmps}A</div>
+                                            </div>
+
+                                            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
+                                                <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Recommendations</h4>
+                                                <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-2">
+                                                    {!isCoordinated && (
+                                                        <li className="flex gap-2">
+                                                            <ArrowUpFromLine className="w-3 h-3 text-blue-500 shrink-0 mt-0.5" />
+                                                            <span>Increase <strong>{upDev.name}</strong> Time Dial (TDS) to at least <strong>{(upDev.tds * (1 + (0.2 - margin) / tUp)).toFixed(2)}</strong>.</span>
+                                                        </li>
+                                                    )}
+                                                    {!isCoordinated && (
+                                                        <li className="flex gap-2">
+                                                            <ArrowDownToLine className="w-3 h-3 text-blue-500 shrink-0 mt-0.5" />
+                                                            <span>Decrease <strong>{downDev.name}</strong> Time Dial (TDS) if load permits.</span>
+                                                        </li>
+                                                    )}
+                                                    <li className="flex gap-2 text-slate-400">
+                                                        <Ruler className="w-3 h-3 shrink-0 mt-0.5" />
+                                                        <span>Standard CTI requirement: 0.2s - 0.4s (IEEE 242).</span>
+                                                    </li>
+                                                </ul>
                                             </div>
                                         </div>
-                                        <hr className="border-slate-100 dark:border-slate-800" />
-                                        <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Characteristic Curve</label><div className="relative"><select value={selectedDevice.curve} onChange={(e) => updateDevice(selectedDevice.id, { curve: e.target.value })} className="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 pr-8 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer truncate">{CURVE_LIB.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select><ChevronDown className="absolute right-2 top-3 w-3 h-3 text-slate-400 pointer-events-none" /></div></div>
-                                        <div className="space-y-4">
-                                            <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
-                                                <div className="flex justify-between items-end mb-2"><label className="text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase">Pickup (Is)</label><div className="text-right"><div className="text-sm font-black text-blue-600 dark:text-blue-400 font-mono leading-none">{selectedDevice.pickup} A</div></div></div>
-                                                <input type="range" min="10" max="2000" step="10" value={selectedDevice.pickup} onChange={(e) => updateDevice(selectedDevice.id, { pickup: Number(e.target.value) })} className="w-full h-1.5 bg-blue-200 dark:bg-blue-900 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-                                            </div>
-                                            <div className="bg-purple-50 dark:bg-purple-900/10 p-3 rounded-xl border border-purple-100 dark:border-purple-900/30">
-                                                <div className="flex justify-between items-end mb-2"><label className="text-[10px] font-bold text-purple-800 dark:text-purple-300 uppercase">Time Dial (TMS)</label><div className="text-sm font-black text-purple-600 dark:text-purple-400 font-mono leading-none">{selectedDevice.tds}</div></div>
-                                                <input type="range" min="0.01" max="1.5" step="0.01" value={selectedDevice.tds} onChange={(e) => updateDevice(selectedDevice.id, { tds: Number(e.target.value) })} className="w-full h-1.5 bg-purple-200 dark:bg-purple-900 rounded-lg appearance-none cursor-pointer accent-purple-600" />
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"><div><div className="text-xs font-bold text-slate-700 dark:text-slate-200">Instantaneous (50)</div></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" className="sr-only peer" checked={!!selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: e.target.checked ? selectedDevice.pickup * 10 : undefined })} /><div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div></label></div>
-                                        {selectedDevice.instantaneous && (<div className="animate-fade-in -mt-4 p-3 pt-0 bg-slate-50 dark:bg-slate-800 rounded-b-xl border-x border-b border-slate-200 dark:border-slate-700"><input type="number" value={selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: Number(e.target.value) })} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-1.5 text-xs font-mono font-bold" /></div>)}
-                                    </>
+                                    );
+                                })() : (
+                                    <div className="text-center text-slate-400 text-xs mt-10">
+                                        Select both devices to run analysis.
+                                    </div>
                                 )}
                             </div>
-                        </>
-                    ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-xs p-8 text-center"><MousePointer2 className="w-10 h-10 mb-4 opacity-20" /><p>Select a curve to edit settings</p></div>
+                        </div>
                     )}
+
                 </div>
             </div>
 
