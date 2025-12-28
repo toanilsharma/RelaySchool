@@ -1,120 +1,143 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Activity, Zap, Power, AlertTriangle,
   RotateCcw, Play, Pause, Info,
   ShieldAlert, CheckCircle2,
   MousePointer2, BookOpen, GraduationCap,
-  ArrowRight, X, Menu, ChevronDown, List, Clock
+  X, List, HelpCircle, ChevronRight, Settings,
+  Maximize2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- TYPES ---
 
-type NodeType = 'GRID' | 'BUS' | 'BREAKER' | 'TRANSFORMER' | 'LOAD' | 'GEN';
+const NODE_TYPES = {
+  GRID: 'GRID',
+  BUS: 'BUS',
+  BREAKER: 'BREAKER',
+  TRANSFORMER: 'TRANSFORMER',
+  LOAD: 'LOAD'
+} as const;
 
-interface NodeData {
+type NodeType = typeof NODE_TYPES[keyof typeof NODE_TYPES];
+
+interface BaseNode {
   id: string;
   type: NodeType;
   x: number;
   y: number;
   label: string;
   voltagekV: number;
-  // State
-  status?: 'CLOSED' | 'OPEN' | 'TRIPPED';
-  loadMW?: number;
-  ratingAmps?: number;
   faulted?: boolean;
-  // Engineering Data
-  ansi?: string[]; // e.g. ['50', '51']
-  ctRatio?: string; // e.g. "2000:5"
-  vectorGroup?: string; // e.g. "Dyn11"
+  ratingAmps?: number;
+  status?: string;
 }
 
-interface LinkData {
-  id: string;
-  source: string;
-  target: string;
+interface GridNode extends BaseNode {
+  type: typeof NODE_TYPES.GRID;
+}
+
+interface BusNode extends BaseNode {
+  type: typeof NODE_TYPES.BUS;
+}
+
+interface BreakerNode extends BaseNode {
+  type: typeof NODE_TYPES.BREAKER;
+  status: 'CLOSED' | 'OPEN' | 'TRIPPED';
   ratingAmps: number;
+  ansi: string[];
+  ctRatio: string;
 }
 
-interface LogEntry {
-  id: number;
-  time: string;
-  device: string;
-  event: string;
-  details: string;
-  type: 'INFO' | 'TRIP' | 'ALARM';
+interface TransformerNode extends BaseNode {
+  type: typeof NODE_TYPES.TRANSFORMER;
+  vectorGroup: string;
+  ansi: string[];
 }
 
-// --- SCENARIOS ---
+interface LoadNode extends BaseNode {
+  type: typeof NODE_TYPES.LOAD;
+  loadMW: number;
+  ratingAmps?: number; // Added to satisfy potential checks or optional usage
+}
+
+type Node = GridNode | BusNode | BreakerNode | TransformerNode | LoadNode;
+
+// --- DATA & SCENARIOS ---
 
 const SCENARIOS = {
   normal: {
+    id: 'normal',
     name: "Normal Operations",
-    desc: "System nominal. Verify CT ratios and breaker status.",
-    setup: (nodes: NodeData[]) => nodes.map(n => ({ ...n, status: n.type === 'BREAKER' ? 'CLOSED' : undefined, faulted: false, loadMW: n.type === 'LOAD' ? 10 : undefined }))
+    desc: "Nominal system state. All feeders are balanced. Ideal for learning breaker switching sequences.",
+    setup: (nodes) => nodes.map(n => ({
+      ...n,
+      status: n.type === NODE_TYPES.BREAKER ? 'CLOSED' : undefined,
+      faulted: false,
+      loadMW: n.type === NODE_TYPES.LOAD ? (n.id === 'load2' ? 15 : 5) : undefined
+    }))
   },
   overload: {
+    id: 'overload',
     name: "Scenario: ANSI 51 (Overload)",
-    desc: "Feeder 2 is overloaded. Monitor Inverse Time Overcurrent (51) element.",
-    setup: (nodes: NodeData[]) => nodes.map(n => {
-      if (n.id === 'load2') return { ...n, loadMW: 35 }; // High load
+    desc: "Industrial Feeder 2 is drawing excessive current. Watch the Inverse Time Overcurrent relay trip after a delay.",
+    setup: (nodes) => nodes.map(n => {
+      if (n.id === 'load2') return { ...n, loadMW: 38 }; // High load (Over rating)
       if (n.id.startsWith('cb_')) return { ...n, status: 'CLOSED', faulted: false };
       return { ...n, faulted: false };
     })
   },
   fault: {
+    id: 'fault',
     name: "Scenario: ANSI 50 (Short Circuit)",
-    desc: "Fault on Main Bus. Testing Instantaneous Overcurrent (50) element.",
-    setup: (nodes: NodeData[]) => nodes.map(n => {
+    desc: "A bolted fault on the Main 33kV Bus. This tests the Instantaneous Overcurrent protection (fast trip).",
+    setup: (nodes) => nodes.map(n => {
       if (n.id === 'bus_mv') return { ...n, faulted: true };
-      if (n.id === 'cb_lv') return { ...n, status: 'OPEN' }; // Upstream open
-      return { ...n, status: n.type === 'BREAKER' ? 'CLOSED' : undefined };
+      if (n.id === 'cb_f1') return { ...n, status: 'OPEN' }; // Isolate downstream
+      return { ...n, status: n.type === NODE_TYPES.BREAKER ? 'CLOSED' : undefined };
     })
   }
 };
 
-// --- INITIAL DATA ---
-
-const INITIAL_NODES: NodeData[] = [
-  { id: 'grid', type: 'GRID', x: 400, y: 60, label: 'Utility Grid', voltagekV: 132 },
+const INITIAL_NODES: Node[] = [
+  { id: 'grid', type: NODE_TYPES.GRID, x: 400, y: 60, label: 'Utility Grid', voltagekV: 132 },
   {
-    id: 'cb_main', type: 'BREAKER', x: 400, y: 140, label: 'Main Breaker 52-M', voltagekV: 132,
+    id: 'cb_main', type: NODE_TYPES.BREAKER, x: 400, y: 150, label: 'Main Breaker 52-M', voltagekV: 132,
     status: 'CLOSED', ratingAmps: 2000,
-    ansi: ['50', '51', '50N', '51N'], ctRatio: '2000:5'
+    ansi: ['50', '51', '50N'], ctRatio: '2000:5'
   },
   {
-    id: 'tx1', type: 'TRANSFORMER', x: 400, y: 220, label: 'TX-01', voltagekV: 132,
+    id: 'tx1', type: NODE_TYPES.TRANSFORMER, x: 400, y: 240, label: 'TX-01 (132/33kV)', voltagekV: 132,
     vectorGroup: 'Dyn11', ansi: ['87T', '63', '49']
   },
-  { id: 'bus_mv', type: 'BUS', x: 400, y: 300, label: '33kV Bus', voltagekV: 33 },
+  { id: 'bus_mv', type: NODE_TYPES.BUS, x: 400, y: 320, label: '33kV Main Bus', voltagekV: 33 },
 
   // Feeder 1
   {
-    id: 'cb_f1', type: 'BREAKER', x: 150, y: 380, label: 'Feeder 52-F1', voltagekV: 33,
+    id: 'cb_f1', type: NODE_TYPES.BREAKER, x: 150, y: 400, label: 'Feeder 52-F1', voltagekV: 33,
     status: 'CLOSED', ratingAmps: 800,
     ansi: ['50', '51'], ctRatio: '800:5'
   },
-  { id: 'load1', type: 'LOAD', x: 150, y: 500, label: 'Residential', voltagekV: 33, loadMW: 5 },
+  { id: 'load1', type: NODE_TYPES.LOAD, x: 150, y: 520, label: 'Residential Area', voltagekV: 33, loadMW: 5 },
 
   // Feeder 2
   {
-    id: 'cb_f2', type: 'BREAKER', x: 400, y: 380, label: 'Feeder 52-F2', voltagekV: 33,
+    id: 'cb_f2', type: NODE_TYPES.BREAKER, x: 400, y: 400, label: 'Feeder 52-F2', voltagekV: 33,
     status: 'CLOSED', ratingAmps: 800,
     ansi: ['50', '51'], ctRatio: '800:5'
   },
-  { id: 'load2', type: 'LOAD', x: 400, y: 500, label: 'Industrial', voltagekV: 33, loadMW: 15 },
+  { id: 'load2', type: NODE_TYPES.LOAD, x: 400, y: 520, label: 'Industrial Zone', voltagekV: 33, loadMW: 15 },
 
   // Feeder 3
   {
-    id: 'cb_f3', type: 'BREAKER', x: 650, y: 380, label: 'Feeder 52-F3', voltagekV: 33,
+    id: 'cb_f3', type: NODE_TYPES.BREAKER, x: 650, y: 400, label: 'Feeder 52-F3', voltagekV: 33,
     status: 'CLOSED', ratingAmps: 800,
     ansi: ['50', '51'], ctRatio: '800:5'
   },
-  { id: 'load3', type: 'LOAD', x: 650, y: 500, label: 'Hospital', voltagekV: 33, loadMW: 8 },
+  { id: 'load3', type: NODE_TYPES.LOAD, x: 650, y: 520, label: 'Hospital Critical', voltagekV: 33, loadMW: 8 },
 ];
 
-const INITIAL_LINKS: LinkData[] = [
+const INITIAL_LINKS = [
   { id: 'l1', source: 'grid', target: 'cb_main', ratingAmps: 3000 },
   { id: 'l2', source: 'cb_main', target: 'tx1', ratingAmps: 3000 },
   { id: 'l3', source: 'tx1', target: 'bus_mv', ratingAmps: 3000 },
@@ -128,20 +151,20 @@ const INITIAL_LINKS: LinkData[] = [
 
 // --- PHYSICS ENGINE ---
 
-const calculatePhysics = (nodes: NodeData[], links: LinkData[]) => {
-  const energized = new Set<string>();
+const calculatePhysics = (nodes: Node[], links: typeof INITIAL_LINKS) => {
+  const energized = new Set();
   const currents: Record<string, number> = {};
 
   // 1. Energization Trace (BFS)
   const queue = ['grid'];
-  if (nodes.find(n => n.id === 'grid')) energized.add('grid');
+  const gridNode = nodes.find(n => n.id === 'grid');
+  if (gridNode) energized.add('grid');
 
   while (queue.length > 0) {
-    const currId = queue.shift()!;
+    const currId = queue.shift();
     const node = nodes.find(n => n.id === currId);
 
-    // Power stops at Open/Tripped breakers
-    if (node?.type === 'BREAKER' && node.status !== 'CLOSED') continue;
+    if (node?.type === NODE_TYPES.BREAKER && node.status !== 'CLOSED') continue;
 
     links.forEach(link => {
       if (link.source === currId && !energized.has(link.target)) {
@@ -155,504 +178,592 @@ const calculatePhysics = (nodes: NodeData[], links: LinkData[]) => {
     });
   }
 
-  // 2. Current Calculation (Bottom Up)
+  // 2. Current Calculation
+  nodes.forEach(n => currents[n.id] = 0);
+
   nodes.forEach(n => {
-    if (n.type === 'LOAD') {
-      const mw = energized.has(n.id) ? (n.loadMW || 0) : 0;
-      currents[n.id] = (mw * 1000) / n.voltagekV;
-      if (n.faulted && energized.has(n.id)) currents[n.id] = 10000; // Fault current
-    } else {
-      currents[n.id] = 0;
+    if (n.type === NODE_TYPES.LOAD) {
+      if (energized.has(n.id)) {
+        currents[n.id] = (n.loadMW * 1000) / n.voltagekV;
+      }
+      if (n.faulted && energized.has(n.id)) currents[n.id] += 15000;
     }
   });
 
-  // Aggregate currents (Simplified tree structure)
   ['cb_f1', 'cb_f2', 'cb_f3'].forEach((cbId, i) => {
     const loadId = `load${i + 1}`;
     currents[cbId] = currents[loadId];
+    const cb = nodes.find(n => n.id === cbId);
+    if (cb && cb.faulted && energized.has(cbId)) currents[cbId] += 15000;
   });
 
-  const i_feeders = currents['cb_f1'] + currents['cb_f2'] + currents['cb_f3'];
-  currents['bus_mv'] = i_feeders;
-  if (nodes.find(n => n.id === 'bus_mv')?.faulted && energized.has('bus_mv')) currents['bus_mv'] += 20000;
+  const busFault = nodes.find(n => n.id === 'bus_mv')?.faulted ? 25000 : 0;
+  const totalFeederLoad = currents['cb_f1'] + currents['cb_f2'] + currents['cb_f3'];
+  currents['bus_mv'] = totalFeederLoad + (energized.has('bus_mv') ? busFault : 0);
 
   currents['tx1'] = currents['bus_mv'];
-  currents['cb_main'] = currents['bus_mv'];
-  currents['grid'] = currents['bus_mv'];
+  if (nodes.find(n => n.id === 'tx1')?.faulted && energized.has('tx1')) currents['tx1'] += 20000;
+
+  currents['cb_main'] = currents['tx1'];
+  currents['grid'] = currents['cb_main'];
 
   return { energized, currents };
 };
 
-// --- SUB-COMPONENTS ---
 
-const ExplanationCard = ({ title, children, icon: Icon, ansi }: any) => (
-  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-4 rounded-xl flex gap-3 relative overflow-hidden">
-    <div className="bg-blue-100 dark:bg-blue-800 p-2 rounded-lg h-fit shrink-0 z-10">
-      <Icon className="w-5 h-5 text-blue-600 dark:text-blue-300" />
-    </div>
-    <div className="z-10 flex-1">
-      <div className="flex justify-between items-start">
-        <h4 className="font-bold text-blue-900 dark:text-blue-100 text-sm mb-1">{title}</h4>
-        {ansi && <span className="text-[10px] font-mono bg-blue-200 dark:bg-blue-800 px-2 py-0.5 rounded text-blue-800 dark:text-blue-200">ANSI {ansi}</span>}
-      </div>
-      <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">{children}</p>
-    </div>
-  </div>
-);
+// --- COMPONENTS ---
 
-const SoePanel = ({ logs }: { logs: LogEntry[] }) => (
-  <div className="mt-4 border-t border-slate-200 dark:border-slate-800 pt-4">
-    <div className="flex items-center gap-2 mb-2">
-      <List className="w-4 h-4 text-slate-500" />
-      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sequence of Events (SOE)</span>
-    </div>
-    <div className="bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 max-h-40 overflow-y-auto p-2 font-mono text-[10px]">
-      {logs.length === 0 && <div className="text-slate-400 text-center py-2">No events recorded.</div>}
-      {logs.map(log => (
-        <div key={log.id} className="grid grid-cols-[auto_1fr] gap-2 py-1 border-b border-slate-100 dark:border-slate-800 last:border-0">
-          <span className="text-slate-400">{log.time}</span>
-          <span className={`${log.type === 'TRIP' ? 'text-red-600' : 'text-slate-600 dark:text-slate-300'}`}>
-            <span className="font-bold">{log.device}</span> {log.event} - {log.details}
-          </span>
+const TutorialOverlay = ({ onClose }: { onClose: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    className="fixed inset-0 z-[60] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4"
+  >
+    <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row max-h-[85vh]">
+      <div className="md:w-1/3 bg-blue-600 p-8 text-white flex flex-col justify-between">
+        <div>
+          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-6">
+            <GraduationCap className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold mb-4">Mastering Protection</h2>
+          <p className="text-blue-100 leading-relaxed">
+            Welcome to the Digital Substation Simulator. This tool is designed to bridge the gap between electrical theory and operational reality.
+          </p>
         </div>
-      ))}
+        <div className="mt-8">
+          <div className="text-xs font-bold uppercase tracking-wider text-blue-200 mb-2">Developed For</div>
+          <ul className="space-y-2 text-sm">
+            <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Protection Engineers</li>
+            <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> System Operators</li>
+            <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Electrical Students</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="flex-1 p-8 overflow-y-auto">
+        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">What You Will Learn</h3>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 font-bold">50</div>
+              <div>
+                <h4 className="font-bold text-slate-900 dark:text-white">Instantaneous Trip</h4>
+                <p className="text-sm text-slate-500 mt-1">Simulate short circuits to see relays trip instantly.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 font-bold">51</div>
+              <div>
+                <h4 className="font-bold text-slate-900 dark:text-white">Time Overcurrent</h4>
+                <p className="text-sm text-slate-500 mt-1">Overload a feeder and watch the "Inverse Time" curve.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 font-bold">52</div>
+              <div>
+                <h4 className="font-bold text-slate-900 dark:text-white">Breaker Control</h4>
+                <p className="text-sm text-slate-500 mt-1">Manually operate breakers to restore power or isolate faults.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold hover:shadow-lg transition-all flex items-center gap-2"
+          >
+            Start Simulation <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
+  </motion.div>
 );
 
-const InstructorContent = ({ selectedNode, physics, setNodes, logs }: any) => {
-  if (!selectedNode) return (
-    <div className="text-center py-12 text-slate-400">
-      <MousePointer2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
-      <p>Select a component to view Engineering Data.</p>
-    </div>
-  );
+const AnimatedLink = ({ link, nodes, physics }: { link: any, nodes: Node[], physics: any }) => {
+  const src = nodes.find(n => n.id === link.source);
+  const tgt = nodes.find(n => n.id === link.target);
+
+  if (!src || !tgt) return null;
+
+  const isEnergized = physics.energized.has(link.source) && physics.energized.has(link.target);
+
+  const amps = physics.currents[link.target] || physics.currents[link.source] || 0;
+  const loadPct = amps / link.ratingAmps;
+
+  let color = '#94a3b8';
+  if (isEnergized) {
+    if (loadPct > 1.2) color = '#ef4444';
+    else if (loadPct > 0.9) color = '#f59e0b';
+    else color = '#3b82f6';
+  }
+
+  const lineVariants = {
+    energized: { strokeDashoffset: -20, transition: { repeat: Infinity, ease: "linear", duration: 1 } },
+    static: { strokeDashoffset: 0 }
+  };
 
   return (
-    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
-      {/* 1. Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Asset ID: {selectedNode.id}</div>
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">{selectedNode.label}</h3>
-        </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${selectedNode.faulted ? 'bg-red-100 text-red-600' :
-            selectedNode.status === 'TRIPPED' ? 'bg-red-100 text-red-600' :
-              selectedNode.status === 'OPEN' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-600'
-          }`}>
-          {selectedNode.faulted ? 'FAULT' : selectedNode.status || 'ONLINE'}
-        </div>
+    <g>
+      <motion.line
+        x1={src.x} y1={src.y} x2={tgt.x} y2={tgt.y}
+        stroke={color}
+        strokeWidth={isEnergized ? 4 : 2}
+        strokeOpacity={isEnergized ? 0.3 : 0.2}
+        initial={false}
+        animate={{ stroke: color, strokeWidth: isEnergized ? 4 : 2 }}
+      />
+      {isEnergized && (
+        <motion.line
+          x1={src.x} y1={src.y} x2={tgt.x} y2={tgt.y}
+          stroke={color}
+          strokeWidth={2}
+          strokeDasharray="8 8"
+          variants={lineVariants}
+          animate="energized"
+        />
+      )}
+    </g>
+  );
+};
+
+const NodeItem = ({ node, isSelected, isEnergized, onClick, currents }: { node: Node, isSelected: boolean, isEnergized: boolean, onClick: () => void, currents: any }) => {
+  const isFaulted = node.faulted;
+  const current = currents[node.id] || 0;
+
+  let strokeColor = '#94a3b8';
+  let fillColor = '#e2e8f0';
+
+  if (isEnergized) {
+    if (isFaulted) {
+      strokeColor = '#ef4444';
+      fillColor = '#fee2e2';
+    } else {
+      strokeColor = node.type === NODE_TYPES.GRID ? '#3b82f6' :
+        node.type === NODE_TYPES.LOAD ? '#a855f7' :
+          node.type === NODE_TYPES.BUS ? '#64748b' : '#3b82f6';
+      fillColor = '#ffffff';
+    }
+  }
+
+  // FIX: Using `initial={{ x, y }}` allows Framer Motion to handle positioning
+  // correctly without conflicting with `whileHover` scales.
+  // Using `transform` prop directly causes conflicts.
+  return (
+    <motion.g
+      initial={{ x: node.x, y: node.y }}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className="cursor-pointer"
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      <AnimatePresence>
+        {isSelected && (
+          <motion.circle
+            r={40}
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth={2}
+            strokeDasharray="4 4"
+            initial={{ opacity: 0, rotate: 0 }}
+            animate={{ opacity: 1, rotate: 360 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          />
+        )}
+      </AnimatePresence>
+
+      {isFaulted && (
+        <motion.circle
+          r={45}
+          fill="#ef4444"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: [0, 0.4, 0], scale: [0.8, 1.2, 0.8] }}
+          transition={{ repeat: Infinity, duration: 1 }}
+        />
+      )}
+
+      <circle
+        r={node.type === NODE_TYPES.BUS ? 15 : 28}
+        fill={fillColor}
+        stroke={strokeColor}
+        strokeWidth={3}
+      />
+
+      <g transform="translate(-12, -12)">
+        {node.type === NODE_TYPES.GRID && <Zap className="w-6 h-6 text-blue-600" />}
+        {node.type === NODE_TYPES.BREAKER && (
+          <Power className={`w-6 h-6 ${node.status === 'CLOSED' ? 'text-emerald-600' : 'text-slate-400'}`} />
+        )}
+        {node.type === NODE_TYPES.LOAD && <Activity className="w-6 h-6 text-purple-600" />}
+        {node.type === NODE_TYPES.TRANSFORMER && <Zap className="w-6 h-6 text-amber-500" />}
+        {node.type === NODE_TYPES.BUS && <Settings className="w-6 h-6 text-slate-500" />}
+      </g>
+
+      {node.type === NODE_TYPES.BREAKER && (
+        <g transform="translate(0, -38)">
+          <rect x="-24" width="48" height="16" rx="4" fill={node.status === 'CLOSED' ? '#10b981' : node.status === 'TRIPPED' ? '#ef4444' : '#64748b'} />
+          <text x="0" y="11" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">{node.status}</text>
+        </g>
+      )}
+
+      <text y="45" textAnchor="middle" className="text-[10px] font-bold fill-slate-500 uppercase tracking-tight bg-white/80" style={{ textShadow: '0 0 4px white' }}>
+        {node.label}
+      </text>
+
+      {isEnergized && current > 10 && (
+        <text y="56" textAnchor="middle" className={`text-[10px] font-mono ${current > (node.type === NODE_TYPES.BREAKER ? node.ratingAmps : node.ratingAmps || 1000) ? 'fill-red-600 font-bold' : 'fill-slate-400'}`}>
+          {current.toFixed(0)} A
+        </text>
+      )}
+
+    </motion.g>
+  );
+};
+
+
+const LogPanel = ({ logs }: { logs: any[] }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [logs]);
+
+  return (
+    <div className="flex flex-col h-48 bg-slate-900 text-slate-300 font-mono text-xs border-t border-slate-700">
+      <div className="flex items-center px-4 py-2 bg-slate-800 border-b border-slate-700 gap-2 sticky top-0">
+        <List className="w-3 h-3 text-blue-400" />
+        <span className="uppercase font-bold text-slate-400 tracking-wider text-[10px]">Sequence of Events (SOE)</span>
       </div>
-
-      {/* 2. Engineering Data */}
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-500 block">Nominal Voltage</span>
-          <span className="font-mono font-bold">{selectedNode.voltagekV} kV</span>
-        </div>
-        {selectedNode.ctRatio && (
-          <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-            <span className="text-slate-500 block">CT Ratio</span>
-            <span className="font-mono font-bold">{selectedNode.ctRatio}</span>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-2 space-y-1">
+        {logs.length === 0 && <div className="text-slate-600 italic px-2">System ready. Waiting for events...</div>}
+        {logs.map((log) => (
+          <div key={log.id} className="flex gap-3 hover:bg-slate-800 p-1 rounded transition-colors">
+            <span className="text-slate-500 shrink-0">{log.time}</span>
+            <span className={`shrink-0 font-bold ${log.type === 'TRIP' ? 'text-red-400' : 'text-blue-400'}`}>{log.device}</span>
+            <span className="text-slate-300">{log.details}</span>
           </div>
-        )}
-        {selectedNode.vectorGroup && (
-          <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-            <span className="text-slate-500 block">Vector Group</span>
-            <span className="font-mono font-bold">{selectedNode.vectorGroup}</span>
-          </div>
-        )}
-        {selectedNode.ansi && (
-          <div className="col-span-2 p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 flex gap-2 items-center">
-            <span className="text-slate-500">Protection:</span>
-            <div className="flex gap-1">
-              {selectedNode.ansi.map((code: string) => (
-                <span key={code} className="bg-slate-200 dark:bg-slate-700 px-1.5 rounded text-[10px] font-mono font-bold">{code}</span>
-              ))}
-            </div>
-          </div>
-        )}
+        ))}
       </div>
-
-      {/* 3. Live Metrics */}
-      <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-        <div className="flex justify-between items-end mb-2">
-          <span className="text-xs font-bold text-slate-500 uppercase">Primary Current (RMS)</span>
-          <span className={`text-2xl font-mono font-bold ${physics.currents[selectedNode.id] > (selectedNode.ratingAmps || 9999) ? 'text-red-500' : 'text-slate-900 dark:text-white'}`}>
-            {physics.currents[selectedNode.id]?.toFixed(0)} <span className="text-sm">A</span>
-          </span>
-        </div>
-        {selectedNode.ratingAmps && (
-          <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-            <div
-              className={`h-full transition-all duration-500 ${physics.currents[selectedNode.id] > selectedNode.ratingAmps ? 'bg-red-500' : 'bg-emerald-500'}`}
-              style={{ width: `${Math.min(100, (physics.currents[selectedNode.id] / selectedNode.ratingAmps) * 100)}%` }}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* 4. Controls */}
-      <div className="space-y-3 pt-2">
-        {selectedNode.type === 'BREAKER' && (
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setNodes((prev: any) => prev.map((n: any) => n.id === selectedNode.id ? { ...n, status: 'CLOSED', faulted: false } : n))}
-              disabled={selectedNode.status === 'CLOSED'}
-              className="py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-sm disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
-            >
-              CLOSE (52)
-            </button>
-            <button
-              onClick={() => setNodes((prev: any) => prev.map((n: any) => n.id === selectedNode.id ? { ...n, status: 'OPEN' } : n))}
-              disabled={selectedNode.status === 'OPEN'}
-              className="py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-sm disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
-            >
-              TRIP (52)
-            </button>
-          </div>
-        )}
-
-        {selectedNode.type === 'LOAD' && (
-          <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl">
-            <div className="flex justify-between mb-2">
-              <span className="font-bold text-sm">Load Demand</span>
-              <span className="font-mono text-sm">{selectedNode.loadMW} MW</span>
-            </div>
-            <input
-              type="range" min="0" max="40" step="1"
-              value={selectedNode.loadMW}
-              onChange={(e) => setNodes((prev: any) => prev.map((n: any) => n.id === selectedNode.id ? { ...n, loadMW: Number(e.target.value) } : n))}
-              className="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            />
-          </div>
-        )}
-
-        <button
-          onClick={() => setNodes((prev: any) => prev.map((n: any) => n.id === selectedNode.id ? { ...n, faulted: !n.faulted } : n))}
-          className={`w-full py-3 font-bold rounded-lg border-2 flex items-center justify-center gap-2 transition-all text-sm ${selectedNode.faulted
-              ? 'border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
-              : 'border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-900/20'
-            }`}
-        >
-          {selectedNode.faulted ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-          {selectedNode.faulted ? 'CLEAR FAULT' : 'INJECT SHORT CIRCUIT'}
-        </button>
-      </div>
-
-      {/* 5. Educational Context */}
-      <div className="space-y-2">
-        {selectedNode.type === 'BREAKER' && (
-          <ExplanationCard title="Circuit Breaker (52)" icon={ShieldAlert} ansi="50/51">
-            Primary protection device. Controlled by relays monitoring ANSI 50 (Instantaneous) and 51 (Time-Overcurrent) elements.
-          </ExplanationCard>
-        )}
-        {selectedNode.type === 'TRANSFORMER' && (
-          <ExplanationCard title="Power Transformer" icon={Zap} ansi="87T">
-            Protected by Differential Relay (87T) which compares current in vs current out. Vector group {selectedNode.vectorGroup} dictates phase shift.
-          </ExplanationCard>
-        )}
-      </div>
-
-      <SoePanel logs={logs} />
     </div>
   );
 };
 
-// --- MAIN APP ---
+// --- MAIN APP COMPONENT ---
 
-const DigitalSubstation = () => {
-  const [nodes, setNodes] = useState<NodeData[]>(INITIAL_NODES);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+const DigitalSubstationPro = () => {
+  const [nodes, setNodes] = useState<Node[]>(INITIAL_NODES);
   const [physics, setPhysics] = useState(calculatePhysics(INITIAL_NODES, INITIAL_LINKS));
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(true);
-  const [alert, setAlert] = useState<string | null>(null);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
-
-  useEffect(() => {
-    if (selectedId) setIsPanelOpen(true);
-  }, [selectedId]);
-
-  const addLog = (device: string, event: string, details: string, type: 'INFO' | 'TRIP' | 'ALARM') => {
-    const newLog = {
-      // FIX: Added random component to avoid duplicate keys on simultaneous events in the simulation loop
-      id: Date.now() + Math.random(),
-      time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      device, event, details, type
-    };
-    setLogs(prev => [newLog, ...prev].slice(0, 20));
-  };
+  const [logs, setLogs] = useState<any[]>([]);
+  const [showTutorial, setShowTutorial] = useState(true);
+  const [activeScenario, setActiveScenario] = useState('normal');
 
   useEffect(() => {
     if (!isRunning) return;
     const interval = setInterval(() => {
-      const newState = calculatePhysics(nodes, INITIAL_LINKS);
-      setPhysics(newState);
+      const nextPhysics = calculatePhysics(nodes, INITIAL_LINKS);
+      setPhysics(nextPhysics);
 
-      // Protection Logic (Relay Simulation)
-      let tripped = false;
+      let stateChanged = false;
       const newNodes = nodes.map(n => {
-        if (n.type === 'BREAKER' && n.status === 'CLOSED') {
-          const amps = newState.currents[n.id];
+        if (n.type === NODE_TYPES.BREAKER && n.status === 'CLOSED') {
+          const current = nextPhysics.currents[n.id];
           const limit = n.ratingAmps || 1000;
 
-          // ANSI 50: Instantaneous Overcurrent
-          if (amps > limit * 5) {
-            tripped = true;
-            const msg = `ANSI 50 Trip (I >> ${amps.toFixed(0)}A)`;
-            setAlert(`${n.label}: ${msg}`);
-            addLog(n.label, 'TRIP', msg, 'TRIP');
-            return { ...n, status: 'TRIPPED' as const };
+          if (current > limit * 5) {
+            addLog(n.label, 'TRIP (ANSI 50)', `Detected ${current.toFixed(0)}A (>>${limit * 5}A)`, 'TRIP');
+            stateChanged = true;
+            return { ...n, status: 'TRIPPED' };
           }
-          // ANSI 51: Time Inverse Overcurrent
-          if (amps > limit * 1.2) {
-            if (Math.random() > 0.85) {
-              tripped = true;
-              const msg = `ANSI 51 Trip (Overload ${amps.toFixed(0)}A)`;
-              setAlert(`${n.label}: ${msg}`);
-              addLog(n.label, 'TRIP', msg, 'TRIP');
-              return { ...n, status: 'TRIPPED' as const };
+
+          if (current > limit * 1.2) {
+            if (Math.random() > 0.8) {
+              addLog(n.label, 'TRIP (ANSI 51)', `Overload ${current.toFixed(0)}A (> ${limit}A)`, 'TRIP');
+              stateChanged = true;
+              return { ...n, status: 'TRIPPED' };
             }
           }
         }
         return n;
       });
-      if (tripped) setNodes(newNodes);
+
+      if (stateChanged) setNodes(newNodes as Node[]);
 
     }, 1000);
     return () => clearInterval(interval);
   }, [nodes, isRunning]);
 
-  const handleScenario = (key: keyof typeof SCENARIOS) => {
-    setNodes(SCENARIOS[key].setup(INITIAL_NODES) as NodeData[]);
-    setAlert(null);
-    setSelectedId(null);
-    setIsPanelOpen(false);
-    setLogs([]);
-    addLog('System', 'SCENARIO LOAD', SCENARIOS[key].name, 'INFO');
+  const addLog = (device: string, event: string, details: string, type = 'INFO') => {
+    const entry = {
+      id: Math.random().toString(36).substr(2, 9),
+      time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+      device, event, details, type
+    };
+    setLogs(prev => [entry, ...prev].slice(0, 50));
   };
 
-  const getLinkColor = (link: LinkData) => {
-    const isEnergized = physics.energized.has(link.source) && physics.energized.has(link.target);
-    if (!isEnergized) return '#94a3b8';
-
-    const amps = physics.currents[link.target] || physics.currents[link.source] || 0;
-    const load = amps / link.ratingAmps;
-
-    if (load > 1.0) return '#ef4444';
-    if (load > 0.8) return '#f59e0b';
-    return '#3b82f6';
+  const loadScenario = (key) => {
+    const scenario = SCENARIOS[key];
+    setNodes(scenario.setup(INITIAL_NODES));
+    setActiveScenario(key);
+    addLog('SYSTEM', 'SCENARIO CHANGE', `Loaded: ${scenario.name}`);
+    setSelectedId(null);
   };
 
   const selectedNode = nodes.find(n => n.id === selectedId);
 
   return (
-    <div className="h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-sans flex flex-col overflow-hidden">
+    <div className="h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans flex flex-col overflow-hidden">
 
-      {/* 1. TOP NAVBAR */}
-      <div className="flex-none bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm z-20">
-        <div className="flex items-center justify-between px-4 h-16">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="bg-blue-600 p-2 rounded-lg text-white shrink-0">
-              <GraduationCap className="w-5 h-5" />
-            </div>
-            <div className="truncate">
-              <h1 className="font-bold text-base md:text-lg truncate">Protection Sim Pro</h1>
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider hidden md:block">Interactive Relay Training</p>
-            </div>
+      {/* --- HEADER --- */}
+      <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-20 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-600 p-2 rounded-lg text-white">
+            <ShieldAlert className="w-5 h-5" />
           </div>
-
-          <div className="flex items-center gap-2 md:gap-4 overflow-x-auto no-scrollbar ml-4">
-            <div className="flex gap-2">
-              {Object.entries(SCENARIOS).map(([key, data]) => (
-                <button
-                  key={key}
-                  onClick={() => handleScenario(key as any)}
-                  className="whitespace-nowrap px-3 py-1.5 text-xs font-bold uppercase tracking-wide rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 transition-colors"
-                >
-                  {data.name.replace('Scenario: ', '')}
-                </button>
-              ))}
-            </div>
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
-            <div className="flex gap-2 shrink-0">
-              <button
-                onClick={() => setIsRunning(!isRunning)}
-                className={`p-2 rounded-full ${isRunning ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'}`}
-              >
-                {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-              </button>
-              <button
-                onClick={() => { setNodes(INITIAL_NODES); setLogs([]); }}
-                className="p-2 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
-              >
-                <RotateCcw className="w-5 h-5" />
-              </button>
+          <div>
+            <h1 className="font-bold text-lg leading-tight">Digital Substation <span className="text-blue-600">Pro</span></h1>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">System Online</span>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="flex-1 flex overflow-hidden relative">
-
-        {/* 2. CANVAS AREA */}
-        <div
-          className="flex-1 relative bg-slate-100 dark:bg-slate-950 cursor-move"
-          onClick={() => { setSelectedId(null); setIsPanelOpen(false); }}
-        >
-          <div className="absolute inset-0 flex items-center justify-center p-4">
-            <svg
-              viewBox="0 0 800 600"
-              className="w-full h-full max-w-[1000px] max-h-[800px] select-none"
-              preserveAspectRatio="xMidYMid meet"
-            >
-              <defs>
-                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <circle cx="1" cy="1" r="1" fill="#94a3b8" fillOpacity="0.2" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-
-              {/* LINKS */}
-              {INITIAL_LINKS.map(link => {
-                const src = nodes.find(n => n.id === link.source)!;
-                const tgt = nodes.find(n => n.id === link.target)!;
-                const isEnergized = physics.energized.has(link.source) && physics.energized.has(link.target);
-                const color = getLinkColor(link);
-
-                return (
-                  <g key={link.id}>
-                    <line
-                      x1={src.x} y1={src.y} x2={tgt.x} y2={tgt.y}
-                      stroke={color}
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      opacity={isEnergized ? 1 : 0.3}
-                    />
-                    {isEnergized && (
-                      <circle r="3" fill="white">
-                        <animateMotion
-                          dur="2s"
-                          repeatCount="indefinite"
-                          path={`M ${src.x} ${src.y} L ${tgt.x} ${tgt.y}`}
-                        />
-                      </circle>
-                    )}
-                  </g>
-                );
-              })}
-
-              {/* NODES */}
-              {nodes.map(node => {
-                const isSelected = selectedId === node.id;
-                const isEnergized = physics.energized.has(node.id);
-                const color = node.type === 'GRID' ? '#3b82f6' : node.type === 'LOAD' ? '#a855f7' : '#64748b';
-
-                return (
-                  <g
-                    key={node.id}
-                    transform={`translate(${node.x}, ${node.y})`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedId(node.id);
-                    }}
-                    className="cursor-pointer hover:opacity-90"
-                    style={{ touchAction: 'none' }}
-                  >
-                    <circle r="40" fill="transparent" />
-                    {isSelected && (
-                      <circle r="35" fill="none" stroke="#3b82f6" strokeWidth="3" strokeDasharray="6 4" className="animate-spin-slow" />
-                    )}
-                    <circle r="26" fill={isEnergized ? 'white' : '#e2e8f0'} stroke={isEnergized ? color : '#94a3b8'} strokeWidth="3" />
-                    {node.type === 'BREAKER' && (
-                      <g transform="translate(0, -38)">
-                        <rect x="-24" width="48" height="16" rx="4" fill={node.status === 'CLOSED' ? '#10b981' : node.status === 'TRIPPED' ? '#ef4444' : '#64748b'} />
-                        <text x="0" y="11" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">{node.status}</text>
-                      </g>
-                    )}
-                    <g transform="translate(-12, -12)">
-                      {node.type === 'GRID' && <Zap className="w-6 h-6 text-blue-600" />}
-                      {node.type === 'BREAKER' && <Power className={`w-6 h-6 ${node.status === 'CLOSED' ? 'text-emerald-600' : 'text-slate-400'}`} />}
-                      {node.type === 'LOAD' && <Activity className="w-6 h-6 text-purple-600" />}
-                      {node.type === 'TRANSFORMER' && <Zap className="w-6 h-6 text-amber-500" />}
-                      {node.type === 'BUS' && <CheckCircle2 className="w-6 h-6 text-slate-500" />}
-                    </g>
-                    {node.faulted && (
-                      <circle r="30" fill="red" opacity="0.5" className="animate-ping pointer-events-none" />
-                    )}
-                    <text y="42" textAnchor="middle" className="text-[12px] font-bold fill-slate-600 uppercase tracking-tight bg-white/80" style={{ textShadow: '0 0 4px white' }}>
-                      {node.label}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+            {Object.values(SCENARIOS).map(sc => (
+              <button
+                key={sc.id}
+                onClick={() => loadScenario(sc.id)}
+                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeScenario === sc.id
+                  ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+              >
+                {sc.name.split(':')[0]}
+              </button>
+            ))}
           </div>
 
+          <div className="w-px h-8 bg-slate-200 dark:bg-slate-800 mx-2"></div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsRunning(!isRunning)}
+              className={`p-2 rounded-full border transition-colors ${isRunning
+                ? 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
+                }`}
+              title={isRunning ? "Pause Simulation" : "Resume Simulation"}
+            >
+              {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={() => { setNodes(INITIAL_NODES); setLogs([]); setActiveScenario('normal'); }}
+              className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 border border-transparent hover:border-slate-300 transition-colors"
+              title="Reset System"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setShowTutorial(true)}
+              className="p-2 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 transition-colors"
+              title="Help / Instructions"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* --- MAIN CONTENT --- */}
+      <div className="flex-1 flex overflow-hidden relative">
+
+        {/* CANVAS */}
+        <div className="flex-1 relative bg-slate-100 dark:bg-slate-950/50" onClick={() => setSelectedId(null)}>
+
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            style={{ backgroundImage: 'radial-gradient(circle, #64748b 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
+          </div>
+
+          <svg className="w-full h-full max-w-full max-h-full select-none" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+            {INITIAL_LINKS.map(link => (
+              <AnimatedLink key={link.id} link={link} nodes={nodes} physics={physics} />
+            ))}
+            {nodes.map(node => (
+              <NodeItem
+                key={node.id}
+                node={node}
+                isSelected={selectedId === node.id}
+                isEnergized={physics.energized.has(node.id)}
+                currents={physics.currents}
+                onClick={() => setSelectedId(node.id)}
+              />
+            ))}
+          </svg>
+
           <AnimatePresence>
-            {alert && (
+            {activeScenario !== 'normal' && (
               <motion.div
-                initial={{ y: -50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -50, opacity: 0 }}
-                className="absolute top-4 left-4 right-4 md:left-auto md:right-auto md:w-auto md:min-w-[300px] z-50 bg-red-600 text-white px-4 py-3 rounded-lg shadow-xl flex items-center justify-between gap-3 font-bold text-sm"
+                initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
+                className="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-6 py-3 rounded-full shadow-xl backdrop-blur-md border border-slate-700 flex items-center gap-3 z-10"
               >
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 shrink-0" />
-                  {alert}
-                </div>
-                <button onClick={() => setAlert(null)}><X className="w-5 h-5 text-red-200" /></button>
+                <Activity className="w-4 h-4 text-amber-400 animate-pulse" />
+                <span className="text-sm font-medium">{SCENARIOS[activeScenario].desc}</span>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* 3. INSTRUCTOR PANEL */}
-        <div className="hidden md:flex w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex-col shadow-xl z-20">
-          <div className="p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-blue-600" />
-              Instructor Panel
-            </h2>
-            <p className="text-slate-500 text-sm mt-1">Engineering Data & Controls</p>
-          </div>
-          <div className="flex-1 overflow-y-auto p-6">
-            <InstructorContent selectedNode={selectedNode} physics={physics} setNodes={setNodes} logs={logs} />
-          </div>
-        </div>
-
-        <AnimatePresence>
-          {isPanelOpen && (
+        {/* SIDEBAR (Drawer) */}
+        <motion.div
+          className="absolute top-0 right-0 bottom-0 w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-30 flex flex-col"
+          initial={{ x: '100%' }}
+          animate={{ x: selectedId ? 0 : '100%' }}
+          transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        >
+          {selectedNode ? (
             <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="md:hidden absolute inset-0 bg-black/40 z-30 backdrop-blur-sm"
-                onClick={() => setIsPanelOpen(false)}
-              />
-              <motion.div
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="md:hidden absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl z-40 max-h-[70vh] flex flex-col"
-              >
-                <div className="flex justify-center pt-3 pb-1" onClick={() => setIsPanelOpen(false)}>
-                  <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Asset Configuration</div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{selectedNode.label}</h2>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-mono border border-slate-200 dark:border-slate-700">
+                    ID: {selectedNode.id}
+                  </span>
+                  <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-mono border border-slate-200 dark:border-slate-700">
+                    {selectedNode.voltagekV} kV
+                  </span>
                 </div>
-                <div className="p-6 overflow-y-auto">
-                  <InstructorContent selectedNode={selectedNode} physics={physics} setNodes={setNodes} logs={logs} />
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+              </div>
 
+              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+
+                {/* Live Telemetry */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+                    <Activity className="w-4 h-4 text-blue-500" /> Real-time Telemetry
+                  </h3>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-xs text-slate-500 uppercase font-bold">Current (RMS)</span>
+                      <span className="font-mono text-2xl font-bold text-slate-900 dark:text-white">
+                        {physics.currents[selectedNode.id]?.toFixed(0)} <span className="text-sm text-slate-400">A</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full bg-blue-500"
+                        animate={{
+                          width: `${Math.min(100, (physics.currents[selectedNode.id] / (selectedNode.ratingAmps || 2000)) * 100)}%`,
+                          backgroundColor: physics.currents[selectedNode.id] > (selectedNode.ratingAmps || 2000) ? '#ef4444' : '#3b82f6'
+                        }}
+                        transition={{ type: "spring", stiffness: 50 }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-1 text-[10px] text-slate-400">
+                      <span>0 A</span>
+                      <span>Rated: {selectedNode.ratingAmps || 'N/A'} A</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Controls */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+                    <Settings className="w-4 h-4 text-slate-500" /> Operations
+                  </h3>
+
+                  <div className="space-y-3">
+                    {selectedNode.type === NODE_TYPES.BREAKER && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={() => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, status: 'CLOSED', faulted: false } : n))}
+                          disabled={selectedNode.status === 'CLOSED'}
+                          className="py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm shadow-sm transition-all"
+                        >
+                          CLOSE
+                        </button>
+                        <button
+                          onClick={() => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, status: 'OPEN' } : n))}
+                          disabled={selectedNode.status === 'OPEN'}
+                          className="py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm shadow-sm transition-all"
+                        >
+                          TRIP
+                        </button>
+                      </div>
+                    )}
+
+                    {selectedNode.type === NODE_TYPES.LOAD && (
+                      <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                        <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Demand Setpoint (MW)</label>
+                        <input
+                          type="range" min="0" max="40" step="1"
+                          value={selectedNode.loadMW}
+                          onChange={(e) => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, loadMW: parseInt(e.target.value) } : n))}
+                          className="w-full accent-blue-600"
+                        />
+                        <div className="flex justify-between text-xs mt-1 font-mono">
+                          <span>0 MW</span>
+                          <span>{selectedNode.loadMW} MW</span>
+                          <span>40 MW</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, faulted: !n.faulted } : n))}
+                      className={`w-full py-3 rounded-lg font-bold text-sm border-2 transition-all flex items-center justify-center gap-2 ${selectedNode.faulted
+                        ? 'border-emerald-500 text-emerald-600 bg-emerald-50'
+                        : 'border-red-200 hover:border-red-400 text-red-600 bg-red-50'
+                        }`}
+                    >
+                      {selectedNode.faulted ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                      {selectedNode.faulted ? 'CLEAR FAULT' : 'INJECT FAULT'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Info Card */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-4 rounded-xl">
+                  <h4 className="font-bold text-blue-900 dark:text-blue-200 text-sm mb-1 flex items-center gap-2">
+                    <Info className="w-4 h-4" /> Engineering Note
+                  </h4>
+                  <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+                    {selectedNode.type === NODE_TYPES.BREAKER && "This breaker is protected by ANSI 50 (Instantaneous) and 51 (Time-Overcurrent) elements. Fault currents >5x rating will trip instantly."}
+                    {selectedNode.type === NODE_TYPES.TRANSFORMER && "Transformers are vulnerable to internal faults. Differential protection (87T) compares current entry vs exit to detect issues."}
+                    {selectedNode.type === NODE_TYPES.LOAD && "Loads determine the system current flow. Increasing demand beyond breaker ratings will trigger thermal overload protection."}
+                    {selectedNode.type === NODE_TYPES.BUS && "The Busbar is the critical node. A fault here requires isolating all connected feeders (Bus Differential Protection)."}
+                  </p>
+                </div>
+
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+              <MousePointer2 className="w-12 h-12 mb-4 opacity-50" />
+              <h3 className="font-bold text-lg text-slate-500">No Asset Selected</h3>
+              <p className="text-sm">Click on any component in the single-line diagram to view telemetry and controls.</p>
+            </div>
+          )}
+
+          {/* LOGS at bottom of sidebar */}
+          <LogPanel logs={logs} />
+        </motion.div>
       </div>
+
+      {/* Tutorial Overlay */}
+      <AnimatePresence>
+        {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} />}
+      </AnimatePresence>
+
     </div>
   );
 };
 
-export default DigitalSubstation;
+export default DigitalSubstationPro;
