@@ -1,98 +1,448 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Square, FastForward, RotateCcw, ClipboardCheck, AlertCircle, CheckCircle2, XCircle, Download, Activity, Zap, Timer, HelpCircle, BookOpen, X, CheckCircle, AlertTriangle, Settings, Sliders, PenTool, Database, TrendingUp, Music } from 'lucide-react';
-import { CurveType } from '../types';
-import { calculateTripTime } from '../services/mathEngine';
+import {
+    Play, Square, RotateCcw, ClipboardCheck, AlertCircle,
+    CheckCircle2, XCircle, Activity, Zap, Timer, HelpCircle,
+    Book, X, AlertTriangle, Settings, Sliders,
+    Database, TrendingUp, Sun, Moon, MonitorPlay, GraduationCap,
+    MousePointer2, ShieldCheck, Info, Ruler, LineChart, Cpu, Scale
+} from 'lucide-react';
 
-const RelayTester = () => {
+// --- 1. MATH ENGINE (IEC 60255) ---
+const calculateTripTime = (current: number, pickup: number, tms: number, curveType: string) => {
+    const M = current / pickup; // Multiple of pickup
+
+    // If current is below pickup, it never trips (infinite time)
+    if (M <= 1.0) return null;
+
+    // IEC Standard Inverse Formula
+    // t = TMS * (k / (M^alpha - 1))
+
+    let k = 0.14;
+    let alpha = 0.02;
+
+    if (curveType === 'VERY') { k = 13.5; alpha = 1.0; }
+    if (curveType === 'EXTREME') { k = 80.0; alpha = 2.0; }
+    // Long Inverse
+    if (curveType === 'LONG') { k = 120; alpha = 1.0; }
+
+    const time = tms * (k / (Math.pow(M, alpha) - 1));
+    return time; // in seconds
+};
+
+// --- 2. THEORY DATA ---
+const THEORY_DATA = [
+    {
+        id: 'fundamentals',
+        title: "1. Protection Fundamentals",
+        icon: <ShieldCheck className="w-5 h-5 text-blue-500" />,
+        content: (
+            <div className="space-y-6 text-sm leading-relaxed">
+                <div className="p-5 rounded-2xl border-l-4 border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-sm">
+                    <h3 className="text-lg font-bold mb-2 text-blue-900 dark:text-blue-100">The "50/51" Standard</h3>
+                    <p className="text-slate-700 dark:text-slate-300">
+                        Overcurrent protection is the backbone of electrical distribution. It uses two distinct elements to clear faults while allowing temporary overloads (like motor starting).
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-bold">ANSI 51</span>
+                            <strong className="text-slate-900 dark:text-white">Time-Overcurrent</strong>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <strong>Function:</strong> Overload & Distant Faults.<br />
+                            <strong>Logic:</strong> Inverse Curve. Higher current = Faster trip.<br />
+                            <strong>Setting:</strong> Pickup (Is) & Time Multiplier (TMS).
+                        </p>
+                    </div>
+                    <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold">ANSI 50</span>
+                            <strong className="text-slate-900 dark:text-white">Instantaneous</strong>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <strong>Function:</strong> Close-in Short Circuits.<br />
+                            <strong>Logic:</strong> No intentional delay (&lt;30ms).<br />
+                            <strong>Setting:</strong> High Set (I&gt;&gt;). Usually 10x-20x nominal.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        )
+    },
+    {
+        id: 'ct_selection',
+        title: "2. Current Transformer (CT) Selection",
+        icon: <Scale className="w-5 h-5 text-indigo-500" />,
+        content: (
+            <div className="space-y-6 text-sm">
+                <p className="text-slate-600 dark:text-slate-400">
+                    A relay is only as good as its input. Selecting the right CT is critical to prevent "Protection Blindness" due to saturation.
+                </p>
+                <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-200 dark:border-indigo-800">
+                    <h4 className="font-bold text-indigo-900 dark:text-indigo-100 mb-2">Protection Class CTs (5P20)</h4>
+                    <p className="text-xs text-indigo-800 dark:text-indigo-200 mb-2">
+                        A common spec is <strong>5P20</strong>. This means:
+                    </p>
+                    <ul className="list-disc pl-5 text-xs text-indigo-800 dark:text-indigo-300 space-y-1">
+                        <li><strong>5:</strong> Composite Error is &lt;5%.</li>
+                        <li><strong>P:</strong> Protection Class (Not metering).</li>
+                        <li><strong>20:</strong> Accuracy is maintained up to <strong>20x</strong> rated current (Accuracy Limit Factor).</li>
+                    </ul>
+                </div>
+                <p className="text-xs text-slate-500">
+                    <strong>Rule of Thumb:</strong> Ensure the CT Knee Point Voltage is high enough to drive the maximum fault current through the relay burden + lead resistance without saturating.
+                </p>
+            </div>
+        )
+    },
+    {
+        id: 'curves',
+        title: "3. Curve Selection Guide",
+        icon: <TrendingUp className="w-5 h-5 text-purple-500" />,
+        content: (
+            <div className="space-y-6 text-sm">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500 uppercase">
+                            <th className="py-2">IEC Curve</th>
+                            <th className="py-2">Application</th>
+                        </tr>
+                    </thead>
+                    <tbody className="text-xs text-slate-700 dark:text-slate-300">
+                        <tr className="border-b border-slate-100 dark:border-slate-800">
+                            <td className="py-3 font-bold text-purple-600">Standard Inverse (SI)</td>
+                            <td className="py-3">General purpose. Good grading with fuses is difficult. Used on most feeders.</td>
+                        </tr>
+                        <tr className="border-b border-slate-100 dark:border-slate-800">
+                            <td className="py-3 font-bold text-purple-600">Very Inverse (VI)</td>
+                            <td className="py-3">Used where fault current magnitude drops significantly with distance (long lines). Better grading with fuses.</td>
+                        </tr>
+                        <tr className="border-b border-slate-100 dark:border-slate-800">
+                            <td className="py-3 font-bold text-purple-600">Extremely Inverse (EI)</td>
+                            <td className="py-3">Matches fuse characteristics closely. Essential for protecting transformers, cables, and motors (thermal limit).</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-500 font-mono">
+                    t = TMS × k / ((I/Is)^α - 1)
+                </div>
+            </div>
+        )
+    },
+    {
+        id: 'coordination',
+        title: "4. Coordination (Grading)",
+        icon: <Activity className="w-5 h-5 text-emerald-500" />,
+        content: (
+            <div className="space-y-6 text-sm">
+                <h4 className="font-bold text-slate-900 dark:text-white">The Grading Margin</h4>
+                <p className="text-slate-600 dark:text-slate-400">
+                    When a fault occurs downstream, the downstream relay must trip first. The upstream relay waits. The difference in time is the <strong>Grading Margin</strong>.
+                </p>
+                <div className="flex gap-4 items-center justify-center py-4">
+                    <div className="text-center">
+                        <div className="text-2xl font-bold text-slate-900 dark:text-white">0.3s - 0.4s</div>
+                        <div className="text-xs text-slate-500 uppercase tracking-widest">Standard Margin</div>
+                    </div>
+                </div>
+                <p className="text-xs text-slate-500">
+                    This margin accounts for:
+                    <br />• Breaker opening time (~50ms)
+                    <br />• Relay overshoot (~30ms)
+                    <br />• CT errors & Safety Factor
+                </p>
+            </div>
+        )
+    }
+];
+
+// --- 3. TCC CURVE COMPONENT ---
+const TCCGraph = ({ pickup, tms, curve, liveCurrent, tripTime, isDark }: { pickup: number, tms: number, curve: string, liveCurrent: number, tripTime: number | null, isDark: boolean }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const cvs = canvasRef.current;
+        const container = containerRef.current;
+        if (!cvs || !container) return;
+
+        const ctx = cvs.getContext('2d');
+        if (!ctx) return;
+
+        // Auto-resize
+        const w = container.clientWidth;
+        const h = 300; // Fixed height
+        cvs.width = w;
+        cvs.height = h;
+
+        // --- PLOT SETTINGS ---
+        // Log-Log Scale
+        // X-Axis: Current Multiple (M) from 1 to 20
+        // Y-Axis: Time (t) from 0.1 to 10
+        const minM = 1;
+        const maxM = 20;
+        const minT = 0.1;
+        const maxT = 100;
+
+        const logMinM = Math.log10(minM);
+        const logMaxM = Math.log10(maxM);
+        const logMinT = Math.log10(minT);
+        const logMaxT = Math.log10(maxT);
+
+        const xScale = w / (logMaxM - logMinM);
+        const yScale = h / (logMaxT - logMinT);
+
+        const getX = (m: number) => (Math.log10(m) - logMinM) * xScale;
+        const getY = (t: number) => h - (Math.log10(t) - logMinT) * yScale;
+
+        // Colors
+        const gridColor = isDark ? '#334155' : '#e2e8f0';
+        const axisColor = isDark ? '#94a3b8' : '#64748b';
+        const curveColor = '#3b82f6';
+
+        ctx.clearRect(0, 0, w, h);
+
+        // 1. GRID
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 0.5;
+        // X-Grid (Multiples 1, 2, 5, 10, 20)
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20].forEach(m => {
+            const x = getX(m);
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+            if ([1, 2, 5, 10, 20].includes(m)) {
+                ctx.fillStyle = axisColor;
+                ctx.font = '10px sans-serif';
+                ctx.fillText(m + 'x', x + 2, h - 5);
+            }
+        });
+        // Y-Grid (Time 0.1, 1, 10, 100)
+        [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100].forEach(t => {
+            const y = getY(t);
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            if ([0.1, 1, 10, 100].includes(t)) {
+                ctx.fillStyle = axisColor;
+                ctx.font = '10px sans-serif';
+                ctx.fillText(t + 's', 2, y - 2);
+            }
+        });
+
+        // 2. CURVE
+        ctx.strokeStyle = curveColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        let started = false;
+        // Plot from M=1.1 to 20
+        for (let m = 1.05; m <= 20; m += 0.1) {
+            // Calculate time using IEC formula locally to draw curve
+            // Note: Reuse the math logic or duplicate simplified version for render speed
+            let k = 0.14, alpha = 0.02;
+            if (curve === 'VERY') { k = 13.5; alpha = 1.0; }
+            if (curve === 'EXTREME') { k = 80.0; alpha = 2.0; }
+            if (curve === 'LONG') { k = 120.0; alpha = 1.0; } // Long Inverse
+
+            const t = tms * (k / (Math.pow(m, alpha) - 1));
+
+            if (t >= minT && t <= maxT) {
+                const x = getX(m);
+                const y = getY(t);
+                if (!started) { ctx.moveTo(x, y); started = true; }
+                else { ctx.lineTo(x, y); }
+            }
+        }
+        ctx.stroke();
+
+        // 3. LIVE POINT
+        // Calculate multiple
+        const M_live = liveCurrent / pickup;
+        if (M_live > 1) {
+            const xLive = getX(Math.min(M_live, 20));
+            // Show current position on curve (expected trip time)
+            const expectedT = calculateTripTime(liveCurrent, pickup, tms, curve);
+
+            if (expectedT && expectedT >= minT && expectedT <= maxT) {
+                const yLive = getY(expectedT);
+
+                // Draw Target Point
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath(); ctx.arc(xLive, yLive, 5, 0, 2 * Math.PI); ctx.fill();
+
+                // Draw Progress Line if tripping
+                if (tripTime !== null) {
+                    // Logic: As timer increases, we could animate a point moving UP from t=0 to trip time? 
+                    // Or just show the intersection point. Let's show intersection.
+                } else {
+                    // Draw vertical line indicating current level
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath(); ctx.moveTo(xLive, h); ctx.lineTo(xLive, yLive); ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+        }
+
+    }, [pickup, tms, curve, liveCurrent, isDark]);
+
+    return (
+        <div ref={containerRef} className="w-full relative">
+            <canvas ref={canvasRef} className="rounded-lg" />
+            <div className="absolute bottom-2 right-2 text-[9px] text-slate-400 bg-slate-900/50 px-1 rounded backdrop-blur">
+                Log-Log TCC Plot
+            </div>
+        </div>
+    );
+}
+
+// --- 4. SUB-COMPONENTS ---
+
+const TheoryModule = ({ isDark }: { isDark: boolean }) => {
+    const [activeSection, setActiveSection] = useState(THEORY_DATA[0].id);
+    const content = THEORY_DATA.find(d => d.id === activeSection);
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-12 h-full">
+            <div className={`md:col-span-4 lg:col-span-3 border-r overflow-y-auto ${isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
+                <div className="p-4">
+                    <h2 className={`text-xs font-bold uppercase tracking-widest mb-4 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Application Guide</h2>
+                    <div className="space-y-2">
+                        {THEORY_DATA.map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveSection(item.id)}
+                                className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all text-sm font-medium ${activeSection === item.id
+                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                    : isDark ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-white hover:shadow-sm'
+                                    }`}
+                            >
+                                {item.icon}
+                                <span>{item.title}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <div className={`md:col-span-8 lg:col-span-9 overflow-y-auto p-6 md:p-10 ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
+                <div className="max-w-3xl mx-auto">
+                    <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+                        <h1 className={`text-3xl font-black mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{content?.title}</h1>
+                        <div className={`text-xs font-mono px-2 py-1 rounded inline-block ${isDark ? 'bg-slate-900 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                            Ref: IEC 60255 / ANSI C37.90
+                        </div>
+                    </div>
+                    <div className="animate-fade-in">
+                        {content?.content}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
+    // --- STATE ---
     const [mode, setMode] = useState<'PULSE' | 'RAMP'>('PULSE');
-    
-    // Pulse Mode State
-    const [injectCurrent, setInjectCurrent] = useState(10);
+    const [status, setStatus] = useState<'IDLE' | 'RUNNING' | 'TRIPPED' | 'REST'>('IDLE');
+
+    // Relay Settings
+    const [pickup, setPickup] = useState(5.0); // Amps
+    const [tms, setTms] = useState(0.5); // Time Multiplier Setting
+    const [curve, setCurve] = useState('STANDARD'); // STANDARD, VERY, EXTREME
+
+    // Injection State
+    const [injectCurrent, setInjectCurrent] = useState(10.0);
+    const [rampStart, setRampStart] = useState(0.0);
+    const [rampRate, setRampRate] = useState(1.0);
+    const [harmonicLevel, setHarmonicLevel] = useState(0);
+
+    // Runtime State
+    const [liveCurrent, setLiveCurrent] = useState(0);
     const [timer, setTimer] = useState(0);
     const [tripTime, setTripTime] = useState<number | null>(null);
-    
-    // Ramp Mode State
-    const [rampStart, setRampStart] = useState(0);
-    const [rampRate, setRampRate] = useState(1.0); // Amps per second
-    const [currentAmps, setCurrentAmps] = useState(0);
     const [pickupResult, setPickupResult] = useState<number | null>(null);
 
-    // Harmonic State
-    const [harmonicLevel, setHarmonicLevel] = useState(0); // % of 2nd Harmonic
+    // Disk Animation
+    const [diskAngle, setDiskAngle] = useState(0);
+    const requestRef = useRef<number>();
+    const intervalRef = useRef<number>();
 
-    const [status, setStatus] = useState<'IDLE' | 'RUNNING' | 'TRIPPED' | 'REST'>('IDLE');
-    const intervalRef = useRef<number | undefined>(undefined);
+    // --- MATH ---
+    const calculateExpectedTime = (I: number) => calculateTripTime(I, pickup, tms, curve);
 
-    // Relay Settings Mock (Virtual Relay)
-    const [relaySetting, setRelaySetting] = useState({
-        pickup: 5, // A
-        tms: 0.1,
-        curve: CurveType.IEC_STANDARD_INVERSE
-    });
+    // --- PHYSICS LOOP (Animation) ---
+    const animate = () => {
+        setDiskAngle(prev => {
+            const multiple = liveCurrent / pickup;
+            let speed = 0;
+            // Only rotate if above pickup and not blocked
+            if (liveCurrent > pickup && status !== 'REST') {
+                speed = multiple * 2;
+            }
+            return (prev + speed) % 360;
+        });
+        requestRef.current = requestAnimationFrame(animate);
+    };
 
-    // --- PULSE TEST LOGIC ---
+    useEffect(() => {
+        requestRef.current = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(requestRef.current);
+    }, [liveCurrent, pickup, status]);
+
+    // --- TEST LOGIC ---
     const startPulseTest = () => {
         setStatus('RUNNING');
         setTimer(0);
         setTripTime(null);
-        setCurrentAmps(injectCurrent); // Instant injection
-        
+        setLiveCurrent(injectCurrent); // Step change
+
         const startTime = Date.now();
-        const expected = calculateTripTime(injectCurrent, relaySetting.pickup, relaySetting.tms, relaySetting.curve);
+        const expected = calculateExpectedTime(injectCurrent);
 
         intervalRef.current = window.setInterval(() => {
             const now = Date.now();
             const elapsed = (now - startTime) / 1000;
             setTimer(elapsed);
 
-            // Logic: 2nd Harmonic Blocking (Transformer Inrush)
-            // If Harmonic > 15%, relay enters REST (Restrained) mode and will not trip
+            // Harmonic Blocking Logic
             if (harmonicLevel > 15) {
                 setStatus('REST');
-                // It keeps running but won't trip
+                // Doesn't trip
             } else {
-                // Check Trip
-                if (expected && elapsed >= expected && status !== 'REST') {
+                if (expected && elapsed >= expected) {
                     finishTest('TRIPPED');
                     setTripTime(elapsed);
                 }
             }
-            
-            // Timeout safety
+
+            // Safety timeout
             if (elapsed > 100) finishTest('IDLE');
-        }, 10); // 10ms resolution
+        }, 10);
     };
 
-    // --- RAMP TEST LOGIC ---
     const startRampTest = () => {
         setStatus('RUNNING');
         setPickupResult(null);
-        setCurrentAmps(rampStart);
-        
-        // We use a faster tick for smooth ramping UI, but logic check is physics based
+        setLiveCurrent(rampStart);
+
         const tickRate = 50; // ms
         const stepPerTick = rampRate * (tickRate / 1000);
 
         intervalRef.current = window.setInterval(() => {
-            setCurrentAmps(prev => {
-                const nextCurrent = prev + stepPerTick;
-                
-                // Check if this current causes a trip (i.e., is above pickup)
-                if (nextCurrent > relaySetting.pickup) {
+            setLiveCurrent(prev => {
+                const next = prev + stepPerTick;
+
+                // Check Pickup
+                if (next > pickup) {
                     if (harmonicLevel > 15) {
-                        setStatus('REST'); // Pickup reached but blocked by harmonics
+                        setStatus('REST');
                     } else {
                         finishTest('TRIPPED');
-                        setPickupResult(nextCurrent);
+                        setPickupResult(next);
                     }
-                    return nextCurrent;
                 }
-                
-                if (nextCurrent > 100) { // Safety limit
-                    finishTest('IDLE');
-                    return prev;
-                }
-                return nextCurrent;
+
+                if (next > 100) finishTest('IDLE'); // Safety
+                return next;
             });
         }, tickRate);
     };
@@ -105,262 +455,359 @@ const RelayTester = () => {
     const stopTest = () => {
         clearInterval(intervalRef.current);
         setStatus('IDLE');
-        if (mode === 'PULSE') setCurrentAmps(0);
-        // Keep ramp current displayed so user sees where it stopped
+        setLiveCurrent(0);
+        setTimer(0);
     };
 
+    // Cleanup
     useEffect(() => {
         return () => clearInterval(intervalRef.current);
     }, []);
 
-    return (
-        <div className="space-y-8 max-w-7xl mx-auto pb-12">
-            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-6">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                        <ClipboardCheck className="w-8 h-8 text-indigo-600" /> Relay Tester
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400">Virtual Secondary Injection Set.</p>
-                </div>
-                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                    <button 
-                        onClick={() => { setMode('PULSE'); stopTest(); }}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${mode === 'PULSE' ? 'bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                    >
-                        <Timer className="w-4 h-4"/> Pulse (Timing)
-                    </button>
-                    <button 
-                        onClick={() => { setMode('RAMP'); stopTest(); }}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${mode === 'RAMP' ? 'bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                    >
-                        <TrendingUp className="w-4 h-4"/> Ramp (Pickup)
-                    </button>
-                </div>
-            </div>
+    // Format helpers
+    const getExpectedText = () => {
+        if (mode === 'RAMP') return "N/A";
+        const t = calculateExpectedTime(injectCurrent);
+        return t ? `${t.toFixed(3)}s` : "No Trip";
+    };
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                
-                {/* --- LEFT: CONTROLS --- */}
-                <div className="space-y-6">
-                    {/* Test Config */}
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase mb-4 flex items-center gap-2">
-                            <Settings className="w-4 h-4"/> Test Configuration
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 md:p-6 max-w-[1600px] mx-auto pb-20 h-full lg:h-auto overflow-y-auto">
+
+            {/* LEFT: SETTINGS & CONTROL */}
+            <div className="lg:col-span-4 space-y-6">
+
+                {/* 1. RELAY SETTINGS */}
+                <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <h3 className={`font-bold mb-4 flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <Settings className="w-4 h-4" /> Relay Settings (51)
+                    </h3>
+                    <div className="space-y-4">
+                        <div>
+                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
+                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Pickup Current (Is)</span>
+                                <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{pickup} A</span>
+                            </div>
+                            <input type="range" min="1" max="10" step="0.5" value={pickup} onChange={(e) => setPickup(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                        </div>
+                        <div>
+                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
+                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Time Multiplier (TMS)</span>
+                                <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{tms}</span>
+                            </div>
+                            <input type="range" min="0.05" max="1.0" step="0.05" value={tms} onChange={(e) => setTms(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                        </div>
+                        <div>
+                            <label className={`text-[10px] font-bold uppercase mb-1.5 block ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Curve Type (IEC 60255)</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {['STANDARD', 'VERY', 'EXTREME', 'LONG'].map(c => (
+                                    <button
+                                        key={c}
+                                        onClick={() => setCurve(c)}
+                                        className={`py-2 px-1 rounded-lg text-[10px] font-bold border transition-all ${curve === c ? 'bg-indigo-600 text-white border-indigo-500' : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
+                                    >
+                                        {c.substring(0, 8)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 2. TEST CONTROLS */}
+                <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className={`font-bold flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            <Sliders className="w-4 h-4" /> Injection Control
                         </h3>
-                        
+                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                            <button onClick={() => { setMode('PULSE'); stopTest(); }} className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${mode === 'PULSE' ? 'bg-white dark:bg-slate-600 shadow' : 'opacity-50'}`}>Pulse</button>
+                            <button onClick={() => { setMode('RAMP'); stopTest(); }} className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${mode === 'RAMP' ? 'bg-white dark:bg-slate-600 shadow' : 'opacity-50'}`}>Ramp</button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
                         {mode === 'PULSE' ? (
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Injection Current</label>
-                                    <div className="flex items-center gap-4 mt-2">
-                                        <input 
-                                            type="range" min="1" max="50" step="0.5"
-                                            value={injectCurrent} 
-                                            onChange={(e) => setInjectCurrent(Number(e.target.value))}
-                                            className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                                        />
-                                        <span className="font-mono text-xl font-bold w-20 text-right">{injectCurrent} A</span>
-                                    </div>
+                            <div>
+                                <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
+                                    <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Inject Amps</span>
+                                    <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{injectCurrent} A</span>
+                                </div>
+                                <input type="range" min="1" max="50" step="0.5" value={injectCurrent} onChange={(e) => setInjectCurrent(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
+                                <div className="mt-2 text-xs text-center p-2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                                    Multiple of Pickup: <strong className={isDark ? 'text-white' : 'text-black'}>{(injectCurrent / pickup).toFixed(2)}x</strong>
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Start Amps</label>
-                                        <input 
-                                            type="number" 
-                                            value={rampStart} 
-                                            onChange={(e) => setRampStart(Number(e.target.value))}
-                                            className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 font-mono"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Ramp Rate (A/s)</label>
-                                        <input 
-                                            type="number" step="0.1"
-                                            value={rampRate} 
-                                            onChange={(e) => setRampRate(Number(e.target.value))}
-                                            className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 font-mono"
-                                        />
-                                    </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase">Start (A)</label>
+                                    <input type="number" value={rampStart} onChange={(e) => setRampStart(Number(e.target.value))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase">Rate (A/s)</label>
+                                    <input type="number" step="0.1" value={rampRate} onChange={(e) => setRampRate(Number(e.target.value))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
                                 </div>
                             </div>
                         )}
 
-                        <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-                            <label className="flex justify-between text-xs font-bold text-slate-500 uppercase mb-2">
-                                <span>2nd Harmonic Injection (100Hz)</span>
-                                <span className={harmonicLevel > 15 ? 'text-amber-500' : 'text-slate-900 dark:text-white'}>{harmonicLevel}% {harmonicLevel > 15 ? '(BLOCK)' : ''}</span>
-                            </label>
-                            <input 
-                                type="range" min="0" max="40" step="1"
-                                value={harmonicLevel} 
-                                onChange={(e) => setHarmonicLevel(Number(e.target.value))}
-                                className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                            />
-                            <p className="text-[10px] text-slate-400 mt-2">Simulates Transformer Inrush. Levels &gt;15% typically restrain the differential element.</p>
+                        <div>
+                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
+                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>2nd Harmonic (Inrush)</span>
+                                <span className={`font-mono ${harmonicLevel > 15 ? 'text-amber-500' : isDark ? 'text-white' : 'text-black'}`}>{harmonicLevel}%</span>
+                            </div>
+                            <input type="range" min="0" max="40" value={harmonicLevel} onChange={(e) => setHarmonicLevel(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
                         </div>
 
-                        <div className="flex gap-4 mt-8">
-                            <button 
-                                onClick={mode === 'PULSE' ? startPulseTest : startRampTest} 
-                                disabled={status === 'RUNNING' || status === 'REST'} 
-                                className="flex-1 py-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-500/20 active:scale-[0.98] transition-all"
+                        <div className="flex gap-3">
+                            <button
+                                onClick={mode === 'PULSE' ? startPulseTest : startRampTest}
+                                disabled={status === 'RUNNING'}
+                                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold flex justify-center items-center gap-2 shadow-lg transition-all"
                             >
-                                <Play className="w-5 h-5"/> {mode === 'PULSE' ? 'Inject Pulse' : 'Start Ramp'}
+                                <Play className="w-4 h-4" /> Start
                             </button>
-                            <button 
-                                onClick={stopTest} 
-                                className="flex-1 py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 shadow-lg shadow-red-500/20 active:scale-[0.98] transition-all"
+                            <button
+                                onClick={stopTest}
+                                className={`flex-1 py-3 border rounded-xl font-bold flex justify-center items-center gap-2 transition-all ${isDark ? 'border-red-900/50 text-red-400 hover:bg-red-900/20' : 'border-red-200 text-red-600 hover:bg-red-50'}`}
                             >
-                                <Square className="w-5 h-5"/> Stop
+                                <Square className="w-4 h-4" /> Stop
                             </button>
                         </div>
-                    </div>
-
-                    {/* Virtual Relay Settings */}
-                    <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm opacity-80 hover:opacity-100 transition-opacity">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xs font-bold text-slate-500 uppercase">Target Relay Settings</h3>
-                            <span className="text-[10px] bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 dark:text-slate-400">Read-Only Simulation</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                            <div className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                                <div className="text-[10px] text-slate-400 uppercase">Pickup</div>
-                                <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{relaySetting.pickup} A</div>
-                            </div>
-                            <div className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                                <div className="text-[10px] text-slate-400 uppercase">TMS</div>
-                                <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{relaySetting.tms}</div>
-                            </div>
-                            <div className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                                <div className="text-[10px] text-slate-400 uppercase">Curve</div>
-                                <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-1">IEC-SI</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* --- RIGHT: DISPLAY --- */}
-                <div className="flex flex-col gap-6">
-                    {/* Main Seven-Segment Style Display */}
-                    <div className="flex-1 bg-black rounded-3xl p-8 border-4 border-slate-800 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center min-h-[300px]">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.15),transparent_70%)]"></div>
-                        
-                        {/* Status Light */}
-                        <div className={`absolute top-6 right-6 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-                            status === 'TRIPPED' ? 'bg-red-500/20 text-red-500 border border-red-500/50' : 
-                            status === 'RUNNING' ? 'bg-green-500/20 text-green-500 border border-green-500/50' :
-                            status === 'REST' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/50' :
-                            'bg-slate-800 text-slate-500 border border-slate-700'
-                        }`}>
-                            <div className={`w-2 h-2 rounded-full ${
-                                status === 'TRIPPED' ? 'bg-red-500 animate-ping' : 
-                                status === 'RUNNING' ? 'bg-green-500 animate-pulse' : 
-                                status === 'REST' ? 'bg-amber-500' :
-                                'bg-slate-500'
-                            }`}></div>
-                            {status === 'REST' ? 'RESTRAINED' : status}
-                        </div>
-
-                        {/* Harmonic Indicator */}
-                        {harmonicLevel > 0 && (
-                            <div className="absolute top-6 left-6 flex items-center gap-2 text-xs font-mono text-amber-500 opacity-80">
-                                <Music className="w-3 h-3" />
-                                <span>+ {harmonicLevel}% 2nd H</span>
-                            </div>
-                        )}
-
-                        {/* Primary Value */}
-                        <div className="text-center z-10">
-                            <div className="text-slate-500 text-sm font-mono uppercase tracking-widest mb-2">
-                                {mode === 'PULSE' ? 'Trip Time' : 'Current Injection'}
-                            </div>
-                            <div className={`text-7xl md:text-8xl font-mono font-bold tracking-tighter ${status === 'REST' ? 'text-amber-500 opacity-50' : 'text-white'}`}>
-                                {mode === 'PULSE' 
-                                    ? (tripTime ?? timer).toFixed(3) 
-                                    : currentAmps.toFixed(2)
-                                }
-                                <span className="text-2xl text-slate-600 ml-2">
-                                    {mode === 'PULSE' ? 's' : 'A'}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Secondary Value (Result for Ramp) */}
-                        {mode === 'RAMP' && (
-                            <div className="mt-8 text-center z-10 h-16">
-                                {status === 'TRIPPED' && (
-                                    <div className="animate-fade-in">
-                                        <div className="text-slate-500 text-xs font-mono uppercase">Pickup Detected</div>
-                                        <div className="text-3xl font-mono font-bold text-amber-500">
-                                            {pickupResult?.toFixed(2)} A
-                                        </div>
-                                        <div className="text-[10px] text-green-500 mt-1">
-                                            Error: {Math.abs((pickupResult || 0) - relaySetting.pickup).toFixed(2)} A
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        
-                        {/* Pulse Mode Last Result */}
-                        {mode === 'PULSE' && tripTime !== null && (
-                            <div className="mt-8 text-center z-10 h-16 animate-fade-in">
-                                <div className="text-slate-500 text-xs font-mono uppercase">Status</div>
-                                <div className="text-xl font-bold text-green-500 mt-1 flex items-center gap-2 justify-center">
-                                    <CheckCircle2 className="w-5 h-5"/> Test Complete
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
 
-            {/* --- RICH CONTENT SECTION --- */}
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-8 border-t border-slate-200 dark:border-slate-800">
-                <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-6 opacity-10"><Zap className="w-32 h-32" /></div>
-                    <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                        <PenTool className="w-5 h-5" /> Secondary Injection Methods
-                    </h3>
-                    <p className="text-indigo-100 leading-relaxed mb-4 text-sm">
-                        This simulator mimics industry-standard test sets (e.g. Omicron, Doble). 
-                        <strong> Pulse Mode</strong> injects a step current to measure timing speed. 
-                        <strong> Ramp Mode</strong> slowly increases current to identify the exact pickup threshold, testing the relay's sensitivity and analog measurement accuracy.
-                    </p>
-                </div>
+            {/* RIGHT: VISUALIZATION */}
+            <div className="lg:col-span-8 flex flex-col gap-6">
 
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-green-500" /> Pulse vs Ramp
-                    </h3>
-                    <div className="space-y-3">
-                        <div>
-                            <div className="text-xs font-bold text-slate-500 uppercase">Pulse (Timing)</div>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Used to verify the curve logic. Inject 2x or 5x pickup and check if trip time matches the IEC formula.</p>
-                        </div>
-                        <div>
-                            <div className="text-xs font-bold text-slate-500 uppercase">Ramp (Pickup)</div>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Used to find the "Must Trip" point. Current is increased slowly (e.g. 0.1A/s) until contact closure.</p>
+                {/* RELAY FACEPLATE */}
+                <div className="flex-1 bg-black rounded-3xl p-8 border-4 border-slate-700 shadow-2xl relative overflow-hidden flex flex-col items-center justify-between min-h-[400px]">
+
+                    {/* Top Status Bar */}
+                    <div className="w-full flex justify-between items-start z-10">
+                        <div className="text-slate-500 text-xs font-black tracking-[0.2em] bg-slate-900 px-2 py-1 rounded border border-slate-800">SEL-751 FE</div>
+                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${status === 'TRIPPED' ? 'bg-red-900/50 border-red-500 text-red-500' :
+                            status === 'RUNNING' ? 'bg-green-900/50 border-green-500 text-green-500' :
+                                status === 'REST' ? 'bg-amber-900/50 border-amber-500 text-amber-500' :
+                                    'bg-slate-900 border-slate-700 text-slate-500'
+                            }`}>
+                            <div className={`w-2 h-2 rounded-full ${status === 'RUNNING' ? 'bg-green-500 animate-pulse' : status === 'TRIPPED' ? 'bg-red-500' : status === 'REST' ? 'bg-amber-500' : 'bg-slate-500'}`}></div>
+                            {status === 'REST' ? 'BLOCKED' : status}
                         </div>
                     </div>
+
+                    {/* Induction Disk Animation */}
+                    <div className="relative w-64 h-64 flex items-center justify-center my-4">
+                        {/* Disk */}
+                        <div
+                            className="absolute w-full h-full rounded-full border-[20px] border-slate-800 shadow-inner bg-[conic-gradient(from_0deg,#1e293b_0deg,#0f172a_180deg,#1e293b_360deg)]"
+                            style={{ transform: `rotate(${diskAngle}deg)` }}
+                        >
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-600 rounded-full"></div> {/* Slot mark */}
+                        </div>
+                        {/* Center Hub */}
+                        <div className="absolute w-20 h-20 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 shadow-xl border border-slate-600 flex items-center justify-center">
+                            <Zap className={`w-8 h-8 ${liveCurrent > pickup ? 'text-amber-500 animate-pulse' : 'text-slate-600'}`} />
+                        </div>
+                    </div>
+
+                    {/* Digital Display */}
+                    <div className="w-full grid grid-cols-3 gap-4 z-10">
+                        <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
+                            <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Injection</div>
+                            <div className="text-2xl font-mono font-bold text-white">{liveCurrent.toFixed(2)} <span className="text-sm text-slate-600">A</span></div>
+                        </div>
+                        <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
+                            <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Timer</div>
+                            <div className="text-2xl font-mono font-bold text-white">{timer.toFixed(3)} <span className="text-sm text-slate-600">s</span></div>
+                        </div>
+                        <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
+                            <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Expected</div>
+                            <div className="text-xl font-mono font-bold text-slate-400">{getExpectedText()}</div>
+                        </div>
+                    </div>
+
+                    {/* Result Overlay */}
+                    {status === 'TRIPPED' && (
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-fade-in">
+                            <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mb-4 shadow-[0_0_30px_red]">
+                                <CheckCircle2 className="w-8 h-8 text-white" />
+                            </div>
+                            <h2 className="text-3xl font-black text-white mb-1">TRIP</h2>
+                            <div className="text-xl font-mono text-red-400">
+                                {mode === 'PULSE' ? `${tripTime?.toFixed(3)}s` : `${pickupResult?.toFixed(2)}A`}
+                            </div>
+                            <div className="mt-2 text-xs text-slate-400">
+                                {mode === 'PULSE'
+                                    ? `Error: ${(Math.abs((tripTime || 0) - (calculateExpectedTime(injectCurrent) || 0))).toFixed(3)}s`
+                                    : `Error: ${(Math.abs((pickupResult || 0) - pickup)).toFixed(2)}A`
+                                }
+                            </div>
+                            <button onClick={() => { setStatus('IDLE'); setLiveCurrent(0); }} className="mt-6 px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-colors">
+                                Acknowledge
+                            </button>
+                        </div>
+                    )}
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                        <Database className="w-5 h-5 text-amber-500" /> Acceptance Criteria
-                    </h3>
-                    <ul className="text-xs space-y-2 text-slate-600 dark:text-slate-400">
-                        <li className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-green-500"/> Pickup Accuracy: <strong>±5%</strong> of setting.</li>
-                        <li className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-green-500"/> Timing Accuracy: <strong>±5%</strong> or <strong>±30ms</strong>.</li>
-                        <li className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-green-500"/> Reset Ratio: Typically <strong>&gt;90%</strong> (Electromechanical) or <strong>&gt;95%</strong> (Digital).</li>
-                    </ul>
+                {/* TCC CURVE VIEWER */}
+                <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <h4 className={`font-bold mb-3 flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        <LineChart className="w-4 h-4 text-blue-500" /> TCC Visualizer
+                    </h4>
+                    <TCCGraph pickup={pickup} tms={tms} curve={curve} liveCurrent={liveCurrent} tripTime={tripTime} isDark={isDark} />
                 </div>
-            </section>
+
+            </div>
         </div>
     );
 };
 
-export default RelayTester;
+const UserGuideModule = ({ isDark }: { isDark: boolean }) => {
+    return (
+        <div className={`max-w-3xl mx-auto p-8 animate-fade-in ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                <MousePointer2 className="w-6 h-6 text-blue-500" /> Operational Guide
+            </h2>
+
+            <div className="space-y-8">
+                <div className={`p-6 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <h3 className="font-bold text-lg mb-4">Step-by-Step Testing</h3>
+                    <div className="space-y-6">
+                        <div className="flex gap-4">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">1</div>
+                            <div>
+                                <h4 className="font-bold">Configure Relay Settings</h4>
+                                <p className="text-sm opacity-80 mt-1">
+                                    Set the target <strong>Pickup (Is)</strong> and <strong>Time Multiplier (TMS)</strong> on the left panel. These represent the settings inside the relay you are testing.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">2</div>
+                            <div>
+                                <h4 className="font-bold">Select Test Mode</h4>
+                                <p className="text-sm opacity-80 mt-1">
+                                    Choose <strong>Pulse</strong> to check timing speed (e.g., verifying a specific point on the curve like 2x Is). Choose <strong>Ramp</strong> to accurately find the Pickup threshold.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">3</div>
+                            <div>
+                                <h4 className="font-bold">Inject & Observe</h4>
+                                <p className="text-sm opacity-80 mt-1">
+                                    Click <strong>Start</strong>. Watch the Induction Disk spin. Ensure the "Live Point" on the TCC Graph tracks towards the curve.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <h4 className="font-bold mb-2 flex items-center gap-2 text-amber-500"><AlertTriangle className="w-4 h-4" /> Harmonic Blocking</h4>
+                        <p className="text-sm opacity-80">
+                            Increasing "2nd Harmonic" &gt;15% simulates transformer inrush. The relay will show <strong>BLOCKED</strong> status and refuse to trip, mimicking real-world stability logic.
+                        </p>
+                    </div>
+                    <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <h4 className="font-bold mb-2 flex items-center gap-2 text-green-500"><CheckCircle2 className="w-4 h-4" /> Pass Criteria</h4>
+                        <p className="text-sm opacity-80">
+                            <strong>Pickup:</strong> ±5% of setting.<br />
+                            <strong>Timing:</strong> ±5% of calculated time (or ±30ms, whichever is greater).
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- 4. MAIN LAYOUT ---
+
+export default function RelayTesterApp() {
+    const [activeTab, setActiveTab] = useState('simulator');
+    const [isDark, setIsDark] = useState(true);
+
+    return (
+        <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+
+            {/* Header */}
+            <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className="flex items-center gap-3">
+                    <div className="bg-gradient-to-br from-indigo-600 to-blue-600 p-2 rounded-lg text-white shadow-lg shadow-indigo-500/20">
+                        <ClipboardCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>GridGuard <span className="text-indigo-500">PRO</span></h1>
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Relay Commissioning Suite</span>
+                    </div>
+                </div>
+
+                {/* Desktop Tabs */}
+                <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+                    {[
+                        { id: 'theory', label: 'Handbook', icon: <Book className="w-4 h-4" /> },
+                        { id: 'simulator', label: 'Laboratory', icon: <MonitorPlay className="w-4 h-4" /> },
+                        { id: 'guide', label: 'User Guide', icon: <GraduationCap className="w-4 h-4" /> },
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === tab.id
+                                ? (isDark ? 'bg-slate-800 text-indigo-400 shadow-sm' : 'bg-white text-indigo-600 shadow-sm')
+                                : 'opacity-60 hover:opacity-100'
+                                }`}
+                        >
+                            {tab.icon} <span>{tab.label}</span>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
+                        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    </button>
+                </div>
+            </header>
+
+            {/* Mobile Tab Navigation (Bottom Bar) */}
+            <div className={`md:hidden fixed bottom-0 left-0 right-0 h-16 border-t z-50 flex justify-around items-center px-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                {[
+                    { id: 'theory', label: 'Theory', icon: <Book className="w-5 h-5" /> },
+                    { id: 'simulator', label: 'Sim', icon: <MonitorPlay className="w-5 h-5" /> },
+                    { id: 'guide', label: 'Guide', icon: <GraduationCap className="w-5 h-5" /> },
+                ].map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex flex-col items-center justify-center w-full h-full gap-1 text-[10px] font-bold ${activeTab === tab.id
+                            ? (isDark ? 'text-indigo-400' : 'text-indigo-600')
+                            : 'opacity-50'
+                            }`}
+                    >
+                        {tab.icon} <span>{tab.label}</span>
+                    </button>
+                ))}
+            </div>
+
+            {/* Main Content Area */}
+            <div className="flex-1 overflow-hidden relative pb-16 md:pb-0">
+                {activeTab === 'theory' && <TheoryModule isDark={isDark} />}
+
+                {/* Simulator: Wrapped in overflow-y-auto for vertical scrolling */}
+                <div className={activeTab === 'simulator' ? 'block h-full overflow-y-auto' : 'hidden'}>
+                    <SimulatorModule isDark={isDark} />
+                </div>
+
+                {activeTab === 'guide' && (
+                    <div className="h-full overflow-y-auto">
+                        <UserGuideModule isDark={isDark} />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
