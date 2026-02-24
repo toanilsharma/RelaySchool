@@ -8,6 +8,7 @@ import {
     MousePointer2, ShieldCheck, Info, Ruler, LineChart, Cpu, Scale,
     Share2
 } from 'lucide-react';
+import { useThemeObserver } from '../hooks/useThemeObserver';
 import TheoryLibrary from '../components/TheoryLibrary';
 import { RELAY_TESTER_THEORY_CONTENT } from '../data/learning-modules/relay-tester';
 
@@ -626,7 +627,7 @@ const UserGuideModule = ({ isDark }: { isDark: boolean }) => {
 
 export default function RelayTesterApp() {
     const [activeTab, setActiveTab] = useState('simulator');
-    const [isDark, setIsDark] = useState(true);
+    const isDark = useThemeObserver();
 
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
@@ -668,9 +669,6 @@ export default function RelayTesterApp() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
-                        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                    </button>
                 </div>
             </header>
 

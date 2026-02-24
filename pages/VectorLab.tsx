@@ -5,6 +5,7 @@ import {
   ShieldAlert, Settings, Share2, CheckCircle2, RotateCcw,
   Book, GraduationCap, MonitorPlay, Terminal, ArrowRight
 } from 'lucide-react';
+import { useThemeObserver } from '../hooks/useThemeObserver';
 
 // --- MATH HELPERS ---
 const toRad = (deg) => deg * (Math.PI / 180);
@@ -668,7 +669,7 @@ const UserGuideModule = ({ isDark }: { isDark: boolean }) => {
 
 export default function VectorLab() {
     const [activeTab, setActiveTab] = useState('simulator');
-    const [isDark, setIsDark] = useState(true);
+    const isDark = useThemeObserver();
 
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
@@ -685,7 +686,6 @@ export default function VectorLab() {
                     </div>
                 </div>
 
-                {/* Desktop Tabs */}
                 <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
                     {[
                         { id: 'theory', label: 'Handbook', icon: <Book className="w-4 h-4" /> },
@@ -703,12 +703,6 @@ export default function VectorLab() {
                             {tab.icon} <span>{tab.label}</span>
                         </button>
                     ))}
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
-                        {isDark ? <Zap className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
-                    </button>
                 </div>
             </header>
 

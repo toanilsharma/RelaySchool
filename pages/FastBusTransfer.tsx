@@ -8,6 +8,7 @@ import {
   Globe, AlertOctagon, CheckCircle2, XCircle, Share2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useThemeObserver } from '../hooks/useThemeObserver';
 
 // --- 1. ENGINEERING CONSTANTS & PHYSICS ---
 const NOMINAL_FREQ = 60; // Hz
@@ -942,7 +943,7 @@ const SimulatorView = ({ isActive, isDark }) => {
 
 export default function FastBusTransferApp() {
   const [mode, setMode] = useState('simulator');
-  const [isDark, setIsDark] = useState(true);
+  const isDark = useThemeObserver();
 
   return (
     <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
@@ -979,9 +980,6 @@ export default function FastBusTransferApp() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
           <button onClick={() => window.open('https://standards.ieee.org/ieee/C37.96/6018/', '_blank')} className="hidden md:flex items-center gap-2 text-xs font-bold text-blue-500 hover:text-blue-600 hover:underline">
             <Info className="w-4 h-4" /> IEEE C37.96
           </button>

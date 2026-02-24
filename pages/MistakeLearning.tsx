@@ -146,6 +146,124 @@ const HeatVisual = () => {
     );
 };
 
+const CTSatVisual = () => {
+    return (
+        <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 p-4 flex items-center justify-center">
+            <svg viewBox="0 0 100 60" className="w-full h-full overflow-visible">
+                 <line x1="10" y1="30" x2="90" y2="30" stroke="#475569" strokeWidth="1" />
+                 {/* Ideal */}
+                 <path d="M 10 30 Q 25 0 40 30 T 70 30 T 100 30" fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="2" opacity="0.5"/>
+                 {/* Clipped */}
+                 <path d="M 10 30 Q 20 15 25 10 L 30 10 Q 35 30 40 30 Q 50 45 55 50 L 60 50 Q 65 30 70 30" fill="none" stroke="#ef4444" strokeWidth="2" />
+                 <text x="50" y="8" fontSize="4" fill="#ef4444" fontWeight="bold" textAnchor="middle">Saturated / Clipped</text>
+            </svg>
+        </div>
+    );
+};
+
+const Zone3Visual = () => {
+    return (
+        <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 p-4 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#ef4444" strokeWidth="1" strokeDasharray="2"/>
+                <text x="50" y="8" fontSize="4" fill="#ef4444" textAnchor="middle">Zone 3 (Over-reaching)</text>
+                <circle cx="50" cy="80" r="10" fill="none" stroke="#f59e0b" strokeWidth="1" />
+                <text x="50" y="65" fontSize="4" fill="#f59e0b" textAnchor="middle">Zone 1</text>
+                
+                <motion.circle 
+                    r="2" fill="#3b82f6"
+                    animate={{ cx: [90, 50, 40], cy: [10, 50, 60] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                />
+                <text x="80" y="8" fontSize="4" fill="#3b82f6">Load Encroachment</text>
+            </svg>
+        </div>
+    );
+};
+
+const OOSVisual = () => {
+    return (
+        <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 p-4 flex items-center justify-center">
+            <div className="flex justify-between items-center w-full px-8">
+                <motion.div 
+                    className="w-12 h-12 rounded-full border-4 border-blue-500 border-t-transparent"
+                    animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                />
+                <div className="text-red-500 text-[10px] font-bold animate-pulse">SLIP</div>
+                <motion.div 
+                    className="w-12 h-12 rounded-full border-4 border-emerald-500 border-t-transparent"
+                    animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                />
+            </div>
+        </div>
+    );
+};
+
+const RecloseVisual = () => {
+    return (
+        <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 p-4 flex items-center justify-center">
+            <svg viewBox="0 0 100 50" className="w-full h-full overflow-visible">
+                <line x1="10" y1="25" x2="40" y2="25" stroke="#475569" strokeWidth="2" />
+                <line x1="60" y1="25" x2="90" y2="25" stroke="#475569" strokeWidth="2" />
+                {/* Breaker Contact */}
+                <motion.line 
+                    x1="40" y1="25" x2="60" y2="25" stroke="#3b82f6" strokeWidth="2"
+                    animate={{ y2: [15, 25, 15] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                />
+                {/* Boom */}
+                <motion.circle 
+                    cx="50" cy="25" r="10" fill="rgba(239,68,68,0.5)"
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                />
+                <text x="50" y="45" fontSize="6" fill="#ef4444" textAnchor="middle" fontWeight="bold">BOOM!</text>
+            </svg>
+        </div>
+    );
+};
+
+const SyncVisual = () => {
+    return (
+        <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 p-4 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" className="w-full h-max overflow-visible">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#1e293b" strokeWidth="1" />
+                <line x1="50" y1="50" x2="50" y2="10" stroke="#3b82f6" strokeWidth="2" />
+                <motion.line 
+                    x1="50" y1="50" x2="50" y2="10" stroke="#ef4444" strokeWidth="2"
+                    animate={{ transform: ["rotate(0, 50, 50)", "rotate(30, 50, 50)", "rotate(0, 50, 50)"] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                />
+                <text x="50" y="95" fontSize="4" fill="#f59e0b" textAnchor="middle">1ms = 21.6° @ 60Hz</text>
+            </svg>
+        </div>
+    );
+};
+
+const NGRVisual = () => {
+    return (
+        <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 p-4 flex flex-col items-center justify-center">
+            <svg viewBox="0 0 50 100" className="h-full overflow-visible">
+                {/* Transformer neutral */}
+                <line x1="25" y1="10" x2="25" y2="30" stroke="#cbd5e1" strokeWidth="2" />
+                {/* Resistor */}
+                <path d="M 25 30 L 20 35 L 30 40 L 20 45 L 30 50 L 20 55 L 25 60" fill="none" stroke="#ef4444" strokeWidth="2" />
+                {/* Ground */}
+                <line x1="25" y1="60" x2="25" y2="80" stroke="#cbd5e1" strokeWidth="2" />
+                <line x1="15" y1="80" x2="35" y2="80" stroke="#cbd5e1" strokeWidth="2" />
+                <line x1="20" y1="85" x2="30" y2="85" stroke="#cbd5e1" strokeWidth="2" />
+                
+                <motion.circle 
+                    cx="25" cy="45" r="5" fill="none" stroke="#f59e0b" strokeWidth="1"
+                    animate={{ scale: [1, 2], opacity: [1, 0] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                />
+                <text x="25" y="95" fontSize="4" fill="#ef4444" textAnchor="middle">Burnt Open</text>
+            </svg>
+        </div>
+    );
+};
+
 const GooseVisual = () => {
     return (
         <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 p-4 flex flex-col justify-between">
@@ -250,6 +368,78 @@ const CASE_STUDIES: CaseStudy[] = [
         physics: "Protection schemes requiring <100ms total clearing time rely on GOOSE transmission taking <4ms. If the network is flooded (broadcast storm) or misconfigured, latency spikes.",
         fix: <>Use separate <strong>VLANs</strong> for GOOSE traffic. Enable <strong>QoS (Quality of Service)</strong> to prioritize EtherType 0x88B8. Test network latency under load.</>,
         stats: { cost: '$85k', time: '+20ms', risk: 'Damage' }
+    },
+    {
+        id: '005',
+        title: 'The Invisible Fault',
+        subtitle: 'Current Transformer Saturation',
+        severity: 'HIGH',
+        visual: <CTSatVisual />,
+        scenario: "A severe external fault occurred right outside the protected zone. The zone protection (differential) incorrectly operated, tripping healthy equipment.",
+        mistake: "The CTs chosen had a knee-point voltage that was too low for the burden of the circuit and the high fault current. The CT 'saturated', failing to reproduce the current accurately.",
+        physics: "When the magnetic core of a CT saturates, it can no longer induce secondary current. A sine wave enters, but a clipped, distorted wave exits. The differential relay sees this missing current as an internal fault.",
+        fix: <>Ensure CT <strong>Knee Point Voltage</strong> is designed for the maximum theoretical fault <em>including</em> full DC offset. Or use relays with advanced CT saturation detection algorithms.</>,
+        stats: { cost: '$300k', time: 'Instant', risk: 'False Trip' }
+    },
+    {
+        id: '006',
+        title: 'The Domino Effect',
+        subtitle: 'Zone 3 Encroachment (Similar to 2003 Blackout)',
+        severity: 'CRITICAL',
+        visual: <Zone3Visual />,
+        scenario: "A heavily loaded transmission line tripped due to high current and low voltage during peak summer, causing a cascade that blacked out millions.",
+        mistake: "The Zone 3 distance relay was set to see very far (as a backup). But high active power transfer (load) looks identical to a high-impedance fault far away.",
+        physics: "Distance relays measure Z = V / I. High load current paired with dragging voltage pushes the apparent impedance (Z) inside the relay's trip circle.",
+        fix: <>Apply <strong>Load Encroachment Blinders</strong> to carve out the high-load region of the mho circle, or rely strictly on pilot protection (permissive overreach) rather than blunt stepped distance.</>,
+        stats: { cost: '$1Bn+', time: 'Cascading', risk: 'Regional Blackout' }
+    },
+    {
+        id: '007',
+        title: 'The Tearing Rotors',
+        subtitle: 'Unrecognized Generator Out-of-Step',
+        severity: 'CRITICAL',
+        visual: <OOSVisual />,
+        scenario: "After a delayed fault clearing, a large generator lost synchronism with the grid. It wasn't isolated quickly enough, and the torsional forces snapped the turbine shaft.",
+        mistake: "The Out-of-Step (OOS / 78) protection was configured too slowly or omitted entirely, relying on standard overcurrent.",
+        physics: "When a generator slips poles, its voltage vectors rotate relative to the grid. The resulting current surges beat at the slip frequency, causing immense mechanical stress as the magnetic field acts like a brake.",
+        fix: <>Implement proper <strong>Out-of-Step Tripping (OST)</strong> using impedance plane tracking. Trip the generator at the optimal angle (near 0 or 180 deg) to minimize breaker stress.</>,
+        stats: { cost: '$15M', time: 'Seconds', risk: 'Damage' }
+    },
+    {
+        id: '008',
+        title: 'The Triple Shock',
+        subtitle: 'Auto-Reclosing into a Permanent Fault',
+        severity: 'HIGH',
+        visual: <RecloseVisual />,
+        scenario: "A car hit a pole, bringing the lines down permanently. The substation auto-recloser slammed closed three times into the dead-short, violently shaking the power transformer.",
+        mistake: "Applying multi-shot auto-reclosing (79) on underground cables or urban feeders where faults are almost always permanent.",
+        physics: "Each reclose into a solid fault sends massive mechanical forces proportional to I² through transformer windings. Repeatedly hammering the transformer depletes its mechanical life expectancy.",
+        fix: <>Restrict auto-reclosing strictly to <strong>overhead lines</strong> where faults are mostly transient (lightning, branches). If a fault is permanent, lock out immediately.</>,
+        stats: { cost: '$500k', time: '3x Hits', risk: 'Transformer Hit' }
+    },
+    {
+        id: '009',
+        title: 'The Sync Shift',
+        subtitle: 'Synchrophasor Time Sync Error',
+        severity: 'MEDIUM',
+        visual: <SyncVisual />,
+        scenario: "A perfectly healthy differential protection covering a 50-mile line suddenly tripped both ends during normal load.",
+        mistake: "The GPS time-synchronization clock lost its antenna connection, and its internal oscillator drifted a few milliseconds.",
+        physics: "1 millisecond represents 21.6° of phase shift at 60Hz. Line differential relays compare phasors with precise timestamps. A 2ms drift looks like a >40° phase difference, creating massive false differential current.",
+        fix: <>Use <strong>PTP (Precision Time Protocol)</strong> or IRIG-B with strict quality bits. Relays must be set to immediately disable sensitive differential protection if time-sync quality degrades.</>,
+        stats: { cost: '$100k', time: 'Drift', risk: 'False Trip' }
+    },
+    {
+        id: '010',
+        title: 'The Grounding Fire',
+        subtitle: 'Neutral Grounding Resistor Failure',
+        severity: 'MEDIUM',
+        visual: <NGRVisual />,
+        scenario: "An industrial plant experienced a ground fault. Instead of clearing safely at 400A, the arc escalated, and the NGR caught fire.",
+        mistake: "Ground fault protection (51G) was set too slow, ignoring the 'Time Rating' of the Neutral Grounding Resistor.",
+        physics: "NGRs are designed to limit current, which means they absorb immense power (P = I²R). They are typically rated for only 10 seconds. Leaving the fault on longer melts the resistor.",
+        fix: <>Coordinate the 51G relay to trip well before the <strong>NGR Time Rating</strong> (e.g., trip in 2s for a 10s resistor). Add a backup 51N relay monitoring the neutral directly.</>,
+        stats: { cost: '$50k', time: '>10s', risk: 'Fire' }
     }
 ];
 

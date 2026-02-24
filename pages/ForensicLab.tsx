@@ -10,6 +10,7 @@ import {
     Settings, Grid, Share2
 } from 'lucide-react';
 import TheoryLibrary from '../components/TheoryLibrary';
+import { useThemeObserver } from '../hooks/useThemeObserver';
 import { FORENSIC_THEORY_CONTENT } from '../data/learning-modules/forensic';
 
 // --- TYPES & MATH UTILS ---
@@ -544,7 +545,7 @@ const UserGuideModule = ({ isDark }: { isDark: boolean }) => {
 
 export default function ForensicLabApp() {
     const [activeTab, setActiveTab] = useState('simulator');
-    const [isDark, setIsDark] = useState(true);
+    const isDark = useThemeObserver();
 
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
@@ -583,12 +584,6 @@ export default function ForensicLabApp() {
                             {tab.icon} <span>{tab.label}</span>
                         </button>
                     ))}
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
-                        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                    </button>
                 </div>
             </header>
 

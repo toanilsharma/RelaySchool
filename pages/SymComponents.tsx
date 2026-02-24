@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Zap, Activity, Hexagon, ArrowRight, RefreshCw, Triangle, Download, CheckCircle2, AlertTriangle, BookOpen, Calculator, Beaker, Menu, Divide, Share2, PieChart, Settings, Info, MousePointer2, X, Sliders as SlidersIcon, RotateCw, HelpCircle, Book, GraduationCap, Layers, MoreVertical } from 'lucide-react';
+import { useThemeObserver } from '../hooks/useThemeObserver';
 
 // --- MATH KERNEL ---
 
@@ -757,7 +758,7 @@ const PhaseControl = ({ label, color, mag, ang, onChange, isDark }: any) => (
 
 const SymComponents = () => {
   const [activeTab, setActiveTab] = useState<'handbook' | 'analyzer' | 'guide'>('analyzer');
-  const [isDark, setIsDark] = useState(true);
+  const isDark = useThemeObserver();
 
   return (
     <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
@@ -796,12 +797,6 @@ const SymComponents = () => {
                     {tab.icon} <span>{tab.label}</span>
                 </button>
             ))}
-        </div>
-
-        <div className="flex items-center gap-4">
-            <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
-                {isDark ? <Zap className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
-            </button>
         </div>
       </header>
 
