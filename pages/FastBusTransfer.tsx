@@ -109,7 +109,7 @@ const THEORY_DATA = [
         <h4 className="font-bold text-slate-900 dark:text-white text-lg">The Induction Generator Effect</h4>
         <p className="text-slate-700 dark:text-slate-300">
           When a motor bus is disconnected from the grid, the motors do not stop instantly. They have significant <strong>Mechanical Inertia (J)</strong> in their rotors and the driven loads (fans, pumps).
-          Furthermore, the magnetic field in the rotor (trapped flux) does not vanish instantly; it decays based on the <strong>Open Circuit Time Constant (<InlineMath math={'T'_{do}'} />)</strong>.
+          Furthermore, the magnetic field in the rotor (trapped flux) does not vanish instantly; it decays based on the <strong>Open Circuit Time Constant (<InlineMath math={`T'_{do}`} />)</strong>.
         </p>
         <p className="text-slate-700 dark:text-slate-300">
             As a result, the spinning motors act as <strong>Induction Generators</strong>, producing a "Back EMF" or Residual Voltage on the bus. This voltage is not synchronized with the grid.
@@ -120,8 +120,8 @@ const THEORY_DATA = [
             <h5 className="font-bold text-indigo-600 dark:text-indigo-400">1. Voltage Decay</h5>
             <p className="text-xs text-slate-600 dark:text-slate-400">
               The magnitude of the voltage drops exponentially.
-              <br/><InlineMath math={'V(t) = V_0 \\times e^{-t/T'_{do}}'} />
-              <br/>Typical <InlineMath math={'T'_{do}'} /> is 0.5s to 2.0s.
+              <br/><InlineMath math={`V(t) = V_0 \\times e^{-t/T'_{do}}`} />
+              <br/>Typical <InlineMath math={`T'_{do}`} /> is 0.5s to 2.0s.
             </p>
           </div>
           <div className="space-y-2 p-3 bg-slate-100 dark:bg-slate-800 rounded">
