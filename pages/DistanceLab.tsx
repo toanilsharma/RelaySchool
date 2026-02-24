@@ -1,12 +1,15 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Zap, Activity, Shield, Target, Layers, BookOpen,
     Settings, Info, Check, X, MousePointer2, AlertOctagon,
     Trophy, RefreshCw, Sliders, Move, Printer,
     Volume2, VolumeX, GraduationCap, Microscope,
-    ArrowRight, FileText, Share2, HelpCircle, Triangle,
-    ShieldCheck, BrainCircuit, Lightbulb
+    ArrowRight, FileText, Share2, Maximize, Minimize, Navigation,
+    TrendingUp, Radio, BrainCircuit, ShieldCheck
 } from 'lucide-react';
+import TheoryLibrary from '../components/TheoryLibrary';
+import { DISTANCE_THEORY_CONTENT } from '../data/learning-modules/distance';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Engineering Constants ---
@@ -79,7 +82,7 @@ const THEORY_MODULES = [
         content: (
             <div className="space-y-3">
                 <p>Distance protection is the most common method for protecting high-voltage transmission lines. It measures the impedance (Z = V/I) from the relay location to the fault point. Since impedance is proportional to line length, the relay can pinpoint the fault location.</p>
-                <div className="bg-slate-100 p-3 rounded-lg border-l-4 border-blue-500 text-xs">
+                <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg border-l-4 border-blue-500 text-xs">
                     <strong>Key Standard:</strong> IEEE C37.113 Guide for Protective Relay Applications to Transmission Lines.
                 </div>
             </div>
@@ -104,15 +107,15 @@ const THEORY_MODULES = [
         content: (
             <div className="space-y-4">
                 <div>
-                    <strong className="text-slate-900 block">1. Load Encroachment</strong>
+                    <strong className="text-slate-900 dark:text-white block">1. Load Encroachment</strong>
                     <span className="block mt-1">Heavy loading reduces the measured impedance, potentially moving the load point into Zone 3. Blinders or shaped characteristics (like Peanut or Lens) must be used to discriminate load from faults.</span>
                 </div>
                 <div>
-                    <strong className="text-slate-900 block">2. Infeed Effect</strong>
+                    <strong className="text-slate-900 dark:text-white block">2. Infeed Effect</strong>
                     <span className="block mt-1">Current injection from an intermediate source makes the fault appear further away (impedance increase). This causes Zone 2 to underreach.</span>
                 </div>
                 <div>
-                    <strong className="text-slate-900 block">3. Mutual Coupling</strong>
+                    <strong className="text-slate-900 dark:text-white block">3. Mutual Coupling</strong>
                     <span className="block mt-1">On parallel lines, zero-sequence mutual coupling (Z0M) affects ground fault measurement, causing overreach or underreach depending on current direction.</span>
                 </div>
             </div>
@@ -170,21 +173,21 @@ const checkQuad = (reachX, reachR, r, x, mta, tilt = 0) => {
 // --- Components ---
 
 const InfoPanel = ({ context }) => (
-    <div className="bg-slate-50 border-t border-slate-200 p-4 min-h-[140px] transition-all duration-300">
+    <div className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 p-4 min-h-[140px] transition-all duration-300">
         <div className="flex items-start gap-4">
             <div className="bg-blue-600 p-2 rounded-lg shrink-0 mt-1">
                 <Microscope className="w-6 h-6 text-white" />
             </div>
             <div className="space-y-2 w-full">
                 <div className="flex justify-between items-center">
-                    <h4 className="font-bold text-slate-900 text-lg flex items-center gap-2">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
                         {context.title}
                     </h4>
-                    <span className="text-[10px] font-mono bg-slate-200 text-slate-600 px-2 py-1 rounded uppercase tracking-wider border border-slate-300">
+                    <span className="text-[10px] font-mono bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded uppercase tracking-wider border border-slate-300 dark:border-slate-600">
                         {context.std}
                     </span>
                 </div>
-                <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-3xl">
                     {context.desc}
                 </p>
             </div>
@@ -194,13 +197,13 @@ const InfoPanel = ({ context }) => (
 
 const Knob = ({ value, onChange, min, max, label, unit, step = 0.1, onHover, onLeave }) => (
     <div
-        className="flex flex-col gap-2 p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-400 transition-colors shadow-sm"
+        className="flex flex-col gap-2 p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors shadow-sm"
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
     >
         <div className="flex justify-between items-center">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</label>
-            <span className="text-sm font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{value.toFixed(1)}{unit}</span>
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</label>
+            <span className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">{value.toFixed(1)}{unit}</span>
         </div>
         <input
             type="range"
@@ -209,18 +212,18 @@ const Knob = ({ value, onChange, min, max, label, unit, step = 0.1, onHover, onL
             step={step}
             value={value}
             onChange={(e) => onChange(parseFloat(e.target.value))}
-            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500"
+            className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500"
         />
     </div>
 );
 
-const TabButton = ({ active, onClick, icon, label, onHover }) => (
+const TabButton = ({ active, onClick, icon, label, onHover }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; onHover?: () => void }) => (
     <button
         onClick={onClick}
         onMouseEnter={onHover}
         className={`flex items-center gap-2 px-4 lg:px-6 py-3 text-sm font-bold transition-all duration-200 border-b-2 ${active
-            ? 'text-blue-600 border-blue-600 bg-blue-50'
-            : 'text-slate-500 border-transparent hover:text-slate-800 hover:bg-slate-50'
+            ? 'text-blue-600 border-blue-600 bg-blue-50 dark:bg-blue-900/30'
+            : 'text-slate-500 border-transparent hover:text-slate-800 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'
             }`}
     >
         {icon}
@@ -252,6 +255,27 @@ export default function RelaySimUltra() {
     const [status, setStatus] = useState({ trip: false, zone: 'NONE', time: 0 });
     const [voiceEnabled, setVoiceEnabled] = useState(false);
     const svgRef = useRef(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const stateParam = params.get('s');
+        if (stateParam) {
+            try {
+                const state = JSON.parse(atob(stateParam));
+                if (state.settings) setSettings(state.settings);
+                if (state.fault) setFault(state.fault);
+            } catch (e) {
+                console.error("Failed to parse share link", e);
+            }
+        }
+    }, []);
+
+    const copyShareLink = () => {
+        const state = { settings, fault };
+        const str = btoa(JSON.stringify(state));
+        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
+        alert("Simulation link copied! You can share this URL to load the exact state.");
+    };
 
     // Quiz State
     const [quizState, setQuizState] = useState({
@@ -369,20 +393,30 @@ export default function RelaySimUltra() {
         return <polygon points={`${toSVG(p1)} ${toSVG(p2)} ${toSVG(p3)} ${toSVG(p4)}`} fill="currentColor" fillOpacity="0.1" stroke="currentColor" strokeWidth="2" />;
     };
 
+    const TheoryModule = () => {
+        return (
+            <TheoryLibrary
+                title="Distance Protection (21)"
+                description="Understand impedance-based fault detection. Explore R-X diagrams, Zones of Protection, and the critical concept of Power Swing Blocking."
+                sections={DISTANCE_THEORY_CONTENT}
+            />
+        );
+    };
+
     return (
-        <div className="min-h-screen bg-slate-100 text-slate-900 font-sans flex flex-col overflow-hidden">
+        <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans flex flex-col overflow-hidden">
 
             {/* --- Professional Header --- */}
-            <header className="bg-white border-b border-slate-300 px-6 py-4 flex items-center justify-between shadow-sm z-20 shrink-0">
+            <header className="bg-white dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 px-6 py-4 flex items-center justify-between shadow-sm z-20 shrink-0">
                 <div className="flex items-center gap-4">
-                    <div className="bg-slate-900 text-white p-2 rounded-lg">
+                    <div className="bg-slate-900 dark:bg-blue-600 text-white p-2 rounded-lg">
                         <Zap className="w-6 h-6" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-slate-900 tracking-tight">RELAY SIM <span className="text-blue-600">ULTRA</span></h1>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono uppercase tracking-widest">
+                        <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">RELAY SIM <span className="text-blue-600 dark:text-blue-400">ULTRA</span></h1>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-mono uppercase tracking-widest">
                             <span>Ver 2.5.0</span>
-                            <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                            <span className="w-1 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
                             <span>IEEE C37.113 Compliant</span>
                         </div>
                     </div>
@@ -391,18 +425,23 @@ export default function RelaySimUltra() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setVoiceEnabled(!voiceEnabled)}
-                        className={`p-2 rounded-md border transition-all ${voiceEnabled ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                        className={`p-2 rounded-md border transition-all ${voiceEnabled ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                         title={voiceEnabled ? "Mute Voice Guide" : "Enable Voice Guide"}
                     >
                         {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                     </button>
-                    <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-md text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
-                        <Printer className="w-4 h-4" /> EXPORT REPORT
+                    <button onClick={() => { setFault({ r: 5, x: 5 }); setSettings({ charType: 'MHO', mta: 75, tilt: 5, z1Reach: 8.0, z2Reach: 12.0, z3Reach: 18.0, z1Time: 0, z2Time: 300, z3Time: 1000, quadResReach: 10.0 }); }}
+                        className="hidden md:flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                    >
+                        <RefreshCw className="w-4 h-4" /> RESET ALL
                     </button>
-                    <div className="h-8 w-px bg-slate-300 mx-2 hidden md:block" />
-                    <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded border border-slate-200">
+                    <button onClick={copyShareLink} className="hidden md:flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
+                        <Share2 className="w-4 h-4" /> SHARE SIMULATION
+                    </button>
+                    <div className="h-8 w-px bg-slate-300 dark:bg-slate-700 mx-2 hidden md:block" />
+                    <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
                         <div className={`w-2 h-2 rounded-full ${status.trip ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
-                        <span className="text-xs font-bold text-slate-700">{status.trip ? 'TRIP ACTIVE' : 'SYSTEM HEALTHY'}</span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{status.trip ? 'TRIP ACTIVE' : 'SYSTEM HEALTHY'}</span>
                     </div>
                 </div>
             </header>
@@ -411,7 +450,7 @@ export default function RelaySimUltra() {
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
 
                 {/* --- Left Panel: R-X Diagram (Visible only in Sim & Theory modes) --- */}
-                <div className={`flex-1 p-4 lg:p-8 overflow-y-auto flex flex-col items-center justify-center bg-slate-50 relative ${activeTab === 'quiz' ? 'hidden lg:flex' : ''} min-h-[400px] lg:min-h-auto border-b lg:border-b-0 lg:border-r border-slate-200`}>
+                <div className={`flex-1 p-4 lg:p-8 overflow-y-auto flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 relative ${activeTab === 'quiz' ? 'hidden lg:flex' : ''} min-h-[400px] lg:min-h-auto border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-700`}>
 
                     {/* Axis Labels */}
                     <div className="absolute top-8 left-1/2 -translate-x-1/2 font-mono text-xs text-slate-400 font-bold">+ jX (Reactance Ω)</div>
@@ -419,7 +458,7 @@ export default function RelaySimUltra() {
 
                     {/* Chart Container */}
                     <div
-                        className="relative bg-white rounded-xl border border-slate-300 shadow-xl overflow-hidden cursor-crosshair group w-full max-w-[500px] aspect-square"
+                        className="relative bg-white dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-600 shadow-xl overflow-hidden cursor-crosshair group w-full max-w-[500px] aspect-square"
                         onMouseEnter={() => handleHover('chart')}
                         onMouseLeave={clearHover}
                     >
@@ -477,10 +516,12 @@ export default function RelaySimUltra() {
                             </svg>
                         </div>
 
-                        {/* Live Measurements Overlay */}
-                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur border border-slate-200 p-3 rounded-lg text-xs font-mono shadow-sm pointer-events-none">
-                            <div className="flex justify-between gap-4"><span>Z_mag:</span> <span className="font-bold text-slate-900">{Math.sqrt(fault.r ** 2 + fault.x ** 2).toFixed(2)}Ω</span></div>
-                            <div className="flex justify-between gap-4"><span>Angle:</span> <span className="font-bold text-slate-900">{(Math.atan2(fault.x, fault.r) * RAD_TO_DEG).toFixed(1)}°</span></div>
+                        {/* Live Measurements Overlay - Enhancement #5: Show R, jX, Z, angle */}
+                        <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur border border-slate-200 dark:border-slate-600 p-3 rounded-lg text-xs font-mono shadow-sm pointer-events-none">
+                            <div className="flex justify-between gap-4"><span className="text-slate-500">R:</span> <span className="font-bold text-slate-900 dark:text-white">{fault.r.toFixed(2)} Ω</span></div>
+                            <div className="flex justify-between gap-4"><span className="text-slate-500">jX:</span> <span className="font-bold text-slate-900 dark:text-white">{fault.x.toFixed(2)} Ω</span></div>
+                            <div className="flex justify-between gap-4 border-t border-slate-200 dark:border-slate-600 pt-1 mt-1"><span className="text-slate-500">|Z|:</span> <span className="font-bold text-blue-600 dark:text-blue-400">{Math.sqrt(fault.r ** 2 + fault.x ** 2).toFixed(2)} Ω</span></div>
+                            <div className="flex justify-between gap-4"><span className="text-slate-500">∠Z:</span> <span className="font-bold text-blue-600 dark:text-blue-400">{(Math.atan2(fault.x, fault.r) * RAD_TO_DEG).toFixed(1)}°</span></div>
                         </div>
                     </div>
 
@@ -492,10 +533,10 @@ export default function RelaySimUltra() {
                 </div>
 
                 {/* --- Right Panel: Controls, Theory & Quiz --- */}
-                <div className={`w-full lg:w-[480px] bg-white flex flex-col shadow-xl z-10 ${activeTab === 'quiz' ? 'w-full lg:w-full' : ''}`}>
+                <div className={`w-full lg:w-[480px] bg-white dark:bg-slate-900 flex flex-col shadow-xl z-10 ${activeTab === 'quiz' ? 'w-full lg:w-full' : ''}`}>
 
                     {/* Tabs */}
-                    <div className="flex border-b border-slate-200 bg-white shrink-0 overflow-x-auto">
+                    <div className="flex border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shrink-0 overflow-x-auto">
                         <TabButton active={activeTab === 'sim'} onClick={() => setActiveTab('sim')} icon={<Sliders className="w-4 h-4" />} label="Parameters" onHover={() => handleHover('default')} />
                         <TabButton active={activeTab === 'theory'} onClick={() => setActiveTab('theory')} icon={<BookOpen className="w-4 h-4" />} label="Theory Hub" onHover={() => handleHover('default')} />
                         <TabButton active={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} icon={<BrainCircuit className="w-4 h-4" />} label="Quiz" onHover={() => handleHover('default')} />
@@ -508,32 +549,59 @@ export default function RelaySimUltra() {
                         {activeTab === 'sim' && (
                             <div className="space-y-6">
                                 {/* Trip Status Banner */}
-                                <div className={`p-4 rounded-lg border-l-4 shadow-sm transition-all ${status.trip ? 'bg-red-50 border-red-500' : 'bg-slate-50 border-slate-300'}`}>
-                                    <h3 className={`font-bold text-sm uppercase flex items-center gap-2 ${status.trip ? 'text-red-700' : 'text-slate-600'}`}>
+                                <div className={`p-4 rounded-lg border-l-4 shadow-sm transition-all ${status.trip ? 'bg-red-50 dark:bg-red-900/20 border-red-500' : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600'}`}>
+                                    <h3 className={`font-bold text-sm uppercase flex items-center gap-2 ${status.trip ? 'text-red-700 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
                                         {status.trip ? <AlertOctagon className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
                                         Relay Status: {status.trip ? 'TRIPPED' : 'MONITORING'}
                                     </h3>
                                     <div className="mt-2 grid grid-cols-2 gap-4 text-xs">
                                         <div>
-                                            <span className="text-slate-500 block">Active Zone</span>
-                                            <span className="font-mono font-bold text-slate-900 text-lg">{status.zone}</span>
+                                            <span className="text-slate-500 dark:text-slate-400 block">Active Zone</span>
+                                            <span className="font-mono font-bold text-slate-900 dark:text-white text-lg">{status.zone}</span>
                                         </div>
                                         <div>
-                                            <span className="text-slate-500 block">Operating Time</span>
-                                            <span className="font-mono font-bold text-slate-900 text-lg">{status.time}ms</span>
+                                            <span className="text-slate-500 dark:text-slate-400 block">Operating Time</span>
+                                            <span className="font-mono font-bold text-slate-900 dark:text-white text-lg">{status.time}ms</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Zone Overlap Warning */}
+                                {(settings.z1Reach >= settings.z2Reach || settings.z2Reach >= settings.z3Reach) && (
+                                    <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 flex items-center gap-3">
+                                        <AlertOctagon className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                        <div className="text-xs text-amber-800 dark:text-amber-300">
+                                            <strong>Zone Overlap Warning:</strong> {settings.z1Reach >= settings.z2Reach ? 'Z1 ≥ Z2' : 'Z2 ≥ Z3'} — Zones must satisfy Z1 &lt; Z2 &lt; Z3 for proper grading.
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Numeric Fault Input */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-slate-700 pb-2">Fault Impedance (Click chart or enter values)</h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">R (Resistance)</label>
+                                            <input type="number" min="0" max="200" step="0.1" value={fault.r.toFixed(1)} onChange={e => setFault(f => ({ ...f, r: Math.max(0, parseFloat(e.target.value) || 0) }))}
+                                                className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">jX (Reactance)</label>
+                                            <input type="number" min="0" max="200" step="0.1" value={fault.x.toFixed(1)} onChange={e => setFault(f => ({ ...f, x: Math.max(0, parseFloat(e.target.value) || 0) }))}
+                                                className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Characteristic Selection */}
                                 <div className="space-y-3">
-                                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">Characteristic Shape</h4>
+                                    <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-slate-700 pb-2">Characteristic Shape</h4>
                                     <div className="grid grid-cols-2 gap-3">
                                         <button
                                             onClick={() => setSettings(s => ({ ...s, charType: 'MHO' }))}
                                             onMouseEnter={() => handleHover('mho')}
                                             onMouseLeave={clearHover}
-                                            className={`p-3 rounded-lg border text-sm font-bold flex items-center justify-center gap-2 transition-all ${settings.charType === 'MHO' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                            className={`p-3 rounded-lg border text-sm font-bold flex items-center justify-center gap-2 transition-all ${settings.charType === 'MHO' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                                         >
                                             <div className="w-4 h-4 rounded-full border-2 border-current" /> Mho Circle
                                         </button>
@@ -541,7 +609,7 @@ export default function RelaySimUltra() {
                                             onClick={() => setSettings(s => ({ ...s, charType: 'QUAD' }))}
                                             onMouseEnter={() => handleHover('quad')}
                                             onMouseLeave={clearHover}
-                                            className={`p-3 rounded-lg border text-sm font-bold flex items-center justify-center gap-2 transition-all ${settings.charType === 'QUAD' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                            className={`p-3 rounded-lg border text-sm font-bold flex items-center justify-center gap-2 transition-all ${settings.charType === 'QUAD' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                                         >
                                             <div className="w-4 h-4 border-2 border-current" /> Quadrilateral
                                         </button>
@@ -550,7 +618,7 @@ export default function RelaySimUltra() {
 
                                 {/* Settings Sliders */}
                                 <div className="space-y-4">
-                                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">Reach Configuration</h4>
+                                    <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-slate-700 pb-2">Reach Configuration</h4>
 
                                     <Knob
                                         label="Line Angle (MTA)" value={settings.mta} min={30} max={90} unit="°"
@@ -579,28 +647,10 @@ export default function RelaySimUltra() {
                             </div>
                         )}
 
+
                         {/* THEORY MODE */}
                         {activeTab === 'theory' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-900">
-                                    <h3 className="font-bold flex items-center gap-2 mb-2"><BookOpen className="w-4 h-4" /> The Relay Engineer's Handbook</h3>
-                                    <p>Comprehensive guide to Distance Protection as per IEEE C37.113. Understanding these concepts is critical for real-world application.</p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    {THEORY_MODULES.map((module) => (
-                                        <div key={module.id} className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
-                                            <div className="bg-slate-50 p-3 border-b border-slate-200 flex items-center gap-3">
-                                                <div className="p-1.5 bg-white rounded-md border border-slate-200 shadow-sm">{module.icon}</div>
-                                                <h4 className="font-bold text-slate-800">{module.title}</h4>
-                                            </div>
-                                            <div className="p-4 text-sm text-slate-600 leading-relaxed">
-                                                {module.content}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            <TheoryModule />
                         )}
 
                         {/* QUIZ MODE */}
@@ -612,17 +662,17 @@ export default function RelaySimUltra() {
                                             <BrainCircuit className="w-16 h-16 text-blue-600" />
                                         </div>
                                         <div className="text-center space-y-2">
-                                            <h3 className="text-2xl font-bold text-slate-900">Protection Knowledge Check</h3>
+                                            <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Protection Knowledge Check</h3>
                                             <p className="text-slate-500 max-w-xs mx-auto">Select your difficulty level. 5 questions will be randomly selected from the bank.</p>
                                         </div>
                                         <div className="grid grid-cols-1 w-full max-w-xs gap-3">
-                                            <button onClick={() => startQuiz('easy')} className="p-4 bg-white border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 rounded-xl font-bold text-slate-700 transition-all shadow-sm">
+                                            <button onClick={() => startQuiz('easy')} className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl font-bold text-slate-700 dark:text-slate-300 transition-all shadow-sm">
                                                 Easy Mode
                                             </button>
-                                            <button onClick={() => startQuiz('medium')} className="p-4 bg-white border border-slate-200 hover:border-amber-500 hover:bg-amber-50 rounded-xl font-bold text-slate-700 transition-all shadow-sm">
+                                            <button onClick={() => startQuiz('medium')} className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl font-bold text-slate-700 dark:text-slate-300 transition-all shadow-sm">
                                                 Medium Mode
                                             </button>
-                                            <button onClick={() => startQuiz('hard')} className="p-4 bg-white border border-slate-200 hover:border-red-500 hover:bg-red-50 rounded-xl font-bold text-slate-700 transition-all shadow-sm">
+                                            <button onClick={() => startQuiz('hard')} className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl font-bold text-slate-700 dark:text-slate-300 transition-all shadow-sm">
                                                 Specialist Mode
                                             </button>
                                         </div>
@@ -631,7 +681,7 @@ export default function RelaySimUltra() {
                                     <div className="flex flex-col items-center justify-center h-full space-y-6 py-12">
                                         <Trophy className={`w-20 h-20 ${quizState.score >= 4 ? 'text-yellow-500' : 'text-slate-300'}`} />
                                         <div className="text-center">
-                                            <h3 className="text-3xl font-bold text-slate-900">{quizState.score} / 5</h3>
+                                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{quizState.score} / 5</h3>
                                             <p className="text-slate-500 mt-2">
                                                 {quizState.score === 5 ? "Perfect Score! You are a Protection Engineer." :
                                                     quizState.score >= 3 ? "Good job! Keep studying." : "Needs more practice."}
@@ -653,7 +703,7 @@ export default function RelaySimUltra() {
                                                 }`}>{quizState.difficulty}</span>
                                         </div>
 
-                                        <h3 className="text-lg font-bold text-slate-900 mb-6 leading-relaxed">
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 leading-relaxed">
                                             {quizState.questions[quizState.currentIdx].q}
                                         </h3>
 
@@ -667,9 +717,9 @@ export default function RelaySimUltra() {
                                                         ? i === quizState.questions[quizState.currentIdx].a
                                                             ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
                                                             : quizState.feedback && i !== quizState.questions[quizState.currentIdx].a
-                                                                ? 'opacity-50 bg-slate-50'
+                                                                ? 'opacity-50 bg-slate-50 dark:bg-slate-800/50'
                                                                 : ''
-                                                        : 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-md'
+                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:shadow-md'
                                                         }`}
                                                 >
                                                     <div className="flex justify-between items-center">
@@ -718,11 +768,11 @@ export default function RelaySimUltra() {
             </div>
 
             <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-      `}</style>
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+            `}</style>
         </div>
     );
 }

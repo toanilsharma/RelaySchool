@@ -1,11 +1,15 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
     Play, Square, RotateCcw, ClipboardCheck, AlertCircle,
     CheckCircle2, XCircle, Activity, Zap, Timer, HelpCircle,
     Book, X, AlertTriangle, Settings, Sliders,
     Database, TrendingUp, Sun, Moon, MonitorPlay, GraduationCap,
-    MousePointer2, ShieldCheck, Info, Ruler, LineChart, Cpu, Scale
+    MousePointer2, ShieldCheck, Info, Ruler, LineChart, Cpu, Scale,
+    Share2
 } from 'lucide-react';
+import TheoryLibrary from '../components/TheoryLibrary';
+import { RELAY_TESTER_THEORY_CONTENT } from '../data/learning-modules/relay-tester';
 
 // --- 1. MATH ENGINE (IEC 60255) ---
 const calculateTripTime = (current: number, pickup: number, tms: number, curveType: string) => {
@@ -28,135 +32,6 @@ const calculateTripTime = (current: number, pickup: number, tms: number, curveTy
     const time = tms * (k / (Math.pow(M, alpha) - 1));
     return time; // in seconds
 };
-
-// --- 2. THEORY DATA ---
-const THEORY_DATA = [
-    {
-        id: 'fundamentals',
-        title: "1. Protection Fundamentals",
-        icon: <ShieldCheck className="w-5 h-5 text-blue-500" />,
-        content: (
-            <div className="space-y-6 text-sm leading-relaxed">
-                <div className="p-5 rounded-2xl border-l-4 border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-sm">
-                    <h3 className="text-lg font-bold mb-2 text-blue-900 dark:text-blue-100">The "50/51" Standard</h3>
-                    <p className="text-slate-700 dark:text-slate-300">
-                        Overcurrent protection is the backbone of electrical distribution. It uses two distinct elements to clear faults while allowing temporary overloads (like motor starting).
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-bold">ANSI 51</span>
-                            <strong className="text-slate-900 dark:text-white">Time-Overcurrent</strong>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            <strong>Function:</strong> Overload & Distant Faults.<br />
-                            <strong>Logic:</strong> Inverse Curve. Higher current = Faster trip.<br />
-                            <strong>Setting:</strong> Pickup (Is) & Time Multiplier (TMS).
-                        </p>
-                    </div>
-                    <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold">ANSI 50</span>
-                            <strong className="text-slate-900 dark:text-white">Instantaneous</strong>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            <strong>Function:</strong> Close-in Short Circuits.<br />
-                            <strong>Logic:</strong> No intentional delay (&lt;30ms).<br />
-                            <strong>Setting:</strong> High Set (I&gt;&gt;). Usually 10x-20x nominal.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'ct_selection',
-        title: "2. Current Transformer (CT) Selection",
-        icon: <Scale className="w-5 h-5 text-indigo-500" />,
-        content: (
-            <div className="space-y-6 text-sm">
-                <p className="text-slate-600 dark:text-slate-400">
-                    A relay is only as good as its input. Selecting the right CT is critical to prevent "Protection Blindness" due to saturation.
-                </p>
-                <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-200 dark:border-indigo-800">
-                    <h4 className="font-bold text-indigo-900 dark:text-indigo-100 mb-2">Protection Class CTs (5P20)</h4>
-                    <p className="text-xs text-indigo-800 dark:text-indigo-200 mb-2">
-                        A common spec is <strong>5P20</strong>. This means:
-                    </p>
-                    <ul className="list-disc pl-5 text-xs text-indigo-800 dark:text-indigo-300 space-y-1">
-                        <li><strong>5:</strong> Composite Error is &lt;5%.</li>
-                        <li><strong>P:</strong> Protection Class (Not metering).</li>
-                        <li><strong>20:</strong> Accuracy is maintained up to <strong>20x</strong> rated current (Accuracy Limit Factor).</li>
-                    </ul>
-                </div>
-                <p className="text-xs text-slate-500">
-                    <strong>Rule of Thumb:</strong> Ensure the CT Knee Point Voltage is high enough to drive the maximum fault current through the relay burden + lead resistance without saturating.
-                </p>
-            </div>
-        )
-    },
-    {
-        id: 'curves',
-        title: "3. Curve Selection Guide",
-        icon: <TrendingUp className="w-5 h-5 text-purple-500" />,
-        content: (
-            <div className="space-y-6 text-sm">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500 uppercase">
-                            <th className="py-2">IEC Curve</th>
-                            <th className="py-2">Application</th>
-                        </tr>
-                    </thead>
-                    <tbody className="text-xs text-slate-700 dark:text-slate-300">
-                        <tr className="border-b border-slate-100 dark:border-slate-800">
-                            <td className="py-3 font-bold text-purple-600">Standard Inverse (SI)</td>
-                            <td className="py-3">General purpose. Good grading with fuses is difficult. Used on most feeders.</td>
-                        </tr>
-                        <tr className="border-b border-slate-100 dark:border-slate-800">
-                            <td className="py-3 font-bold text-purple-600">Very Inverse (VI)</td>
-                            <td className="py-3">Used where fault current magnitude drops significantly with distance (long lines). Better grading with fuses.</td>
-                        </tr>
-                        <tr className="border-b border-slate-100 dark:border-slate-800">
-                            <td className="py-3 font-bold text-purple-600">Extremely Inverse (EI)</td>
-                            <td className="py-3">Matches fuse characteristics closely. Essential for protecting transformers, cables, and motors (thermal limit).</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-500 font-mono">
-                    t = TMS × k / ((I/Is)^α - 1)
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'coordination',
-        title: "4. Coordination (Grading)",
-        icon: <Activity className="w-5 h-5 text-emerald-500" />,
-        content: (
-            <div className="space-y-6 text-sm">
-                <h4 className="font-bold text-slate-900 dark:text-white">The Grading Margin</h4>
-                <p className="text-slate-600 dark:text-slate-400">
-                    When a fault occurs downstream, the downstream relay must trip first. The upstream relay waits. The difference in time is the <strong>Grading Margin</strong>.
-                </p>
-                <div className="flex gap-4 items-center justify-center py-4">
-                    <div className="text-center">
-                        <div className="text-2xl font-bold text-slate-900 dark:text-white">0.3s - 0.4s</div>
-                        <div className="text-xs text-slate-500 uppercase tracking-widest">Standard Margin</div>
-                    </div>
-                </div>
-                <p className="text-xs text-slate-500">
-                    This margin accounts for:
-                    <br />• Breaker opening time (~50ms)
-                    <br />• Relay overshoot (~30ms)
-                    <br />• CT errors & Safety Factor
-                </p>
-            </div>
-        )
-    }
-];
 
 // --- 3. TCC CURVE COMPONENT ---
 const TCCGraph = ({ pickup, tms, curve, liveCurrent, tripTime, isDark }: { pickup: number, tms: number, curve: string, liveCurrent: number, tripTime: number | null, isDark: boolean }) => {
@@ -296,49 +171,6 @@ const TCCGraph = ({ pickup, tms, curve, liveCurrent, tripTime, isDark }: { picku
 
 // --- 4. SUB-COMPONENTS ---
 
-const TheoryModule = ({ isDark }: { isDark: boolean }) => {
-    const [activeSection, setActiveSection] = useState(THEORY_DATA[0].id);
-    const content = THEORY_DATA.find(d => d.id === activeSection);
-
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-12 h-full">
-            <div className={`md:col-span-4 lg:col-span-3 border-r overflow-y-auto ${isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
-                <div className="p-4">
-                    <h2 className={`text-xs font-bold uppercase tracking-widest mb-4 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Application Guide</h2>
-                    <div className="space-y-2">
-                        {THEORY_DATA.map((item) => (
-                            <button
-                                key={item.id}
-                                onClick={() => setActiveSection(item.id)}
-                                className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all text-sm font-medium ${activeSection === item.id
-                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                    : isDark ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-white hover:shadow-sm'
-                                    }`}
-                            >
-                                {item.icon}
-                                <span>{item.title}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-            <div className={`md:col-span-8 lg:col-span-9 overflow-y-auto p-6 md:p-10 ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
-                <div className="max-w-3xl mx-auto">
-                    <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
-                        <h1 className={`text-3xl font-black mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{content?.title}</h1>
-                        <div className={`text-xs font-mono px-2 py-1 rounded inline-block ${isDark ? 'bg-slate-900 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                            Ref: IEC 60255 / ANSI C37.90
-                        </div>
-                    </div>
-                    <div className="animate-fade-in">
-                        {content?.content}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
     // --- STATE ---
     const [mode, setMode] = useState<'PULSE' | 'RAMP'>('PULSE');
@@ -360,11 +192,39 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
     const [timer, setTimer] = useState(0);
     const [tripTime, setTripTime] = useState<number | null>(null);
     const [pickupResult, setPickupResult] = useState<number | null>(null);
+    const [testHistory, setTestHistory] = useState<{mode: string, result: string, error: string}[]>([]);
 
     // Disk Animation
     const [diskAngle, setDiskAngle] = useState(0);
     const requestRef = useRef<number>();
     const intervalRef = useRef<number>();
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const stateParam = params.get('s');
+        if (stateParam) {
+            try {
+                const state = JSON.parse(atob(stateParam));
+                if (state.pickup !== undefined) setPickup(state.pickup);
+                if (state.tms !== undefined) setTms(state.tms);
+                if (state.curve) setCurve(state.curve);
+                if (state.injectCurrent !== undefined) setInjectCurrent(state.injectCurrent);
+                if (state.rampStart !== undefined) setRampStart(state.rampStart);
+                if (state.rampRate !== undefined) setRampRate(state.rampRate);
+                if (state.harmonicLevel !== undefined) setHarmonicLevel(state.harmonicLevel);
+                if (state.mode) setMode(state.mode);
+            } catch (e) {
+                console.error("Failed to parse share link", e);
+            }
+        }
+    }, []);
+
+    const copyShareLink = () => {
+        const state = { pickup, tms, curve, injectCurrent, rampStart, rampRate, harmonicLevel, mode };
+        const str = btoa(JSON.stringify(state));
+        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
+        alert("Simulation link copied! You can share this URL to load the exact state.");
+    };
 
     // --- MATH ---
     const calculateExpectedTime = (I: number) => calculateTripTime(I, pickup, tms, curve);
@@ -450,6 +310,13 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
     const finishTest = (finalStatus: 'TRIPPED' | 'IDLE') => {
         clearInterval(intervalRef.current);
         setStatus(finalStatus);
+        if (finalStatus === 'TRIPPED') {
+            const expected = mode === 'PULSE' ? calculateExpectedTime(injectCurrent) : pickup;
+            const actual = mode === 'PULSE' ? timer : liveCurrent;
+            const err = Math.abs(actual - (expected || 0));
+            const tolerance = mode === 'PULSE' ? Math.max(0.03, (expected || 0) * 0.05) : pickup * 0.05;
+            setTestHistory(prev => [{ mode, result: err <= tolerance ? 'PASS' : 'FAIL', error: err.toFixed(3) }, ...prev].slice(0, 10));
+        }
     };
 
     const stopTest = () => {
@@ -542,11 +409,11 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-500 uppercase">Start (A)</label>
-                                    <input type="number" value={rampStart} onChange={(e) => setRampStart(Number(e.target.value))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
+                                    <input type="number" min="0" value={rampStart} onChange={(e) => setRampStart(Number(e.target.value))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-500 uppercase">Rate (A/s)</label>
-                                    <input type="number" step="0.1" value={rampRate} onChange={(e) => setRampRate(Number(e.target.value))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
+                                    <input type="number" min="0" step="0.1" value={rampRate} onChange={(e) => setRampRate(Number(e.target.value))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
                                 </div>
                             </div>
                         )}
@@ -651,6 +518,36 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                     )}
                 </div>
 
+                {/* Test History */}
+                {testHistory.length > 0 && (
+                    <div className={`p-4 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <div className="flex justify-between items-center mb-3">
+                            <h4 className={`font-bold flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                <ClipboardCheck className="w-4 h-4 text-indigo-500" /> Test Log
+                            </h4>
+                            <div className="flex gap-4">
+                                <button onClick={() => {
+                                    const txt = testHistory.map((t, i) => `#${i + 1}: ${t.mode} | ${t.result} | Err: ${t.error}`).join('\n');
+                                    navigator.clipboard.writeText(`Relay Test Report\nPickup: ${pickup}A | TMS: ${tms} | Curve: ${curve}\n${txt}`);
+                                }} className="text-[10px] font-bold flex flex-row gap-1 items-center bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-800/60 p-1 px-2 rounded-md transition-colors text-blue-600 dark:text-blue-300">
+                                    <ClipboardCheck className="w-3 h-3" /> REPORT
+                                </button>
+                                <button onClick={copyShareLink} className="text-[10px] font-bold flex flex-row gap-1 items-center bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 p-1 px-2 rounded-md transition-colors text-indigo-600 dark:text-indigo-300">
+                                    <Share2 className="w-3 h-3" /> SHARE
+                                </button>
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            {testHistory.map((t, i) => (
+                                <div key={i} className={`flex justify-between text-[10px] font-mono p-1.5 rounded ${t.result === 'PASS' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                                    <span>#{i + 1} {t.mode}</span>
+                                    <span className="font-bold">{t.result} (±{t.error})</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* TCC CURVE VIEWER */}
                 <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <h4 className={`font-bold mb-3 flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -742,14 +639,18 @@ export default function RelayTesterApp() {
                     </div>
                     <div>
                         <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>GridGuard <span className="text-indigo-500">PRO</span></h1>
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Relay Commissioning Suite</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Relay Commissioning Suite</span>
+                            <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/80">IEC 60255 / IEEE C37.90</span>
+                        </div>
                     </div>
                 </div>
 
                 {/* Desktop Tabs */}
                 <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
                     {[
-                        { id: 'theory', label: 'Handbook', icon: <Book className="w-4 h-4" /> },
+                        { id: 'theory', label: 'Reference', icon: <Book className="w-4 h-4" /> },
                         { id: 'simulator', label: 'Laboratory', icon: <MonitorPlay className="w-4 h-4" /> },
                         { id: 'guide', label: 'User Guide', icon: <GraduationCap className="w-4 h-4" /> },
                     ].map(tab => (
@@ -795,7 +696,13 @@ export default function RelayTesterApp() {
 
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative pb-16 md:pb-0">
-                {activeTab === 'theory' && <TheoryModule isDark={isDark} />}
+                {activeTab === 'theory' && (
+                    <TheoryLibrary
+                        title="Relay Testing Handbook"
+                        description="Standards and procedures for Overcurrent (50/51) Relay Commissioning."
+                        sections={RELAY_TESTER_THEORY_CONTENT}
+                    />
+                )}
 
                 {/* Simulator: Wrapped in overflow-y-auto for vertical scrolling */}
                 <div className={activeTab === 'simulator' ? 'block h-full overflow-y-auto' : 'hidden'}>

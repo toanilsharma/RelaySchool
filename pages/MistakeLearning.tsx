@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Zap, DollarSign, Timer, ArrowLeft, AlertCircle, XCircle, Flame, HelpCircle, CheckCircle, ChevronDown, ChevronUp, Play, RefreshCw, Eye, BookOpen, Skull, Search, Microscope } from 'lucide-react';
+import { AlertTriangle, Zap, DollarSign, Timer, ArrowLeft, AlertCircle, XCircle, Flame, HelpCircle, CheckCircle, ChevronDown, ChevronUp, Play, RefreshCw, Eye, BookOpen, Skull, Search, Microscope, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- VISUALIZATIONS ---
@@ -256,6 +256,26 @@ const CASE_STUDIES: CaseStudy[] = [
 const MistakeLearning = () => {
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
+    React.useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const stateParam = params.get('s');
+        if (stateParam) {
+            try {
+                const state = JSON.parse(atob(stateParam));
+                if (state.expandedId) setExpandedId(state.expandedId);
+            } catch (e) {
+                console.error("Failed to parse share link", e);
+            }
+        }
+    }, []);
+
+    const copyShareLink = () => {
+        const state = { expandedId };
+        const str = btoa(JSON.stringify(state));
+        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
+        alert("Simulation link copied! You can share this URL to load the exact state.");
+    };
+
     return (
         <div className="space-y-8 animate-fade-in max-w-7xl mx-auto pb-12">
             
@@ -275,6 +295,9 @@ const MistakeLearning = () => {
                         We've reconstructed high-consequence errors so you can experience them safely.
                     </p>
                 </div>
+                <button onClick={copyShareLink} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors mb-4 md:mb-0">
+                    <Share2 className="w-4 h-4" /> Share Page
+                </button>
             </div>
 
             {/* Introduction Banner */}
@@ -446,7 +469,7 @@ const MistakeLearning = () => {
                         Apply these lessons in the <strong>Failure Lab</strong>. Reconstruct these scenarios with adjustable parameters to see the exact tipping point of failure.
                     </p>
                 </div>
-                <Link to="/failure" className="relative z-10 px-8 py-4 bg-white text-blue-600 rounded-xl font-bold shadow-lg hover:bg-blue-50 transition-all flex items-center gap-2 whitespace-nowrap group">
+                <Link to="/failure" className="relative z-10 px-8 py-4 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 rounded-xl font-bold shadow-lg hover:bg-blue-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 whitespace-nowrap group">
                     Open Failure Lab <ArrowLeft className="w-5 h-5 rotate-180 group-hover:translate-x-1 transition-transform" />
                 </Link>
             </div>

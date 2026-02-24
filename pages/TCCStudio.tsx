@@ -8,8 +8,10 @@ import {
     AlertOctagon, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
     Maximize2, Minimize2, BrainCircuit, School, Calculator, ArrowRight,
     Trophy, XCircle, RefreshCw, Flame, Factory, Gauge, GitCompare,
-    ArrowUpFromLine, ArrowDownToLine, Ruler, Menu, Book, MousePointerClick
+    ArrowUpFromLine, ArrowDownToLine, Ruler, Menu, Book, MousePointerClick, Share2
 } from 'lucide-react';
+import TheoryLibrary from '../components/TheoryLibrary';
+import { TCC_THEORY_CONTENT } from '../data/learning-modules/tcc';
 
 // --- 1. CONSTANTS & DATA BANKS ---
 
@@ -238,52 +240,12 @@ const calculateTripTime = (current, pickup, tds, curveType, instantaneous) => {
 // --- 3. SUB-COMPONENTS ---
 
 const TheoryModule = () => {
-    const [activeTopic, setActiveTopic] = useState(THEORY_TOPICS[0]);
-
     return (
-        <div className="flex flex-col md:flex-row h-full bg-slate-50 dark:bg-slate-950 animate-fade-in">
-            {/* Sidebar */}
-            <div className="w-full md:w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 overflow-y-auto">
-                <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-                    <h2 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-xs">Engineering Reference</h2>
-                </div>
-                <div className="p-2 space-y-1">
-                    {THEORY_TOPICS.map(topic => (
-                        <button
-                            key={topic.id}
-                            onClick={() => setActiveTopic(topic)}
-                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${activeTopic.id === topic.id ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                        >
-                            {topic.icon}
-                            {topic.title}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-8 md:p-12">
-                <div className="max-w-3xl mx-auto">
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="p-3 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/30">
-                            {activeTopic.icon}
-                        </div>
-                        <h1 className="text-3xl font-black text-slate-900 dark:text-white">{activeTopic.title}</h1>
-                    </div>
-
-                    <div className="prose prose-slate dark:prose-invert max-w-none">
-                        {activeTopic.content}
-                    </div>
-
-                    <div className="mt-12 p-6 bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl text-white shadow-xl border border-slate-700">
-                        <h4 className="font-bold flex items-center gap-2 mb-2"><Lightbulb className="w-5 h-5 text-yellow-400" /> Pro Tip</h4>
-                        <p className="text-sm opacity-90">
-                            Always cross-reference these guidelines with specific manufacturer datasheets (Siemens, ABB, SEL, GE) as curve algorithms can vary slightly.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <TheoryLibrary 
+            title="Time-Current Coordination" 
+            description="Master the art of protection grading. Learn how to achieve selectivity, protect transformers from damage, and ensure grid stability using IEC/IEEE standard curves."
+            sections={TCC_THEORY_CONTENT}
+        />
     );
 };
 
@@ -435,6 +397,27 @@ const SimulatorView = ({ isActive }) => {
     const graphRef = useRef(null);
     const [draggingId, setDraggingId] = useState(null);
     const [dragType, setDragType] = useState(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const stateParam = params.get('s');
+        if (stateParam) {
+            try {
+                const state = JSON.parse(atob(stateParam));
+                if (state.devices) setDevices(state.devices);
+                if (state.faultAmps) setFaultAmps(state.faultAmps);
+            } catch (e) {
+                console.error("Failed to parse share link", e);
+            }
+        }
+    }, []);
+
+    const copyShareLink = () => {
+        const state = { devices, faultAmps };
+        const str = btoa(JSON.stringify(state));
+        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
+        alert("Simulation link copied! You can share this URL to load the exact state.");
+    };
 
     // Resize Observer
     useEffect(() => {
@@ -849,10 +832,14 @@ const SimulatorView = ({ isActive }) => {
                     <div className="hidden md:flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
                         <Zap className="w-3 h-3 text-amber-500 fill-current animate-pulse" />
                         <span className="text-[10px] font-bold text-slate-500 uppercase">Sim Fault:</span>
-                        <input type="number" value={faultAmps} onChange={(e) => setFaultAmps(Number(e.target.value))} className="w-16 bg-transparent text-xs font-mono font-bold outline-none text-right border-b border-slate-300 dark:border-slate-600 focus:border-blue-500" />
+                        <input type="number" min="0" value={faultAmps} onChange={(e) => setFaultAmps(Number(e.target.value))} className="w-16 bg-transparent text-xs font-mono font-bold outline-none text-right border-b border-slate-300 dark:border-slate-600 focus:border-blue-500" />
                         <span className="text-[10px] text-slate-500 font-bold">A</span>
                     </div>
-                    <button onClick={addDevice} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
+                    <div className="hidden md:flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
+                        <span className="text-[10px] font-mono font-bold text-slate-500">{devices.length}/7</span>
+                        <span className="text-[9px] text-slate-400">devices</span>
+                    </div>
+                    <button onClick={addDevice} disabled={devices.length >= 7} className={`px-3 py-1.5 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-95 ${devices.length >= 7 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}>
                         <Plus className="w-3 h-3" /> Add Device
                     </button>
                     <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
@@ -869,6 +856,12 @@ const SimulatorView = ({ isActive }) => {
                     <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
                         <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2 tracking-wider"><Clock className="w-3 h-3 text-slate-400" /> Coordination Check</span>
                     </div>
+                    {/* CTI Validation Banner */}
+                    {coordinationReport.length > 0 && (
+                        <div className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 border-b ${coordinationReport.some(r => r.violation) ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
+                            {coordinationReport.some(r => r.violation) ? <><AlertOctagon className="w-3 h-3" /> CTI Check: FAIL — Margins below 0.2s</> : <><CheckCircle2 className="w-3 h-3" /> CTI Check: PASS — All margins ≥ 0.2s</>}
+                        </div>
+                    )}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar relative">
                         <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-slate-200 dark:bg-slate-800"></div>
                         {coordinationReport.length > 0 ? coordinationReport.map((item, i) => (
@@ -903,6 +896,20 @@ const SimulatorView = ({ isActive }) => {
                         )) : (
                             <div className="flex flex-col items-center justify-center h-40 text-slate-400 text-xs text-center px-6"><AlertTriangle className="w-8 h-8 mb-2 opacity-20" />No devices operate at {faultAmps}A. <br />Drag the Red Fault Line to test.</div>
                         )}
+                    </div>
+                    {/* Export Report & Share Button */}
+                    <div className="px-3 py-2 border-t border-slate-200 dark:border-slate-800 flex gap-2">
+                        {coordinationReport.length > 0 && (
+                            <button onClick={() => {
+                                const lines = coordinationReport.map(r => r.type === 'TRIP' ? `TRIP: ${r.name} at ${r.time.toFixed(3)}s` : r.type === 'VIOLATION' ? `!! ${r.msg}` : `   Margin: ${r.val.toFixed(3)}s ${r.violation ? '(FAIL)' : '(OK)'}`);
+                                navigator.clipboard.writeText(`TCC Coordination Report @ ${faultAmps}A\n${lines.join('\n')}`);
+                            }} className="flex-1 py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors">
+                                <Download className="w-3 h-3" /> Report
+                            </button>
+                        )}
+                        <button onClick={copyShareLink} className="flex-1 py-1.5 px-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold flex items-center justify-center gap-1 transition-colors">
+                            <Share2 className="w-3 h-3" /> Share
+                        </button>
                     </div>
                     <div className="p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
                         <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Visible Devices</div>
@@ -962,7 +969,7 @@ const SimulatorView = ({ isActive }) => {
                                             <div className="space-y-4">
                                                 <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Device Name</label><input type="text" value={selectedDevice.name} onChange={(e) => updateDevice(selectedDevice.id, { name: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
                                                 <div className="grid grid-cols-2 gap-4">
-                                                    <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">CT Ratio</label><div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2"><input type="number" value={selectedDevice.ctRatio} onChange={(e) => updateDevice(selectedDevice.id, { ctRatio: Number(e.target.value) })} className="w-full bg-transparent border-none py-1.5 text-xs font-mono font-bold outline-none" /><span className="text-[10px] text-slate-400 font-bold">:1</span></div></div>
+                                                    <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">CT Ratio</label><div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2"><input type="number" min="0" value={selectedDevice.ctRatio} onChange={(e) => updateDevice(selectedDevice.id, { ctRatio: Number(e.target.value) })} className="w-full bg-transparent border-none py-1.5 text-xs font-mono font-bold outline-none" /><span className="text-[10px] text-slate-400 font-bold">:1</span></div></div>
                                                     <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Color</label><div className="flex gap-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">{COLORS.slice(0, 4).map(c => (<button key={c} onClick={() => updateDevice(selectedDevice.id, { color: c })} className={`w-4 h-4 rounded-full border-2 transition-transform ${selectedDevice.color === c ? 'border-slate-900 scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />))}</div></div>
                                                 </div>
                                             </div>
@@ -979,7 +986,7 @@ const SimulatorView = ({ isActive }) => {
                                                 </div>
                                             </div>
                                             <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"><div><div className="text-xs font-bold text-slate-700 dark:text-slate-200">Instantaneous (50)</div></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" className="sr-only peer" checked={!!selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: e.target.checked ? selectedDevice.pickup * 10 : undefined })} /><div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div></label></div>
-                                            {selectedDevice.instantaneous && (<div className="animate-fade-in -mt-4 p-3 pt-0 bg-slate-50 dark:bg-slate-800 rounded-b-xl border-x border-b border-slate-200 dark:border-slate-700"><input type="number" value={selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: Number(e.target.value) })} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-1.5 text-xs font-mono font-bold" /></div>)}
+                                            {selectedDevice.instantaneous && (<div className="animate-fade-in -mt-4 p-3 pt-0 bg-slate-50 dark:bg-slate-800 rounded-b-xl border-x border-b border-slate-200 dark:border-slate-700"><input type="number" min="0" value={selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: Number(e.target.value) })} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-1.5 text-xs font-mono font-bold" /></div>)}
                                         </>
                                     )}
                                 </div>
@@ -1028,21 +1035,21 @@ const SimulatorView = ({ isActive }) => {
                                                 </div>
                                                 <div>
                                                     <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Pickup (A)</label>
-                                                    <input type="number" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                    <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
                                                         value={devices.find(d => d.id === analysisPair.up)?.pickup ?? ''}
                                                         onChange={(e) => updateDevice(analysisPair.up, { pickup: Number(e.target.value) })}
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Time Dial</label>
-                                                    <input type="number" step="0.05" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                    <input type="number" min="0" step="0.05" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
                                                         value={devices.find(d => d.id === analysisPair.up)?.tds ?? ''}
                                                         onChange={(e) => updateDevice(analysisPair.up, { tds: Number(e.target.value) })}
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Inst (50)</label>
-                                                    <input type="number" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                    <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
                                                         value={devices.find(d => d.id === analysisPair.up)?.instantaneous ?? ''}
                                                         placeholder="None"
                                                         onChange={(e) => updateDevice(analysisPair.up, { instantaneous: e.target.value ? Number(e.target.value) : undefined })}
@@ -1089,21 +1096,21 @@ const SimulatorView = ({ isActive }) => {
                                                 </div>
                                                 <div>
                                                     <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Pickup (A)</label>
-                                                    <input type="number" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                    <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
                                                         value={devices.find(d => d.id === analysisPair.down)?.pickup ?? ''}
                                                         onChange={(e) => updateDevice(analysisPair.down, { pickup: Number(e.target.value) })}
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Time Dial</label>
-                                                    <input type="number" step="0.05" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                    <input type="number" min="0" step="0.05" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
                                                         value={devices.find(d => d.id === analysisPair.down)?.tds ?? ''}
                                                         onChange={(e) => updateDevice(analysisPair.down, { tds: Number(e.target.value) })}
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Inst (50)</label>
-                                                    <input type="number" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                    <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
                                                         value={devices.find(d => d.id === analysisPair.down)?.instantaneous ?? ''}
                                                         placeholder="None"
                                                         onChange={(e) => updateDevice(analysisPair.down, { instantaneous: e.target.value ? Number(e.target.value) : undefined })}
@@ -1205,7 +1212,11 @@ const TCCStudio = () => {
                     </div>
                     <div>
                         <h1 className="font-black text-lg leading-none tracking-tight text-slate-900 dark:text-white">TCC Studio <span className="text-blue-600">PRO</span></h1>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protection Suite v2.0</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protection Suite v2.0</span>
+                            <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">IEEE C37.112 / IEC 60255</span>
+                        </div>
                     </div>
                 </div>
 

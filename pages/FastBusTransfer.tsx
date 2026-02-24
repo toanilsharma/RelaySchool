@@ -5,7 +5,7 @@ import {
   BrainCircuit, School, FileText, Terminal, MousePointer2, Layers,
   Sun, Moon, Info, AlertTriangle, Book, MonitorPlay, Zap,
   Settings, ChevronRight, PlayCircle, Lock, Timer, ArrowRight,
-  Globe, AlertOctagon, CheckCircle2, XCircle
+  Globe, AlertOctagon, CheckCircle2, XCircle, Share2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -64,17 +64,30 @@ const THEORY_DATA = [
         <div className="p-5 rounded-xl border-l-4 border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-sm">
           <h3 className="text-lg font-bold mb-2 text-blue-900 dark:text-blue-100">Why Fast Transfer (FBT)?</h3>
           <p className="text-slate-800 dark:text-slate-200">
-            In continuous process industries (Refineries, Power Plants, Semiconductor Fabs), a power interruption lasting longer than <strong>200ms</strong> (approx. 12 cycles) is catastrophic. It causes magnetic contactors to drop out, VFDs to trip on undervoltage, and synchronous motors to lose stability.
+            In continuous process industries (Refineries, Power Plants, Semiconductor Fabs, LNG terminals), the cost of a power interruption is not measured in minutes, but in millions of dollars. 
+            A power interruption lasting longer than <strong>200ms</strong> (approx. 12 cycles) is catastrophic.
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-4">
-            <div className="p-3 bg-white dark:bg-black/30 rounded border border-slate-200 dark:border-slate-700">
-              <div className="text-xs font-bold text-slate-500 uppercase">Cost of Downtime</div>
-              <div className="font-mono font-bold text-red-500">$100k - $2M per event</div>
-            </div>
-            <div className="p-3 bg-white dark:bg-black/30 rounded border border-slate-200 dark:border-slate-700">
-              <div className="text-xs font-bold text-slate-500 uppercase">Restart Time</div>
-              <div className="font-mono font-bold text-amber-500">8 - 48 Hours</div>
-            </div>
+        </div>
+
+        <h4 className="font-bold text-lg mt-4 text-slate-900 dark:text-white">The Chain Reaction of Failure</h4>
+        <p className="text-slate-700 dark:text-slate-300">
+            If the bus is dead for &gt;200ms, the following sequence occurs:
+        </p>
+        <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+            <li><strong>Contactor Dropout:</strong> AC contactors (holding coils) drop out around 60-70% voltage. They physically unlatch.</li>
+            <li><strong>VFD Trip:</strong> Variable Frequency Drives preserve their DC bus capacitors by tripping on "DC Bus Undervoltage" within 8-12ms.</li>
+            <li><strong>Process Instability:</strong> Pumps lose head pressure. Boilers trip on "Low Drum Level". Chemical reactions runaway or solidify.</li>
+            <li><strong>Synchronous Motors:</strong> Lose stability (slip poles) and can destroy their shafts if re-energized out-of-phase.</li>
+        </ul>
+
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <div className="p-3 bg-white dark:bg-black/30 rounded border border-slate-200 dark:border-slate-700">
+            <div className="text-xs font-bold text-slate-500 uppercase">Cost of Downtime</div>
+            <div className="font-mono font-bold text-red-500">$100k - $2M per event</div>
+          </div>
+          <div className="p-3 bg-white dark:bg-black/30 rounded border border-slate-200 dark:border-slate-700">
+            <div className="text-xs font-bold text-slate-500 uppercase">Restart Time</div>
+            <div className="font-mono font-bold text-amber-500">8 - 48 Hours</div>
           </div>
         </div>
 
@@ -90,34 +103,44 @@ const THEORY_DATA = [
     icon: <Activity className="w-5 h-5" />,
     content: (
       <div className="space-y-6 text-sm leading-relaxed">
-        <h4 className="font-bold text-slate-900 dark:text-white text-lg">What happens when the breaker opens?</h4>
+        <h4 className="font-bold text-slate-900 dark:text-white text-lg">The Induction Generator Effect</h4>
         <p className="text-slate-700 dark:text-slate-300">
-          When a motor bus is disconnected, motors don't stop instantly. Due to stored magnetic energy and mechanical inertia, they act as <strong>Induction Generators</strong>. This generates a "Back EMF" or Residual Voltage.
+          When a motor bus is disconnected from the grid, the motors do not stop instantly. They have significant <strong>Mechanical Inertia (J)</strong> in their rotors and the driven loads (fans, pumps).
+          Furthermore, the magnetic field in the rotor (trapped flux) does not vanish instantly; it decays based on the <strong>Open Circuit Time Constant ({"$T'_{do}$"})</strong>.
+        </p>
+        <p className="text-slate-700 dark:text-slate-300">
+            As a result, the spinning motors act as <strong>Induction Generators</strong>, producing a "Back EMF" or Residual Voltage on the bus. This voltage is not synchronized with the grid.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
+          <div className="space-y-2 p-3 bg-slate-100 dark:bg-slate-800 rounded">
             <h5 className="font-bold text-indigo-600 dark:text-indigo-400">1. Voltage Decay</h5>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              The magnitude of the voltage drops as the rotor's magnetic field collapses. This is determined by the <em>Open Circuit Time Constant</em> (T'do).
+              The magnitude of the voltage drops exponentially.
+              <br/>{"$V(t) = V_0 \\times e^{-t/T'_{do}}$"}
+              <br/>Typical {"$T'_{do}$"} is 0.5s to 2.0s.
             </p>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 p-3 bg-slate-100 dark:bg-slate-800 rounded">
             <h5 className="font-bold text-indigo-600 dark:text-indigo-400">2. Frequency Decay</h5>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              The motors slow down due to the mechanical load. As RPM drops, the generated frequency drops (e.g., 60Hz &rarr; 58Hz).
+              The motors slow down due to the mechanical load. As RPM drops, the generated frequency drops.
+              <br/>{"$f(t) = f_0 \\times e^{-t/H}$"}
+              <br/>High Inertia = Slow Decay. Low Inertia = Fast Decay.
             </p>
           </div>
         </div>
 
         <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-          <h5 className="font-bold text-slate-900 dark:text-white mb-2">The Phase Angle Problem</h5>
+          <h5 className="font-bold text-slate-900 dark:text-white mb-2">The Phase Angle Problem ($\delta$)</h5>
           <p className="text-xs text-slate-600 dark:text-slate-400">
-            Since the Grid stays at 60Hz and the Motor Bus drops to 58Hz, they drift apart. The phase angle (δ) between them increases continuously.
+            Since the Grid stays at 60Hz and the Motor Bus drops to 58Hz, they drift apart. The phase angle ($\delta$) between the Source Vector ($V_S$) and Bus Vector ($V_M$) increases continuously.
             <br /><br />
-            <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded">Slip (Hz) = Grid Freq - Motor Freq</code>
+            1. <strong>Slip Frequency ($f_s$):</strong> {"$f_{grid} - f_{motor}$"}
             <br />
-            <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded">Angle Drift = ∫ (Slip × 360°) dt</code>
+            2. <strong>Angle Velocity:</strong> $360 \times f_s$ degrees/second
+            <br />
+            3. <strong>Angle Change:</strong> {"$\\delta(t) = \\int (360 \\times f_s) dt$"}
           </p>
         </div>
       </div>
@@ -129,35 +152,42 @@ const THEORY_DATA = [
     icon: <Layers className="w-5 h-5" />,
     content: (
       <div className="space-y-6 text-sm">
+        <p className="text-slate-700 dark:text-slate-300">
+            The IEEE C37.96 standard defines several methods for transferring motor buses.
+        </p>
+
         <div className="space-y-4">
           {/* FAST */}
-          <div className="border-l-4 border-emerald-500 pl-4 py-1">
+          <div className="border-l-4 border-emerald-500 pl-4 py-2 bg-emerald-50 dark:bg-emerald-900/10 rounded-r">
             <h4 className="font-bold text-emerald-700 dark:text-emerald-400 text-base">Type A: Fast Transfer</h4>
+            <p className="text-xs text-slate-600 mb-2">"Beat the clock"</p>
             <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-700 dark:text-slate-300">
-              <li><strong>Logic:</strong> Close immediately if phase angle is small (&lt;20°).</li>
-              <li><strong>Timeframe:</strong> &lt; 100ms (5-6 cycles).</li>
-              <li><strong>Hardware:</strong> Requires high-speed vacuum circuit breakers and fast relay processing.</li>
-              <li><strong>Risk:</strong> Low. Minimal torque shock.</li>
+              <li><strong>Logic:</strong> Close breaker immediately if phase angle is within specific limits (typically {"$\\pm 20^{\\circ}$"}).</li>
+              <li><strong>Timeframe:</strong> Very fast. Total interruption time &lt; 100ms (6 cycles).</li>
+              <li><strong>Hardware:</strong> Requires high-speed vacuum circuit breakers (3-cycle close) and fast relay processing (&lt;1 cycle).</li>
+              <li><strong>Risk:</strong> Low torque shock if successful. High risk if the breaker is slow.</li>
             </ul>
           </div>
 
           {/* IN-PHASE */}
-          <div className="border-l-4 border-blue-500 pl-4 py-1">
+          <div className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 dark:bg-blue-900/10 rounded-r">
             <h4 className="font-bold text-blue-700 dark:text-blue-400 text-base">Type B: In-Phase Transfer</h4>
+            <p className="text-xs text-slate-600 mb-2">"Wait for the next lap"</p>
             <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-700 dark:text-slate-300">
-              <li><strong>Logic:</strong> If Fast Transfer is missed, wait for the motor to slip exactly 360° (one full rotation) and re-close when it is back in sync.</li>
-              <li><strong>Feature:</strong> Uses "Predictive Logic" to account for breaker closing time (e.g., initiating close at -20° to make contact at 0°).</li>
-              <li><strong>Risk:</strong> Moderate. Requires precise calculation of slip acceleration.</li>
+              <li><strong>Logic:</strong> If the initial Fast Transfer window is missed, the relay waits. The motor slows down, the angle widens to 180° (anti-phase), then continues to 360° (in-phase again).</li>
+              <li><strong>Feature:</strong> Uses "Predictive Logic" to account for breaker closing time (e.g., initiating close at -20&deg; to make contact at 0&deg;).</li>
+              <li><strong>Risk:</strong> Moderate. Requires precise calculation of slip acceleration. If the slip is too high, the "In-Phase" window is too short for the breaker to act.</li>
             </ul>
           </div>
 
           {/* RESIDUAL */}
-          <div className="border-l-4 border-amber-500 pl-4 py-1">
+          <div className="border-l-4 border-amber-500 pl-4 py-2 bg-amber-50 dark:bg-amber-900/10 rounded-r">
             <h4 className="font-bold text-amber-700 dark:text-amber-400 text-base">Type C: Residual Transfer</h4>
+            <p className="text-xs text-slate-600 mb-2">"Safe but Slow"</p>
             <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-700 dark:text-slate-300">
               <li><strong>Logic:</strong> Wait until bus voltage drops to a safe level (typically 0.25 pu or 25%).</li>
               <li><strong>Timeframe:</strong> 1 - 5 seconds.</li>
-              <li><strong>Risk:</strong> Safe for shafts, but process usually trips due to low voltage/speed. Used as a backup.</li>
+              <li><strong>Risk:</strong> Zero risk of shaft damage. 100% risk of process trip (UV relays will fire). Used as a fail-safe backup.</li>
             </ul>
           </div>
         </div>
@@ -170,7 +200,15 @@ const THEORY_DATA = [
     icon: <ShieldCheck className="w-5 h-5" />,
     content: (
       <div className="space-y-6 text-sm leading-relaxed">
-        <p className="text-slate-700 dark:text-slate-300">Any commercial FBT system must adhere to these safety curves:</p>
+        <p className="text-slate-700 dark:text-slate-300">
+            Why do we care about phase angle? Because <strong>Voltage Vector Difference ($\Delta V$)</strong> drives current.
+            Closing out-of-phase is equivalent to a 3-phase short circuit, but worse.
+        </p>
+
+        <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded font-mono text-center my-4">
+             {"$\\Delta V = \\sqrt{V_S^2 + V_M^2 - 2 V_S V_M \\cos(\\delta)}$"}
+        </div>
+
         <ul className="space-y-4">
           <li className="flex flex-col gap-2 p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
             <div className="flex items-center justify-between">
@@ -181,19 +219,20 @@ const THEORY_DATA = [
               <strong className="text-slate-900 dark:text-white block mb-1">Resultant V/Hz Vector Limit</strong>
               <p className="text-xs text-slate-600 dark:text-slate-400">
                 "The vector difference between the residual voltage and the source voltage at the instant of reconnection shall not exceed 1.33 per unit V/Hz."
-                <br /><br />
-                Exceeding this creates transient torques up to 20x nominal, which can <strong>shear couplings</strong>, twist shafts, or loosen stator windings.
               </p>
+              <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 text-xs rounded">
+                  <strong>Why 1.33?</strong> Standard motors are designed to withstand a 3-phase short circuit at their terminals. A 3-phase short corresponds to a current surge of ~6-10x FLA. A vector difference of 1.33 pu typically generates the same mechanical stress as a bolt-on fault. Anything higher risks shearing the shaft.
+              </div>
             </div>
           </li>
           <li className="flex flex-col gap-2 p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded font-mono text-xs font-bold text-slate-800 dark:text-slate-200">IEEE C37.96</span>
+              <span className="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded font-mono text-xs font-bold text-slate-800 dark:text-slate-200">NEMA MG-1</span>
             </div>
             <div>
-              <strong className="text-slate-900 dark:text-white block mb-1">Motor Protection Guide</strong>
+              <strong className="text-slate-900 dark:text-white block mb-1">Motors & Generators</strong>
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                Recommends specific relay functions (27 Undervoltage, 81 Frequency, 25 Sync Check) to supervise transfers and prevent out-of-phase damage.
+                States that re-energizing a motor bus out-of-phase can produce transient torques up to <strong>20 times</strong> nominal torque. This acts like a giant hammer hitting the rotor, capable of twisting steel shafts or ripping stator windings from their slots.
               </p>
             </div>
           </li>
@@ -213,23 +252,27 @@ const THEORY_DATA = [
             <ul className="space-y-2 text-xs text-emerald-900 dark:text-emerald-200/80">
               <li>• <strong>Do</strong> perform dynamic simulation (ETAP/SKM) before setting relay parameters.</li>
               <li>• <strong>Do</strong> use breakers with closing times &lt; 5 cycles (83ms).</li>
-              <li>• <strong>Do</strong> supervise manual transfers with a Sync-Check (25) relay.</li>
-              <li>• <strong>Do</strong> account for transformer phase shifts if sources are different voltages.</li>
+              <li>• <strong>Do</strong> Enable a "Block Fast Transfer" digital input for upstream faults (don't transfer a fault!).</li>
+              <li>• <strong>Do</strong> account for transformer phase shifts (Delta-Wye) in the relay vector group settings.</li>
             </ul>
           </div>
           <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-800">
             <h4 className="font-bold text-red-700 dark:text-red-400 flex items-center gap-2 mb-3"><XCircle className="w-4 h-4" /> DON'Ts</h4>
             <ul className="space-y-2 text-xs text-red-900 dark:text-red-200/80">
-              <li>• <strong>Don't</strong> use simple undervoltage (27) relays for Fast Transfer initiation (too slow).</li>
-              <li>• <strong>Don't</strong> attempt Fast Transfer on high-static loads without verifying decay time.</li>
+              <li>• <strong>Don't</strong> use standard UnderVoltage (27) relays. They are too slow (20-50ms pickup).</li>
               <li>• <strong>Don't</strong> ignore the breaker mechanism delay (50-80ms) in logic settings.</li>
+              <li>• <strong>Don't</strong> set the "In-Phase" angle window too wide. 10° error is a lot of torque.</li>
             </ul>
           </div>
         </div>
         <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border-l-4 border-amber-500 rounded-r">
           <h4 className="font-bold text-amber-800 dark:text-amber-200 mb-1">Critical Precaution: The "Ghost" Vector</h4>
           <p className="text-xs text-amber-900 dark:text-amber-100/70">
-            Relays measure the angle <em>now</em>, but the breaker takes ~80ms to physically close. By the time the contacts touch, the angle will have advanced. You MUST use <strong>Predictive Advance Angle</strong> compensation to aim for 0°, not just measure 0°.
+            Relays measure the angle <em>now</em>, but the breaker takes ~83ms to physically close. By the time the contacts touch, the angle will have advanced significantly. 
+            <br/>
+            You MUST use <strong>Predictive Advance Angle</strong> compensation logic:
+            <br/>
+            {"$\\theta_{close} = \\theta_{meas} + (f_{slip} \\times 360 \\times T_{breake})$"}
           </p>
         </div>
       </div>
@@ -237,27 +280,32 @@ const THEORY_DATA = [
   },
   {
     id: 'global',
-    title: "6. Worldwide Practices",
-    icon: <Globe className="w-5 h-5" />,
+    title: "6. Relay Logic & Settings",
+    icon: <Settings className="w-5 h-5" />,
     content: (
       <div className="space-y-6 text-sm leading-relaxed">
-        <div className="space-y-4">
+        <h4 className="font-bold text-lg text-slate-800 dark:text-slate-200">The 25/81 Element</h4>
+        <p className="text-slate-700 dark:text-slate-300">
+            Modern Motor Bus Transfer (MBT) systems use specialized algorithms, sometimes called "Synchrocheck Plus".
+        </p>
+
+        <div className="space-y-4 mt-4">
           <div className="p-3 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-            <strong className="block text-slate-900 dark:text-white">North America (NERC/ANSI)</strong>
+            <strong className="block text-slate-900 dark:text-white">Start Criteria (Initiation)</strong>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Heavy emphasis on "Break-Before-Make" transfers during faults. Parallel (Make-Before-Break) is only used for planned routine switching.
+              Transfer is triggered by:
+              1. <strong>Protective Trip (86):</strong> Main transformer differential/overcurrent.
+              2. <strong>Undervoltage (27):</strong> Main bus UV (must be extremely fast, often RMS 1/2 cycle).
+              3. <strong>Manual:</strong> Operator command.
             </p>
           </div>
           <div className="p-3 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-            <strong className="block text-slate-900 dark:text-white">Europe (IEC)</strong>
+            <strong className="block text-slate-900 dark:text-white">Block Criteria</strong>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Similar physics, but often refers to "High Speed Transfer Systems" (HSTS). IEC 60255 standards govern the relay performance requirements.
-            </p>
-          </div>
-          <div className="p-3 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-            <strong className="block text-slate-900 dark:text-white">Marine / FPSO</strong>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Floating Production vessels use extremely stiff grids but have very low inertia loads. Fast transfer windows are exceptionally short (&lt;3 cycles), often requiring specialized solid-state breakers or sub-cycle static switches.
+              Transfer must be BLOCKED if:
+              1. <strong>Bus Fault (87B):</strong> Never transfer a fault to the healthy source.
+              2. <strong>Standby Source Unhealthy:</strong> If Aux Gen is off, don't close.
+              3. <strong>Breaker Fail (50BF):</strong> If Main breaker fails to open, do not close Aux (Parallel out of sync!).
             </p>
           </div>
         </div>
@@ -462,6 +510,29 @@ const SimulatorView = ({ isActive, isDark }) => {
   const requestRef = useRef<number>();
   const lastTimeRef = useRef<number>();
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const stateParam = params.get('s');
+    if (stateParam) {
+        try {
+            const state = JSON.parse(atob(stateParam));
+            if (state.scenarioId) {
+                const sc = SCENARIOS.find(s => s.id === state.scenarioId);
+                if (sc) setLoadScenario(sc);
+            }
+        } catch (e) {
+            console.error("Failed to parse share link", e);
+        }
+    }
+  }, []);
+
+  const copyShareLink = () => {
+    const state = { scenarioId: loadScenario.id };
+    const str = btoa(JSON.stringify(state));
+    navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
+    alert("Simulation link copied! You can share this URL to load the exact state.");
+  };
+
   // --- PHYSICS ENGINE ---
   const updatePhysics = useCallback((timestamp) => {
     if (!lastTimeRef.current) lastTimeRef.current = timestamp;
@@ -546,8 +617,13 @@ const SimulatorView = ({ isActive, isDark }) => {
     }
     setTransferResult(res);
     addEvent(res.msg);
+    setAttempts(prev => prev + 1);
+    if (res.type === 'success') setSuccesses(prev => prev + 1);
     setBusV(1.0); setBusFreq(NOMINAL_FREQ); setPhaseAngle(0);
   };
+
+  const [attempts, setAttempts] = useState(0);
+  const [successes, setSuccesses] = useState(0);
 
   const resetSystem = () => {
     setSimState('CONNECTED'); setSource1(true); setSource2(false);
@@ -618,7 +694,10 @@ const SimulatorView = ({ isActive, isDark }) => {
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <button onClick={copyShareLink} className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${isDark ? 'bg-blue-900/50 border-blue-700 text-blue-300 hover:bg-blue-900' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'} flex items-center gap-1`}>
+                <Share2 className="w-3 h-3" /> Share
+            </button>
             {SCENARIOS.map(s => (
               <button key={s.id} onClick={() => setLoadScenario(s)}
                 className={`text-xs px-3 py-1.5 rounded font-bold border transition-colors ${loadScenario.id === s.id
@@ -627,6 +706,14 @@ const SimulatorView = ({ isActive, isDark }) => {
                 {s.name}
               </button>
             ))}
+            {(simState === 'COASTING' || simState === 'TRANSFER_INITIATED') && (
+              <div className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold ${isDark ? 'bg-slate-800 border-slate-700 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                Slip: {(Math.abs(busFreq - NOMINAL_FREQ)).toFixed(2)} Hz
+              </div>
+            )}
+            <div className={`px-3 py-1.5 rounded-lg border text-xs font-bold ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
+              🎯 {attempts} tries | {attempts > 0 ? Math.round(successes/attempts*100) : 0}% success
+            </div>
           </div>
         </div>
 
@@ -810,6 +897,12 @@ const SimulatorView = ({ isActive, isDark }) => {
                 {transferResult.msg}
               </h3>
               <p className="text-sm mt-1 opacity-90">{transferResult.detail}</p>
+              <div className="mt-3 grid grid-cols-4 gap-2 text-xs border-t border-current/20 pt-3">
+                <div><span className="opacity-60 block">Bus V</span><strong>{busV.toFixed(3)} pu</strong></div>
+                <div><span className="opacity-60 block">Phase Δ</span><strong>{Math.abs(phaseAngle).toFixed(1)}°</strong></div>
+                <div><span className="opacity-60 block">ΔV Vector</span><strong>{predDeltaV.toFixed(2)} pu</strong></div>
+                <div><span className="opacity-60 block">Reference</span><strong>IEEE C57.12</strong></div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -861,7 +954,11 @@ export default function FastBusTransferApp() {
           </div>
           <div>
             <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>GridGuard <span className="text-blue-500">PRO</span></h1>
-            <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Transient Analysis Suite</span>
+            <div className="flex items-center gap-2 mt-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Transient Analysis Suite</span>
+                <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">IEEE C50.41 / NEMA MG-1</span>
+            </div>
           </div>
         </div>
 

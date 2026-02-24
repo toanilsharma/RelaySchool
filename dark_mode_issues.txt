@@ -1,0 +1,251 @@
+Academy.tsx:212: className="w-full py-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group-hover:border-blue-500 group-hover:text-blue-600"
+Challenges.tsx:20: <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+Challenges.tsx:280: className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+Challenges.tsx:287: className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+CommsHub.tsx:321: <button onClick={() => setPackets([])} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white">
+CommsHub.tsx:452: : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+CommsHub.tsx:489: <div key={j} className={`group flex justify-between items-start text-xs p-1 rounded hover:bg-white/5 ${f.isError ? 'bg-red-500/20 text-red-400 border border-red-500/50' : ''}`}>
+Dashboard.tsx:410: className={`w-8 h-6 rounded border-2 flex items-center justify-center transition-colors ${inA ? "border-blue-500 bg-blue-100" : "border-slate-300 bg-slate-100"}`}
+Dashboard.tsx:416: className={`w-8 h-6 rounded border-2 flex items-center justify-center transition-colors ${inB ? "border-blue-500 bg-blue-100" : "border-slate-300 bg-slate-100"}`}
+Dashboard.tsx:755: <div className="bg-white/5 p-2 rounded-lg text-center">
+Dashboard.tsx:763: <div className="bg-white/5 p-2 rounded-lg text-center">
+Dashboard.tsx:1161: <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+Dashboard.tsx:1182: <span className="text-[10px] font-bold bg-white/20 px-2 py-1 rounded text-white tracking-widest uppercase">New</span>
+Dashboard.tsx:1187: <Link to="/tcc" className="relative z-10 w-full py-3 bg-white text-blue-900 hover:bg-blue-50 flex items-center justify-center gap-2 text-sm font-bold rounded-xl transition-colors shadow-lg">
+Dashboard.tsx:1510: className={`w-full py-3 rounded-xl border font-bold flex items-center justify-center gap-2 transition-all group-hover:bg-slate-50 dark:group-hover:bg-slate-800 ${item.border} ${item.color}`}
+DiffSlope.tsx:246: <div className={`md:col-span-4 lg:col-span-3 border-r overflow-y-auto ${isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
+DiffSlope.tsx:256: : isDark ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-white hover:shadow-sm'
+DiffSlope.tsx:268: <div className={`md:col-span-8 lg:col-span-9 overflow-y-auto p-6 md:p-10 ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
+DiffSlope.tsx:271: <h1 className={`text-3xl font-black mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{content?.title}</h1>
+DiffSlope.tsx:272: <div className={`text-xs font-mono px-2 py-1 rounded inline-block ${isDark ? 'bg-slate-900 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+DiffSlope.tsx:362: <canvas ref={canvasRef} className={`rounded-lg border w-full ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`} />
+DiffSlope.tsx:559: <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+DiffSlope.tsx:564: <button onClick={resetValues} title="Reset to Defaults" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-500' : 'hover:bg-slate-100 text-slate-400'}`}>
+DiffSlope.tsx:614: <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+DiffSlope.tsx:642: <div ref={containerRef} className={`lg:col-span-6 rounded-2xl border p-1 flex flex-col shadow-inner relative overflow-hidden h-[400px] lg:h-[600px] ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+DiffSlope.tsx:643: <canvas ref={canvasRef} className={`w-full h-full rounded-xl ${isDark ? 'bg-slate-950' : 'bg-white'}`} />
+DiffSlope.tsx:646: <div className={`backdrop-blur-md px-3 py-1.5 rounded-lg border text-[10px] font-bold flex items-center gap-2 shadow-sm ${isDark ? 'bg-slate-900/80 border-slate-700 text-emerald-400' : 'bg-white/80 border-slate-200 text-emerald-600'}`}>
+DiffSlope.tsx:649: <div className={`backdrop-blur-md px-3 py-1.5 rounded-lg border text-[10px] font-bold flex items-center gap-2 shadow-sm ${isDark ? 'bg-slate-900/80 border-slate-700 text-red-400' : 'bg-white/80 border-slate-200 text-red-600'}`}>
+DiffSlope.tsx:670: <div className="mt-4 p-3 bg-white/5 rounded-full">
+DiffSlope.tsx:680: <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+DiffSlope.tsx:688: <input type="number" step="0.1" value={i1Mag} onChange={(e) => setI1Mag(Number(e.target.value))} className={`w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono font-bold ${isDark ? 'bg-slate-950 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-200 focus:border-blue-500 text-black'}`} />
+DiffSlope.tsx:692: <input type="number" step="0.1" value={i2Mag} onChange={(e) => setI2Mag(Number(e.target.value))} className={`w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono font-bold ${isDark ? 'bg-slate-950 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-200 focus:border-blue-500 text-black'}`} />
+DiffSlope.tsx:712: <div className={`p-2 rounded border ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+DiffSlope.tsx:716: <div className={`p-2 rounded border ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+DiffSlope.tsx:743: <div className={`max-w-3xl mx-auto p-8 animate-fade-in ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+DiffSlope.tsx:749: <div className={`p-6 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+DiffSlope.tsx:751: <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0 ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'}`}>1</div>
+DiffSlope.tsx:761: <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0 ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'}`}>2</div>
+DiffSlope.tsx:771: <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0 ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'}`}>3</div>
+DiffSlope.tsx:783: <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+DiffSlope.tsx:789: <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+DiffSlope.tsx:808: <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+DiffSlope.tsx:811: <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+DiffSlope.tsx:817: <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>GridGuard <span className="text-pink-500">PRO</span></h1>
+DiffSlope.tsx:823: <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+DiffSlope.tsx:833: ? (isDark ? 'bg-slate-800 text-pink-400 shadow-sm' : 'bg-white text-pink-600 shadow-sm')
+DiffSlope.tsx:843: <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
+DiffSlope.tsx:850: <div className={`md:hidden fixed bottom-0 left-0 right-0 h-16 border-t z-50 flex justify-around items-center px-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+DigitalTwin.tsx:227: <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-6">
+DigitalTwin.tsx:416: <text y="45" textAnchor="middle" className="text-[10px] font-bold fill-slate-500 uppercase tracking-tight bg-white/80" style={{ textShadow: '0 0 4px white' }}>
+DigitalTwin.tsx:584: className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 border border-transparent hover:border-slate-300 transition-colors"
+DistanceLab.tsx:85: <div className="bg-slate-100 p-3 rounded-lg border-l-4 border-blue-500 text-xs">
+DistanceLab.tsx:110: <strong className="text-slate-900 block">1. Load Encroachment</strong>
+DistanceLab.tsx:114: <strong className="text-slate-900 block">2. Infeed Effect</strong>
+DistanceLab.tsx:118: <strong className="text-slate-900 block">3. Mutual Coupling</strong>
+DistanceLab.tsx:226: : 'text-slate-500 border-transparent hover:text-slate-800 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'
+DistanceLab.tsx:644: <h3 className="text-2xl font-bold text-slate-900">Protection Knowledge Check</h3>
+DistanceLab.tsx:648: <button onClick={() => startQuiz('easy')} className="p-4 bg-white border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 rounded-xl font-bold text-slate-700 transition-all shadow-sm">
+DistanceLab.tsx:651: <button onClick={() => startQuiz('medium')} className="p-4 bg-white border border-slate-200 hover:border-amber-500 hover:bg-amber-50 rounded-xl font-bold text-slate-700 transition-all shadow-sm">
+DistanceLab.tsx:654: <button onClick={() => startQuiz('hard')} className="p-4 bg-white border border-slate-200 hover:border-red-500 hover:bg-red-50 rounded-xl font-bold text-slate-700 transition-all shadow-sm">
+DistanceLab.tsx:663: <h3 className="text-3xl font-bold text-slate-900">{quizState.score} / 5</h3>
+DistanceLab.tsx:685: <h3 className="text-lg font-bold text-slate-900 mb-6 leading-relaxed">
+DistanceLab.tsx:699: ? 'opacity-50 bg-slate-50'
+DistanceLab.tsx:701: : 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-md'
+EngineerToolkit.tsx:412: <div key={c.c} className="flex justify-between items-center p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors group">
+EventAnalyzer.tsx:364: <div key={code} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex gap-3 group">
+FailureLab.tsx:268: <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+FailureLab.tsx:271: <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+FailureLab.tsx:277: <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>GridGuard <span className="text-red-500">LAB</span></h1>
+FailureLab.tsx:283: <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+FailureLab.tsx:292: ? (isDark ? 'bg-slate-800 text-red-400 shadow-sm' : 'bg-white text-red-600 shadow-sm')
+FailureLab.tsx:302: <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
+FastBusTransfer.tsx:341: <div className={`flex flex-col md:flex-row h-full animate-fade-in ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+FastBusTransfer.tsx:342: <div className={`w-full md:w-72 border-r overflow-y-auto ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+FastBusTransfer.tsx:343: <div className={`p-6 border-b sticky top-0 z-10 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+FastBusTransfer.tsx:345: <h2 className={`text-xl font-black mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Knowledge Base</h2>
+FastBusTransfer.tsx:354: : isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'
+FastBusTransfer.tsx:366: <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
+FastBusTransfer.tsx:369: <h2 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeContent.title}</h2>
+FastBusTransfer.tsx:400: <div className={`flex flex-col items-center justify-center h-full p-6 animate-fade-in ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+FastBusTransfer.tsx:402: <div className={`inline-block p-4 rounded-full mb-6 ${isDark ? 'bg-slate-900 shadow-2xl' : 'bg-white shadow-xl'}`}>
+FastBusTransfer.tsx:405: <h2 className={`text-3xl font-black mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Certification Exam</h2>
+FastBusTransfer.tsx:414: <div className="absolute right-0 top-0 p-32 bg-white/10 rounded-full translate-x-1/2 -translate-y-1/2 blur-3xl group-hover:bg-white/20 transition-all" />
+FastBusTransfer.tsx:415: <div className="p-4 bg-white/20 rounded-xl backdrop-blur-sm z-10 shadow-inner">{l.icon}</div>
+FastBusTransfer.tsx:430: <div className={`h-full overflow-y-auto animate-fade-in ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+FastBusTransfer.tsx:436: <div className={`text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full ${isDark ? 'bg-slate-900 text-blue-400 border border-slate-700' : 'bg-white text-blue-600 border border-slate-200 shadow-sm'}`}>
+FastBusTransfer.tsx:442: <div className={`p-10 rounded-3xl border text-center ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-2xl'}`}>
+FastBusTransfer.tsx:463: <div key={idx} className={`p-6 rounded-2xl border transition-all ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+FastBusTransfer.tsx:471: : isDark ? 'border-slate-700 bg-slate-800/50 hover:bg-slate-800' : 'border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-300 hover:shadow-md'}`}>
+FastBusTransfer.tsx:619: <div style={{ display: isActive ? 'grid' : 'none' }} className={`p-4 md:p-6 grid-cols-12 gap-6 h-full overflow-hidden animate-fade-in ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+FastBusTransfer.tsx:624: <div className={`w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden ${isDark ? 'bg-slate-900 border border-slate-700' : 'bg-white border border-slate-200'}`}>
+FastBusTransfer.tsx:626: <h2 className={`text-xl font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><MousePointer2 className="w-5 h-5 text-blue-500" /> Simulator Guide</h2>
+FastBusTransfer.tsx:661: <div className={`p-4 rounded-xl border flex justify-between items-center shadow-sm ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+FastBusTransfer.tsx:679: : (isDark ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600')}`}>
+FastBusTransfer.tsx:688: <div className={`px-3 py-1.5 rounded-lg border text-xs font-bold ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
+FastBusTransfer.tsx:695: <div className={`rounded-2xl border p-8 shadow-inner relative overflow-hidden flex-1 min-h-[400px] flex flex-col justify-center ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-300'}`}>
+FastBusTransfer.tsx:707: <div className={`w-4 h-4 bg-white rounded-sm ${source1 ? '' : 'border border-slate-400'}`} />
+FastBusTransfer.tsx:719: <div className={`w-4 h-4 bg-white rounded-sm ${source2 ? '' : 'border border-slate-400'}`} />
+FastBusTransfer.tsx:727: <div className={`h-6 w-full rounded flex items-center justify-center transition-colors duration-300 relative ${busV > 0.1 ? 'bg-amber-500 shadow-[0_0_15px_orange]' : 'bg-slate-500'}`}>
+FastBusTransfer.tsx:728: <span className="text-[10px] font-black text-black/50 tracking-[0.2em] absolute bg-white/20 px-2 rounded">4.16kV ESSENTIAL BUS</span>
+FastBusTransfer.tsx:735: <div className={`h-12 w-1.5 ${busV > 0.1 ? 'bg-amber-500' : 'bg-slate-500'}`} />
+FastBusTransfer.tsx:754: <div className={`rounded-xl border p-5 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
+FastBusTransfer.tsx:769: className={`rounded-lg border font-bold text-xs flex flex-col items-center justify-center gap-2 hover:bg-opacity-80 transition-all active:scale-95 ${isDark ? 'border-slate-600 bg-slate-800 text-slate-300' : 'border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+FastBusTransfer.tsx:774: <div className={`rounded-xl border p-5 flex flex-col ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
+FastBusTransfer.tsx:884: <div className={`rounded-xl border p-4 shadow-sm flex-1 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+FastBusTransfer.tsx:922: <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+FastBusTransfer.tsx:924: <header className={`h-16 border-b shrink-0 flex items-center justify-between px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+FastBusTransfer.tsx:930: <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>GridGuard <span className="text-blue-500">PRO</span></h1>
+FastBusTransfer.tsx:935: <div className={`flex items-center p-1 rounded-xl border shadow-sm ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+FastBusTransfer.tsx:944: className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${mode === tab.id ? (isDark ? 'bg-slate-800 text-blue-400 shadow-sm' : 'bg-white text-blue-600 shadow-sm') : 'opacity-60 hover:opacity-100'}`}
+FastBusTransfer.tsx:952: <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
+ForensicLab.tsx:145: <svg viewBox="-100 -100 200 200" className={`w-full h-full rounded-xl border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+ForensicLab.tsx:172: <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+ForensicLab.tsx:177: <div className={`flex-1 h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+ForensicLab.tsx:180: <span className={`w-10 text-right font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{i1.toFixed(1)}</span>
+ForensicLab.tsx:184: <div className={`flex-1 h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+ForensicLab.tsx:187: <span className={`w-10 text-right font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{i2.toFixed(1)}</span>
+ForensicLab.tsx:191: <div className={`flex-1 h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+ForensicLab.tsx:194: <span className={`w-10 text-right font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{i0.toFixed(1)}</span>
+ForensicLab.tsx:310: <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+ForensicLab.tsx:325: : isDark ? 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+ForensicLab.tsx:367: <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+ForensicLab.tsx:382: <div className={`flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+ForensicLab.tsx:385: <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+ForensicLab.tsx:391: <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+ForensicLab.tsx:397: <button onClick={() => setCursor(0)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}>
+ForensicLab.tsx:449: <div className={`grid grid-cols-2 md:grid-cols-6 gap-4 p-4 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-600'}`}>
+ForensicLab.tsx:453: <div className="flex items-center gap-2 text-xs font-mono"><div className="w-3 h-1 bg-white/30 border-t border-dashed"></div> Voltage</div>
+ForensicLab.tsx:465: <div className={`max-w-3xl mx-auto p-8 animate-fade-in ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+ForensicLab.tsx:471: <div className={`p-6 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+ForensicLab.tsx:506: <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+ForensicLab.tsx:512: <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+ForensicLab.tsx:531: <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+ForensicLab.tsx:534: <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+ForensicLab.tsx:540: <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>GridGuard <span className="text-purple-500">PRO</span></h1>
+ForensicLab.tsx:546: <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+ForensicLab.tsx:556: ? (isDark ? 'bg-slate-800 text-purple-400 shadow-sm' : 'bg-white text-purple-600 shadow-sm')
+ForensicLab.tsx:566: <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
+ForensicLab.tsx:573: <div className={`md:hidden fixed bottom-0 left-0 right-0 h-16 border-t z-50 flex justify-around items-center px-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+KnowledgeEngine.tsx:277: <tr key={device.code} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+KnowledgeEngine.tsx:538: <button onClick={() => addNode('INPUT')} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded" title="Input"><ToggleRight className="w-5 h-5 text-slate-600 dark:text-slate-300"/></button>
+KnowledgeEngine.tsx:539: <button onClick={() => addNode('OUTPUT')} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded" title="Output"><div className="w-4 h-4 rounded-full border-2 border-slate-600 dark:border-slate-300"></div></button>
+KnowledgeEngine.tsx:541: <button onClick={() => addNode('AND')} className="text-xs font-bold p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300" title="AND Gate">AND</button>
+KnowledgeEngine.tsx:542: <button onClick={() => addNode('OR')} className="text-xs font-bold p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300" title="OR Gate">OR</button>
+KnowledgeEngine.tsx:543: <button onClick={() => addNode('NOT')} className="text-xs font-bold p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300" title="NOT Gate">NOT</button>
+KnowledgeEngine.tsx:654: className="w-full text-left p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700 group"
+MistakeLearning.tsx:115: <div className="w-2 h-2 bg-slate-500 rounded-full mb-1"></div>
+MistakeLearning.tsx:294: <div className="bg-white/10 px-4 py-2 rounded-lg flex items-center gap-2 border border-white/10 backdrop-blur-sm">
+MistakeLearning.tsx:298: <div className="bg-white/10 px-4 py-2 rounded-lg flex items-center gap-2 border border-white/10 backdrop-blur-sm">
+MistakeLearning.tsx:302: <div className="bg-white/10 px-4 py-2 rounded-lg flex items-center gap-2 border border-white/10 backdrop-blur-sm">
+MistakeLearning.tsx:449: <Link to="/failure" className="relative z-10 px-8 py-4 bg-white text-blue-600 rounded-xl font-bold shadow-lg hover:bg-blue-50 transition-all flex items-center gap-2 whitespace-nowrap group">
+RelayTester.tsx:320: <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+RelayTester.tsx:346: className={`py-2 px-1 rounded-lg text-[10px] font-bold border transition-all ${curve === c ? 'bg-indigo-600 text-white border-indigo-500' : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
+RelayTester.tsx:357: <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+RelayTester.tsx:384: <input type="number" value={rampStart} onChange={(e) => setRampStart(Number(e.target.value))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
+RelayTester.tsx:388: <input type="number" step="0.1" value={rampRate} onChange={(e) => setRampRate(Number(e.target.value))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
+RelayTester.tsx:434: <div className={`w-2 h-2 rounded-full ${status === 'RUNNING' ? 'bg-green-500 animate-pulse' : status === 'TRIPPED' ? 'bg-red-500' : status === 'REST' ? 'bg-amber-500' : 'bg-slate-500'}`}></div>
+RelayTester.tsx:495: <div className={`p-4 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+RelayTester.tsx:497: <h4 className={`font-bold flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>
+RelayTester.tsx:517: <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+RelayTester.tsx:518: <h4 className={`font-bold mb-3 flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>
+RelayTester.tsx:531: <div className={`max-w-3xl mx-auto p-8 animate-fade-in ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+RelayTester.tsx:537: <div className={`p-6 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+RelayTester.tsx:571: <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+RelayTester.tsx:577: <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+RelayTester.tsx:597: <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+RelayTester.tsx:600: <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+RelayTester.tsx:606: <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>GridGuard <span className="text-indigo-500">PRO</span></h1>
+RelayTester.tsx:612: <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+RelayTester.tsx:622: ? (isDark ? 'bg-slate-800 text-indigo-400 shadow-sm' : 'bg-white text-indigo-600 shadow-sm')
+RelayTester.tsx:632: <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
+RelayTester.tsx:639: <div className={`md:hidden fixed bottom-0 left-0 right-0 h-16 border-t z-50 flex justify-around items-center px-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+SymComponents.tsx:248: <div className={`md:col-span-4 lg:col-span-3 border-r overflow-y-auto ${isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
+SymComponents.tsx:259: : isDark ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-white hover:shadow-sm'
+SymComponents.tsx:271: <div className={`md:col-span-8 lg:col-span-9 overflow-y-auto p-6 md:p-10 ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
+SymComponents.tsx:274: <h1 className={`text-3xl font-black mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{content?.title}</h1>
+SymComponents.tsx:275: <div className={`text-xs font-mono px-2 py-1 rounded inline-block ${isDark ? 'bg-slate-900 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+SymComponents.tsx:362: <div className={`rounded-2xl p-5 border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+SymComponents.tsx:372: <button onClick={() => setPreset('open')} className="py-2 px-3 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 text-xs font-bold transition-all">Open Phase A</button>
+SymComponents.tsx:399: <div className={`rounded-2xl p-4 border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+SymComponents.tsx:416: <div className={`p-3 rounded-full bg-white/50 backdrop-blur-sm shadow-sm ${analysis.status.includes('Normal') ? 'text-emerald-600' : 'text-red-600'}`}>
+SymComponents.tsx:420: <h2 className={`text-lg font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>{analysis.status}</h2>
+SymComponents.tsx:426: <div className={`flex gap-4 text-right ${isDark ? 'text-slate-300' : 'text-slate-900'}`}>
+SymComponents.tsx:472: <div className={`rounded-xl border p-4 shadow-sm flex-1 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+SymComponents.tsx:484: <td className={`py-2 ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>{data.V1.toString()}</td>
+SymComponents.tsx:489: <td className={`py-2 ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>{data.V2.toString()}</td>
+SymComponents.tsx:494: <td className={`py-2 ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>{data.V0.toString()}</td>
+SymComponents.tsx:504: <div className={`rounded-xl border p-6 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+SymComponents.tsx:509: <div className={`text-xs text-slate-400 px-2 py-1 rounded ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+SymComponents.tsx:520: <div key={i} className={`flex flex-col items-center p-3 rounded-lg border transition-colors ${isDark ? 'border-slate-800 hover:bg-slate-800/50' : 'border-slate-100 hover:bg-slate-50'}`}>
+SymComponents.tsx:592: <div className={`relative rounded-xl border shadow-sm flex flex-col items-center overflow-hidden ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+SymComponents.tsx:594: <h4 className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded backdrop-blur-sm ${isDark ? 'text-slate-400 bg-slate-900/80' : 'text-slate-500 bg-white/80'}`}>
+SymComponents.tsx:609: <div className={`absolute w-full h-px ${isDark ? 'bg-slate-500' : 'bg-slate-900'}`}></div>
+SymComponents.tsx:610: <div className={`absolute h-full w-px ${isDark ? 'bg-slate-500' : 'bg-slate-900'}`}></div>
+SymComponents.tsx:694: <div className={`p-4 rounded-xl border shadow-sm relative overflow-hidden group hover:border-blue-400 transition-colors ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+SymComponents.tsx:702: <div className={`font-mono text-xs px-2 py-1 rounded ${isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>
+SymComponents.tsx:718: className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900 dark:accent-slate-400"
+SymComponents.tsx:732: className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900 dark:accent-slate-400"
+SymComponents.tsx:746: <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+SymComponents.tsx:749: <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+SymComponents.tsx:755: <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>SymComponents<span className="text-blue-500">Pro</span></h1>
+SymComponents.tsx:761: <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+SymComponents.tsx:771: ? (isDark ? 'bg-slate-800 text-blue-400 shadow-sm' : 'bg-white text-blue-600 shadow-sm')
+SymComponents.tsx:781: <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
+SymComponents.tsx:788: <div className={`md:hidden fixed bottom-0 left-0 right-0 h-16 border-t z-50 flex justify-around items-center px-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+SymComponents.tsx:821: <div className={`p-8 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+SymComponents.tsx:823: <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Engineering Field Guide</h2>
+SymComponents.tsx:834: <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+SymComponents.tsx:845: <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+SymComponents.tsx:865: <p><strong className={isDark ? 'text-white' : 'text-slate-900'}>Incorrect CT Polarity:</strong> If your I1 and I2 are swapped, check if your CT wiring is reversed (subtracting 180°).</p>
+SymComponents.tsx:866: <p><strong className={isDark ? 'text-white' : 'text-slate-900'}>Rotation Check:</strong> This tool assumes Standard ABC (Positive) Rotation. If your system is ACB, swap phase B and C inputs.</p>
+SymComponents.tsx:867: <p><strong className={isDark ? 'text-white' : 'text-slate-900'}>Ground Reference:</strong> Zero sequence requires a return path. On delta windings, I0 circulates inside the delta and cannot be seen on the lines.</p>
+TCCStudio.tsx:299: <div className="p-4 bg-white/20 rounded-full group-hover:scale-110 transition-transform">
+TCCStudio.tsx:319: <button onClick={reset} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors">
+TCCStudio.tsx:669: <button onClick={() => setTab(id)} className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}>
+TCCStudio.tsx:788: <button onClick={() => setLeftPanelOpen(!leftPanelOpen)} className={`p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!leftPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
+TCCStudio.tsx:797: <button key={s.id} onClick={() => loadScenario(i)} className="w-full text-left p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
+TCCStudio.tsx:825: <button onClick={() => setRightPanelOpen(!rightPanelOpen)} className={`p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
+VectorLab.tsx:224: <div className={`md:col-span-4 lg:col-span-3 border-r overflow-y-auto ${isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
+VectorLab.tsx:235: : isDark ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-white hover:shadow-sm'
+VectorLab.tsx:247: <div className={`md:col-span-8 lg:col-span-9 overflow-y-auto p-6 md:p-10 ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
+VectorLab.tsx:250: <h1 className={`text-3xl font-black mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{content?.title}</h1>
+VectorLab.tsx:251: <div className={`text-xs font-mono px-2 py-1 rounded inline-block ${isDark ? 'bg-slate-900 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+VectorLab.tsx:385: <div className={`rounded-2xl p-6 border shadow-sm flex flex-col h-full ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+VectorLab.tsx:397: <div key={p.id} className={`group p-3 rounded-xl border transition-colors ${isDark ? 'bg-slate-950 border-slate-800 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:border-blue-300'}`}>
+VectorLab.tsx:404: className={`bg-transparent font-bold text-xs w-24 outline-none focus:text-blue-600 ${isDark ? 'text-white' : 'text-slate-900'}`}
+VectorLab.tsx:414: <input type="number" value={p.mag} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, mag: Number(e.target.value) } : x))} className={`w-16 text-sm font-mono border rounded px-1 py-0.5 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-black'}`} />
+VectorLab.tsx:421: <input type="number" value={p.ang} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, ang: Number(e.target.value) } : x))} className={`w-16 text-sm font-mono border rounded px-1 py-0.5 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-black'}`} />
+VectorLab.tsx:438: <button onClick={() => loadPreset('open-c')} className="p-2 text-[10px] font-bold bg-slate-100 text-slate-700 rounded hover:bg-slate-200 border border-slate-200">Open Ph</button>
+VectorLab.tsx:448: <button onClick={copyShareLink} className="p-2.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200" title="Copy share link">
+VectorLab.tsx:552: <div className={`rounded-2xl border p-6 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+VectorLab.tsx:558: <div className={`flex justify-between items-center p-2 rounded-lg border-l-4 border-slate-400 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+VectorLab.tsx:564: <div className={`flex justify-between items-center p-2 rounded-lg border-l-4 border-blue-500 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+VectorLab.tsx:570: <div className={`flex justify-between items-center p-2 rounded-lg border-l-4 border-red-500 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+VectorLab.tsx:591: <div className={`flex-1 h-3 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+VectorLab.tsx:606: <div className={`rounded-2xl border p-6 shadow-sm flex-1 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+VectorLab.tsx:611: <div className={`text-[10px] px-2 py-1 rounded text-slate-500 ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>Ref V: {refVoltage}V</div>
+VectorLab.tsx:615: <div className={`text-center p-3 rounded-xl ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+VectorLab.tsx:617: <div className={`text-xl font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{(totalP/1000).toFixed(2)} <span className="text-xs font-normal text-slate-400">kW</span></div>
+VectorLab.tsx:619: <div className={`text-center p-3 rounded-xl ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+VectorLab.tsx:621: <div className={`text-xl font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{(totalQ/1000).toFixed(2)} <span className="text-xs font-normal text-slate-400">kVAR</span></div>
+VectorLab.tsx:635: <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden mt-2">
+VectorLab.tsx:649: <div className={`max-w-3xl mx-auto p-8 animate-fade-in ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+VectorLab.tsx:654: <div className={`p-6 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+VectorLab.tsx:674: <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+VectorLab.tsx:677: <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+VectorLab.tsx:683: <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>VectorMaster <span className="text-blue-500">PRO</span></h1>
+VectorLab.tsx:689: <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+VectorLab.tsx:699: ? (isDark ? 'bg-slate-800 text-blue-400 shadow-sm' : 'bg-white text-blue-600 shadow-sm')
+VectorLab.tsx:709: <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
+VectorLab.tsx:716: <div className={`md:hidden fixed bottom-0 left-0 right-0 h-16 border-t z-50 flex justify-around items-center px-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>

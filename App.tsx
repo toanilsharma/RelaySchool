@@ -1,40 +1,50 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
-import Dashboard from './pages/Dashboard';
-import Academy from './pages/Academy';
-import TCCStudio from './pages/TCCStudio';
-import DigitalTwin from './pages/DigitalTwin';
-import FailureLab from './pages/FailureLab';
-import ForensicLab from './pages/ForensicLab';
-import KnowledgeEngine from './pages/KnowledgeEngine';
-import Challenges from './pages/Challenges';
-import RelayTester from './pages/RelayTester';
-import CommsHub from './pages/CommsHub';
-import MistakeLearning from './pages/MistakeLearning';
-import EngineerToolkit from './pages/EngineerToolkit';
-import DigitalSubstation from './pages/DigitalSubstation';
-import SymComponents from './pages/SymComponents';
-import DistanceLab from './pages/DistanceLab';
-import EventAnalyzer from './pages/EventAnalyzer';
-import VectorLab from './pages/VectorLab';
-import SmartGridTrends from './pages/SmartGridTrends';
-import FastBusTransfer from './pages/FastBusTransfer';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import Contact from './pages/Contact';
-import DiffSlope from './pages/DiffSlope';
 import CookieConsent from './components/CookieConsent';
 import AICoach from './components/AICoach';
-import { Menu } from 'lucide-react';
+import { Menu, Loader2 } from 'lucide-react';
+
+// Lazy Load Pages
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Academy = lazy(() => import('./pages/Academy'));
+const TCCStudio = lazy(() => import('./pages/TCCStudio'));
+const DigitalTwin = lazy(() => import('./pages/DigitalTwin'));
+const FailureLab = lazy(() => import('./pages/FailureLab'));
+const ForensicLab = lazy(() => import('./pages/ForensicLab'));
+const KnowledgeEngine = lazy(() => import('./pages/KnowledgeEngine'));
+const Challenges = lazy(() => import('./pages/Challenges'));
+const RelayTester = lazy(() => import('./pages/RelayTester'));
+const CommsHub = lazy(() => import('./pages/CommsHub'));
+const MistakeLearning = lazy(() => import('./pages/MistakeLearning'));
+const EngineerToolkit = lazy(() => import('./pages/EngineerToolkit'));
+const DigitalSubstation = lazy(() => import('./pages/DigitalSubstation'));
+const SymComponents = lazy(() => import('./pages/SymComponents'));
+const DistanceLab = lazy(() => import('./pages/DistanceLab'));
+const EventAnalyzer = lazy(() => import('./pages/EventAnalyzer'));
+const VectorLab = lazy(() => import('./pages/VectorLab'));
+const SmartGridTrends = lazy(() => import('./pages/SmartGridTrends'));
+const FastBusTransfer = lazy(() => import('./pages/FastBusTransfer'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const Contact = lazy(() => import('./pages/Contact'));
+const DiffSlope = lazy(() => import('./pages/DiffSlope'));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
   return null;
 };
+
+const LoadingSpinner = () => (
+  <div className="flex h-[50vh] items-center justify-center">
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <span className="text-sm font-medium text-slate-500">Loading Module...</span>
+    </div>
+  </div>
+);
 
 const App = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -65,32 +75,34 @@ const App = () => {
         <Sidebar theme={theme} toggleTheme={toggleTheme} isOpen={mobileMenuOpen} closeMobileMenu={() => setMobileMenuOpen(false)} />
         <main className="md:ml-64 p-4 md:p-8 lg:p-10 animate-fade-in min-h-screen flex flex-col">
           <div className="flex-1">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/academy" element={<Academy />} />
-              <Route path="/tcc" element={<TCCStudio />} />
-              <Route path="/fbts" element={<FastBusTransfer />} />
-              <Route path="/symcomp" element={<SymComponents />} />
-              <Route path="/distance" element={<DistanceLab />} />
-              <Route path="/diffslope" element={<DiffSlope />} />
-              <Route path="/twin" element={<DigitalTwin />} />
-              <Route path="/vectors" element={<VectorLab />} />
-              <Route path="/forensic" element={<ForensicLab />} />
-              <Route path="/failure" element={<FailureLab />} />
-              <Route path="/events" element={<EventAnalyzer />} />
-              <Route path="/tester" element={<RelayTester />} />
-              <Route path="/comms" element={<CommsHub />} />
-              <Route path="/digital-substation" element={<DigitalSubstation />} />
-              <Route path="/knowledge" element={<KnowledgeEngine />} />
-              <Route path="/challenges" element={<Challenges />} />
-              <Route path="/mistakes" element={<MistakeLearning />} />
-              <Route path="/trends" element={<SmartGridTrends />} />
-              <Route path="/tools" element={<EngineerToolkit />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/academy" element={<Academy />} />
+                <Route path="/tcc" element={<TCCStudio />} />
+                <Route path="/fbts" element={<FastBusTransfer />} />
+                <Route path="/symcomp" element={<SymComponents />} />
+                <Route path="/distance" element={<DistanceLab />} />
+                <Route path="/diffslope" element={<DiffSlope />} />
+                <Route path="/twin" element={<DigitalTwin />} />
+                <Route path="/vectors" element={<VectorLab />} />
+                <Route path="/forensic" element={<ForensicLab />} />
+                <Route path="/failure" element={<FailureLab />} />
+                <Route path="/events" element={<EventAnalyzer />} />
+                <Route path="/tester" element={<RelayTester />} />
+                <Route path="/comms" element={<CommsHub />} />
+                <Route path="/digital-substation" element={<DigitalSubstation />} />
+                <Route path="/knowledge" element={<KnowledgeEngine />} />
+                <Route path="/challenges" element={<Challenges />} />
+                <Route path="/mistakes" element={<MistakeLearning />} />
+                <Route path="/trends" element={<SmartGridTrends />} />
+                <Route path="/tools" element={<EngineerToolkit />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
           </div>
           <Footer />
         </main>

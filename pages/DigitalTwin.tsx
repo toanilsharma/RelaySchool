@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Activity, Zap, Power, AlertTriangle,
-  RotateCcw, Play, Pause, Info,
+  RotateCcw, Play, Pause, Info, FileText,
   ShieldAlert, CheckCircle2,
   MousePointer2, BookOpen, GraduationCap,
   X, List, HelpCircle, ChevronRight, Settings,
-  Maximize2
+  Maximize2, Share2
 } from 'lucide-react';
+
 import { motion, AnimatePresence } from 'framer-motion';
+import TheoryLibrary from '../components/TheoryLibrary';
+import { DIGITAL_TWIN_THEORY_CONTENT } from '../data/learning-modules/digital-twin';
 
 // --- TYPES ---
 
@@ -433,9 +436,16 @@ const LogPanel = ({ logs }: { logs: any[] }) => {
 
   return (
     <div className="flex flex-col h-48 bg-slate-900 text-slate-300 font-mono text-xs border-t border-slate-700">
-      <div className="flex items-center px-4 py-2 bg-slate-800 border-b border-slate-700 gap-2 sticky top-0">
-        <List className="w-3 h-3 text-blue-400" />
-        <span className="uppercase font-bold text-slate-400 tracking-wider text-[10px]">Sequence of Events (SOE)</span>
+      <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 gap-2 sticky top-0">
+        <div className="flex items-center gap-2">
+          <List className="w-3 h-3 text-blue-400" />
+          <span className="uppercase font-bold text-slate-400 tracking-wider text-[10px]">SOE Log</span>
+          <span className="bg-blue-600 text-white text-[8px] px-1.5 rounded-full font-bold">{logs.length}</span>
+        </div>
+        <button onClick={() => {
+          const txt = logs.map(l => `${l.time} | ${l.device} | ${l.event} | ${l.details}`).join('\n');
+          navigator.clipboard.writeText(`SOE Export\n${txt}`);
+        }} className="text-[9px] font-bold text-blue-400 hover:text-blue-300 transition-colors">EXPORT</button>
       </div>
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-2 space-y-1">
         {logs.length === 0 && <div className="text-slate-600 italic px-2">System ready. Waiting for events...</div>}
@@ -460,7 +470,35 @@ const DigitalSubstationPro = () => {
   const [isRunning, setIsRunning] = useState(true);
   const [logs, setLogs] = useState<any[]>([]);
   const [showTutorial, setShowTutorial] = useState(true);
+
   const [activeScenario, setActiveScenario] = useState('normal');
+  const [activeTab, setActiveTab] = useState('sim'); // 'sim' | 'theory'
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const stateParam = params.get('s');
+    if (stateParam) {
+      try {
+        const state = JSON.parse(atob(stateParam));
+        if (state.nodes) {
+            setNodes(state.nodes);
+            setPhysics(calculatePhysics(state.nodes, INITIAL_LINKS));
+        }
+        if (state.logs) setLogs(state.logs);
+        if (state.activeScenario) setActiveScenario(state.activeScenario);
+        if (state.isRunning !== undefined) setIsRunning(state.isRunning);
+      } catch (e) {
+        console.error("Failed to parse share link", e);
+      }
+    }
+  }, []);
+
+  const copyShareLink = () => {
+    const state = { nodes, logs, activeScenario, isRunning };
+    const str = btoa(JSON.stringify(state));
+    navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
+    alert("Simulation link copied! You can share this URL to load the exact state.");
+  };
 
   useEffect(() => {
     if (!isRunning) return;
@@ -527,9 +565,15 @@ const DigitalSubstationPro = () => {
           </div>
           <div>
             <h1 className="font-bold text-lg leading-tight">Digital Substation <span className="text-blue-600">Pro</span></h1>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">System Online</span>
+              <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">IEC 61850</span>
+              <span className="text-[9px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-400">
+                Load: {nodes.filter(n => n.type === 'LOAD').reduce((s, n) => s + (n.loadMW || 0), 0)} MW
+              </span>
+              {nodes.some(n => n.faulted) && <span className="text-[9px] font-bold bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">⚡ {nodes.filter(n => n.faulted).length} FAULT</span>}
             </div>
           </div>
         </div>
@@ -571,6 +615,13 @@ const DigitalSubstationPro = () => {
               <RotateCcw className="w-5 h-5" />
             </button>
             <button
+              onClick={copyShareLink}
+              className="p-2 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 transition-colors"
+              title="Share Simulation"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+            <button
               onClick={() => setShowTutorial(true)}
               className="p-2 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 transition-colors"
               title="Help / Instructions"
@@ -579,182 +630,219 @@ const DigitalSubstationPro = () => {
             </button>
           </div>
         </div>
+
+        {/* --- TABS (Sim / Theory) --- */}
+        <div className="hidden md:flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 mr-4">
+            <button
+              onClick={() => setActiveTab('sim')}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'sim'
+                ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <Activity className="w-3 h-3" /> SIMULATION
+            </button>
+            <button
+              onClick={() => setActiveTab('theory')}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'theory'
+                ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <BookOpen className="w-3 h-3" /> THEORY HUB
+            </button>
+        </div>
       </header>
 
       {/* --- MAIN CONTENT --- */}
       <div className="flex-1 flex overflow-hidden relative">
 
-        {/* CANVAS */}
-        <div className="flex-1 relative bg-slate-100 dark:bg-slate-950/50" onClick={() => setSelectedId(null)}>
+        {activeTab === 'sim' ? (
+          <>
+            {/* CANVAS */}
+            <div className="flex-1 relative bg-slate-100 dark:bg-slate-950/50" onClick={() => setSelectedId(null)}>
 
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-            style={{ backgroundImage: 'radial-gradient(circle, #64748b 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
-          </div>
-
-          <svg className="w-full h-full max-w-full max-h-full select-none" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
-            {INITIAL_LINKS.map(link => (
-              <AnimatedLink key={link.id} link={link} nodes={nodes} physics={physics} />
-            ))}
-            {nodes.map(node => (
-              <NodeItem
-                key={node.id}
-                node={node}
-                isSelected={selectedId === node.id}
-                isEnergized={physics.energized.has(node.id)}
-                currents={physics.currents}
-                onClick={() => setSelectedId(node.id)}
-              />
-            ))}
-          </svg>
-
-          <AnimatePresence>
-            {activeScenario !== 'normal' && (
-              <motion.div
-                initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
-                className="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-6 py-3 rounded-full shadow-xl backdrop-blur-md border border-slate-700 flex items-center gap-3 z-10"
-              >
-                <Activity className="w-4 h-4 text-amber-400 animate-pulse" />
-                <span className="text-sm font-medium">{SCENARIOS[activeScenario].desc}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* SIDEBAR (Drawer) */}
-        <motion.div
-          className="absolute top-0 right-0 bottom-0 w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-30 flex flex-col"
-          initial={{ x: '100%' }}
-          animate={{ x: selectedId ? 0 : '100%' }}
-          transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        >
-          {selectedNode ? (
-            <>
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Asset Configuration</div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{selectedNode.label}</h2>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-mono border border-slate-200 dark:border-slate-700">
-                    ID: {selectedNode.id}
-                  </span>
-                  <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-mono border border-slate-200 dark:border-slate-700">
-                    {selectedNode.voltagekV} kV
-                  </span>
-                </div>
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                style={{ backgroundImage: 'radial-gradient(circle, #64748b 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              <svg className="w-full h-full max-w-full max-h-full select-none" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+                {INITIAL_LINKS.map(link => (
+                  <AnimatedLink key={link.id} link={link} nodes={nodes} physics={physics} />
+                ))}
+                {nodes.map(node => (
+                  <NodeItem
+                    key={node.id}
+                    node={node}
+                    isSelected={selectedId === node.id}
+                    isEnergized={physics.energized.has(node.id)}
+                    currents={physics.currents}
+                    onClick={() => setSelectedId(node.id)}
+                  />
+                ))}
+              </svg>
 
-                {/* Live Telemetry */}
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
-                    <Activity className="w-4 h-4 text-blue-500" /> Real-time Telemetry
-                  </h3>
-                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-xs text-slate-500 uppercase font-bold">Current (RMS)</span>
-                      <span className="font-mono text-2xl font-bold text-slate-900 dark:text-white">
-                        {physics.currents[selectedNode.id]?.toFixed(0)} <span className="text-sm text-slate-400">A</span>
+              <AnimatePresence>
+                {activeScenario !== 'normal' && (
+                  <motion.div
+                    initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
+                    className="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-6 py-3 rounded-full shadow-xl backdrop-blur-md border border-slate-700 flex items-center gap-3 z-10"
+                  >
+                    <Activity className="w-4 h-4 text-amber-400 animate-pulse" />
+                    <span className="text-sm font-medium">{SCENARIOS[activeScenario].desc}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* SIDEBAR (Drawer) */}
+            <motion.div
+              className="absolute top-0 right-0 bottom-0 w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-30 flex flex-col"
+              initial={{ x: '100%' }}
+              animate={{ x: selectedId ? 0 : '100%' }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            >
+              {selectedNode ? (
+                <>
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Asset Configuration</div>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{selectedNode.label}</h2>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-mono border border-slate-200 dark:border-slate-700">
+                        ID: {selectedNode.id}
+                      </span>
+                      <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-mono border border-slate-200 dark:border-slate-700">
+                        {selectedNode.voltagekV} kV
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-blue-500"
-                        animate={{
-                          width: `${Math.min(100, (physics.currents[selectedNode.id] / (selectedNode.ratingAmps || 2000)) * 100)}%`,
-                          backgroundColor: physics.currents[selectedNode.id] > (selectedNode.ratingAmps || 2000) ? '#ef4444' : '#3b82f6'
-                        }}
-                        transition={{ type: "spring", stiffness: 50 }}
-                      />
-                    </div>
-                    <div className="flex justify-between mt-1 text-[10px] text-slate-400">
-                      <span>0 A</span>
-                      <span>Rated: {selectedNode.ratingAmps || 'N/A'} A</span>
-                    </div>
                   </div>
-                </div>
 
-                {/* Controls */}
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
-                    <Settings className="w-4 h-4 text-slate-500" /> Operations
-                  </h3>
+                  <div className="flex-1 overflow-y-auto p-6 space-y-8">
 
-                  <div className="space-y-3">
-                    {selectedNode.type === NODE_TYPES.BREAKER && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          onClick={() => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, status: 'CLOSED', faulted: false } : n))}
-                          disabled={selectedNode.status === 'CLOSED'}
-                          className="py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm shadow-sm transition-all"
-                        >
-                          CLOSE
-                        </button>
-                        <button
-                          onClick={() => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, status: 'OPEN' } : n))}
-                          disabled={selectedNode.status === 'OPEN'}
-                          className="py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm shadow-sm transition-all"
-                        >
-                          TRIP
-                        </button>
-                      </div>
-                    )}
-
-                    {selectedNode.type === NODE_TYPES.LOAD && (
-                      <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                        <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Demand Setpoint (MW)</label>
-                        <input
-                          type="range" min="0" max="40" step="1"
-                          value={selectedNode.loadMW}
-                          onChange={(e) => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, loadMW: parseInt(e.target.value) } : n))}
-                          className="w-full accent-blue-600"
-                        />
-                        <div className="flex justify-between text-xs mt-1 font-mono">
-                          <span>0 MW</span>
-                          <span>{selectedNode.loadMW} MW</span>
-                          <span>40 MW</span>
+                    {/* Live Telemetry */}
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+                        <Activity className="w-4 h-4 text-blue-500" /> Real-time Telemetry
+                      </h3>
+                      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-end mb-2">
+                          <span className="text-xs text-slate-500 uppercase font-bold">Current (RMS)</span>
+                          <span className="font-mono text-2xl font-bold text-slate-900 dark:text-white">
+                            {physics.currents[selectedNode.id]?.toFixed(0)} <span className="text-sm text-slate-400">A</span>
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-blue-500"
+                            animate={{
+                              width: `${Math.min(100, (physics.currents[selectedNode.id] / (selectedNode.ratingAmps || 2000)) * 100)}%`,
+                              backgroundColor: physics.currents[selectedNode.id] > (selectedNode.ratingAmps || 2000) ? '#ef4444' : '#3b82f6'
+                            }}
+                            transition={{ type: "spring", stiffness: 50 }}
+                          />
+                        </div>
+                        <div className="flex justify-between mt-1 text-[10px] text-slate-400">
+                          <span>0 A</span>
+                          <span>Rated: {selectedNode.ratingAmps || 'N/A'} A</span>
                         </div>
                       </div>
-                    )}
+                    </div>
 
-                    <button
-                      onClick={() => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, faulted: !n.faulted } : n))}
-                      className={`w-full py-3 rounded-lg font-bold text-sm border-2 transition-all flex items-center justify-center gap-2 ${selectedNode.faulted
-                        ? 'border-emerald-500 text-emerald-600 bg-emerald-50'
-                        : 'border-red-200 hover:border-red-400 text-red-600 bg-red-50'
-                        }`}
-                    >
-                      {selectedNode.faulted ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                      {selectedNode.faulted ? 'CLEAR FAULT' : 'INJECT FAULT'}
-                    </button>
+                    {/* Controls */}
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+                        <Settings className="w-4 h-4 text-slate-500" /> Operations
+                      </h3>
+
+                      <div className="space-y-3">
+                        {selectedNode.type === NODE_TYPES.BREAKER && (
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, status: 'CLOSED', faulted: false } : n))}
+                              disabled={selectedNode.status === 'CLOSED'}
+                              className="py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm shadow-sm transition-all"
+                            >
+                              CLOSE
+                            </button>
+                            <button
+                              onClick={() => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, status: 'OPEN' } : n))}
+                              disabled={selectedNode.status === 'OPEN'}
+                              className="py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm shadow-sm transition-all"
+                            >
+                              TRIP
+                            </button>
+                          </div>
+                        )}
+
+                        {selectedNode.type === NODE_TYPES.LOAD && (
+                          <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Demand Setpoint (MW)</label>
+                            <input
+                              type="range" min="0" max="40" step="1"
+                              value={selectedNode.loadMW}
+                              onChange={(e) => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, loadMW: parseInt(e.target.value) } : n))}
+                              className="w-full accent-blue-600"
+                            />
+                            <div className="flex justify-between text-xs mt-1 font-mono">
+                              <span>0 MW</span>
+                              <span>{selectedNode.loadMW} MW</span>
+                              <span>40 MW</span>
+                            </div>
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, faulted: !n.faulted } : n))}
+                          className={`w-full py-3 rounded-lg font-bold text-sm border-2 transition-all flex items-center justify-center gap-2 ${selectedNode.faulted
+                            ? 'border-emerald-500 text-emerald-600 bg-emerald-50'
+                            : 'border-red-200 hover:border-red-400 text-red-600 bg-red-50'
+                            }`}
+                        >
+                          {selectedNode.faulted ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                          {selectedNode.faulted ? 'CLEAR FAULT' : 'INJECT FAULT'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Info Card */}
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-4 rounded-xl">
+                      <h4 className="font-bold text-blue-900 dark:text-blue-200 text-sm mb-1 flex items-center gap-2">
+                        <Info className="w-4 h-4" /> Engineering Note
+                      </h4>
+                      <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+                        {selectedNode.type === NODE_TYPES.BREAKER && "This breaker is protected by ANSI 50 (Instantaneous) and 51 (Time-Overcurrent) elements. Fault currents >5x rating will trip instantly."}
+                        {selectedNode.type === NODE_TYPES.TRANSFORMER && "Transformers are vulnerable to internal faults. Differential protection (87T) compares current entry vs exit to detect issues."}
+                        {selectedNode.type === NODE_TYPES.LOAD && "Loads determine the system current flow. Increasing demand beyond breaker ratings will trigger thermal overload protection."}
+                        {selectedNode.type === NODE_TYPES.BUS && "The Busbar is the critical node. A fault here requires isolating all connected feeders (Bus Differential Protection)."}
+                      </p>
+                    </div>
+
                   </div>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+                  <MousePointer2 className="w-12 h-12 mb-4 opacity-50" />
+                  <h3 className="font-bold text-lg text-slate-500">No Asset Selected</h3>
+                  <p className="text-sm">Click on any component in the single-line diagram to view telemetry and controls.</p>
                 </div>
+              )}
 
-                {/* Info Card */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-4 rounded-xl">
-                  <h4 className="font-bold text-blue-900 dark:text-blue-200 text-sm mb-1 flex items-center gap-2">
-                    <Info className="w-4 h-4" /> Engineering Note
-                  </h4>
-                  <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
-                    {selectedNode.type === NODE_TYPES.BREAKER && "This breaker is protected by ANSI 50 (Instantaneous) and 51 (Time-Overcurrent) elements. Fault currents >5x rating will trip instantly."}
-                    {selectedNode.type === NODE_TYPES.TRANSFORMER && "Transformers are vulnerable to internal faults. Differential protection (87T) compares current entry vs exit to detect issues."}
-                    {selectedNode.type === NODE_TYPES.LOAD && "Loads determine the system current flow. Increasing demand beyond breaker ratings will trigger thermal overload protection."}
-                    {selectedNode.type === NODE_TYPES.BUS && "The Busbar is the critical node. A fault here requires isolating all connected feeders (Bus Differential Protection)."}
-                  </p>
-                </div>
-
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
-              <MousePointer2 className="w-12 h-12 mb-4 opacity-50" />
-              <h3 className="font-bold text-lg text-slate-500">No Asset Selected</h3>
-              <p className="text-sm">Click on any component in the single-line diagram to view telemetry and controls.</p>
+              {/* LOGS at bottom of sidebar */}
+              <LogPanel logs={logs} />
+            </motion.div>
+          </>
+        ) : (
+          <div className="w-full h-full overflow-y-auto bg-slate-50 dark:bg-slate-900 p-6 md:p-12">
+            <div className="max-w-5xl mx-auto">
+              <TheoryLibrary
+                title="Digital Substation (IEC 61850)"
+                description="Explore the architecture of modern digital substations. Learn about Station, Bay, and Process buses, and the protocols that connect them (GOOSE, SV, MMS)."
+                sections={DIGITAL_TWIN_THEORY_CONTENT}
+              />
             </div>
-          )}
+          </div>
+        )}
 
-          {/* LOGS at bottom of sidebar */}
-          <LogPanel logs={logs} />
-        </motion.div>
       </div>
 
       {/* Tutorial Overlay */}

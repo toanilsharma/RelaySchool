@@ -224,6 +224,27 @@ const DigitalSubstation = () => {
     const [gooseDelay, setGooseDelay] = useState(2); // ms
     const [svJitter, setSvJitter] = useState(0.1); // ms
     
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const stateParam = params.get('s');
+        if (stateParam) {
+            try {
+                const state = JSON.parse(atob(stateParam));
+                if (state.scenario) setScenario(state.scenario);
+                if (state.simState) setSimState(state.simState);
+            } catch (e) {
+                console.error("Failed to parse share link", e);
+            }
+        }
+    }, []);
+
+    const copyShareLink = () => {
+        const state = { scenario, simState };
+        const str = btoa(JSON.stringify(state));
+        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
+        alert("Simulation link copied! You can share this URL to load the exact state.");
+    };
+
     // --- SIMULATION ENGINE (The "Reality" Logic) ---
     useEffect(() => {
         const interval = setInterval(() => {
@@ -350,14 +371,19 @@ const DigitalSubstation = () => {
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                         <Network className="w-8 h-8 text-blue-600" /> Digital Substation Reality Mode
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                        IEC 61850 Behavioral Simulator. Visualize why correct relays fail in bad networks.
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-slate-500 dark:text-slate-400 text-sm">IEC 61850 Behavioral Simulator.</span>
+                        <span className="w-1.5 h-1.5 bg-slate-400 rounded-full opacity-50"></span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-blue-500/80">IEC 61850</span>
+                    </div>
                 </div>
                 <div className="flex gap-3 mt-4 md:mt-0">
                     <div className="px-3 py-1 rounded bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 text-amber-700 dark:text-amber-500 text-xs font-bold flex items-center gap-2">
                         <AlertTriangle className="w-3 h-3" /> Training Simulator Only
                     </div>
+                    <button onClick={copyShareLink} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors shadow-sm">
+                        <Share2 className="w-4 h-4" /> Share
+                    </button>
                     <button onClick={resetSim} className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 transition-colors border border-slate-200 dark:border-slate-700">
                         <RotateCcw className="w-4 h-4" /> Reset
                     </button>

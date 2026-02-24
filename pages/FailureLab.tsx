@@ -1,22 +1,13 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    Microscope,
-    Activity,
-    Settings,
-    Zap,
-    FileText,
-    TrendingUp,
-    BarChart2,
-    Compass,
-    AlertTriangle,
-    Info,
-    CheckCircle2,
-    BookOpen,
-    HelpCircle,
-    X,
-    GraduationCap,
-    Sliders
+    Microscope, Activity, Settings, Zap, FileText, TrendingUp,
+    BarChart2, Compass, AlertTriangle, Info, CheckCircle2,
+    BookOpen, HelpCircle, X, GraduationCap, Sliders, MonitorPlay,
+    Book, Sun, Moon, Share2
 } from 'lucide-react';
+import TheoryLibrary from '../components/TheoryLibrary';
+import { FAILURE_THEORY_CONTENT } from '../data/learning-modules/failure';
 
 // --- TYPES ---
 interface MathEngineParams {
@@ -55,11 +46,6 @@ interface Metrics {
     status: 'PASS' | 'FAIL' | 'WARN';
 }
 
-interface TooltipProps {
-    children: React.ReactNode;
-    text: string;
-}
-
 interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -68,13 +54,10 @@ interface ModalProps {
 }
 
 /**
- * --- IEEE/IEC MATH ENGINE ---
- * Implements physics based on IEEE C37.110 and IEC 61869-2
- * * Core Physics:
- * 1. Generates primary fault current with DC offset (exponential decay).
- * 2. Integrates voltage (I*R) to determine Flux (Volts-Seconds).
- * 3. Applies a non-linear magnetization curve to simulate saturation.
+ * --- MATH ENGINE & COMPONENTS ---
+ * Reuse existing MathEngine and Components
  */
+
 const MathEngine = {
     OMEGA: 2 * Math.PI * 50, // 50Hz
 
@@ -93,10 +76,7 @@ const MathEngine = {
         const dt = (1 / 50) / samplesPerCycle;
         const timeConstant = xOverR / (2 * Math.PI * 50);
 
-        // FLUX LIMIT CALCULATION (IEC 61869)
-        // Flux (Weber) = V / (4.44 * f * N). Simplified to V-sec equivalent.
-        // Limit is proportional to Vk.
-        const FLUX_LIMIT = kneePoint / (Math.PI * 2 * 50); // Peak Flux Linkage limit
+        const FLUX_LIMIT = kneePoint / (Math.PI * 2 * 50);
         const currentRemanence = (remFlux / 100) * FLUX_LIMIT;
 
         let flux = currentRemanence;
@@ -105,34 +85,24 @@ const MathEngine = {
 
         for (let i = 0; i < totalSamples; i++) {
             const t = i * dt;
-
-            // 1. PRIMARY CURRENT GENERATION
             const acComponent = magnitude * Math.sqrt(2) * Math.sin(2 * Math.PI * 50 * t);
             const dcComponent = dcPeak * Math.exp(-t / timeConstant);
-            const iPrimary = acComponent + dcComponent; // Referred to secondary
+            const iPrimary = acComponent + dcComponent;
 
-            // 2. EXCITATION VOLTAGE & FLUX INTEGRATION
-            // V_ex = I_sec * R_burden (ignoring L_burden for simplified view)
-            // d(Flux)/dt = V_ex
             const iIdeal = iPrimary;
             const vExcitationRequired = iIdeal * burden;
             flux = flux + (vExcitationRequired * dt);
 
-            // 3. SATURATION LOGIC (Non-linear Inductance)
             let iExcitation = 0;
             const absFlux = Math.abs(flux);
 
-            // Piecewise linear saturation curve simulation
             if (absFlux > FLUX_LIMIT) {
-                // Deep saturation region (Air core inductance)
                 const overFlux = absFlux - FLUX_LIMIT;
-                iExcitation = (overFlux * 80) * Math.sign(flux); // High magnetizing current
+                iExcitation = (overFlux * 80) * Math.sign(flux);
             } else {
-                // Linear region (High permeability)
-                iExcitation = (absFlux / FLUX_LIMIT) * 0.1 * Math.sign(flux); // Low leakage
+                iExcitation = (absFlux / FLUX_LIMIT) * 0.1 * Math.sign(flux);
             }
 
-            // 4. SECONDARY CURRENT
             let iActual = iIdeal - iExcitation;
 
             data.push({
@@ -144,7 +114,6 @@ const MathEngine = {
             });
         }
 
-        // FFT CALCULATION
         const lastCycleStart = totalSamples - samplesPerCycle;
         const lastCycleData = data.slice(lastCycleStart);
         const harmonics = [1, 2, 3, 5].map(h => {
@@ -162,48 +131,13 @@ const MathEngine = {
     }
 };
 
-/**
- * --- UI COMPONENTS ---
- */
-const Tooltip: React.FC<TooltipProps> = ({ children, text }) => (
-    <div className="group relative flex items-center">
-        {children}
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-slate-700">
-            {text}
-        </div>
-    </div>
-);
-
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
-    if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-                <div className="flex justify-between items-center p-6 border-b border-slate-800">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <BookOpen className="w-6 h-6 text-blue-500" /> {title}
-                    </h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-                        <X className="w-6 h-6" />
-                    </button>
-                </div>
-                <div className="p-6 overflow-y-auto custom-scrollbar text-slate-300 space-y-4">
-                    {children}
-                </div>
-                <div className="p-4 border-t border-slate-800 bg-slate-950/50 rounded-b-2xl flex justify-end">
-                    <button onClick={onClose} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
-                        Understood
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const FailureLab = () => {
     // --- STATE ---
+    const [activeTab, setActiveTab] = useState<'simulator' | 'theory'>('simulator');
     const [activeView, setActiveView] = useState('WAVEFORM');
-    const [showGuide, setShowGuide] = useState(false);
+    // const [showGuide, setShowGuide] = useState(false); // Deprecated in favor of theory tab
+    const [isDark, setIsDark] = useState(true);
+
     const [magnitude, setMagnitude] = useState(20);
     const [burden, setBurden] = useState(2.0);
     const [kneePoint, setKneePoint] = useState(100);
@@ -213,28 +147,42 @@ const FailureLab = () => {
     const [simData, setSimData] = useState<MathEngineResult>({ data: [], harmonics: [], maxFlux: 1 });
     const [stats, setStats] = useState<Metrics>({ ks: 0, ktd: 0, severity: 0, status: 'PASS' });
 
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const stateParam = params.get('s');
+        if (stateParam) {
+            try {
+                const state = JSON.parse(atob(stateParam));
+                if (state.activeTab) setActiveTab(state.activeTab);
+                if (state.activeView) setActiveView(state.activeView);
+                if (state.magnitude !== undefined) setMagnitude(state.magnitude);
+                if (state.burden !== undefined) setBurden(state.burden);
+                if (state.kneePoint !== undefined) setKneePoint(state.kneePoint);
+                if (state.xOverR !== undefined) setXOverR(state.xOverR);
+                if (state.remFlux !== undefined) setRemFlux(state.remFlux);
+            } catch (e) {
+                console.error("Failed to parse share link", e);
+            }
+        }
+    }, []);
+
+    const copyShareLink = () => {
+        const state = { activeTab, activeView, magnitude, burden, kneePoint, xOverR, remFlux };
+        const str = btoa(JSON.stringify(state));
+        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
+        alert("Simulation link copied! You can share this URL to load the exact state.");
+    };
+
     // --- EFFECT: SIMULATION ---
     useEffect(() => {
         const result = MathEngine.simulateCT({ magnitude, burden, kneePoint, xOverR, remFlux });
         setSimData(result);
 
-        // IEEE C37.110 CALCULATIONS
         const V_sat = kneePoint;
         const V_burden = magnitude * burden;
-
-        // 1. Actual Saturation Factor (Ks)
-        // The capability of the CT relative to the AC symmetrical burden
         const Ks = V_sat / V_burden;
-
-        // 2. Transient Dimensioning Factor (Ktd)
-        // The requirement to handle the DC offset without saturation
-        // Ktd = (1 + X/R) for full offset containment
         const Ktd = 1 + (xOverR);
-
-        // 3. Status
-        // If Ks < Ktd, the CT will saturate during the transient
         const isSaturated = Ks < Ktd;
-        // Severity: ratio of Requirement to Capability
         const severity = Ktd / Ks;
 
         setStats({
@@ -343,241 +291,197 @@ const FailureLab = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans selection:bg-blue-500/30">
-
-            {/* GUIDE MODAL */}
-            <Modal isOpen={showGuide} onClose={() => setShowGuide(false)} title="Simulator User Guide">
-                <div className="space-y-6">
-                    <section>
-                        <h3 className="text-lg font-bold text-white mb-2">1. The Objective</h3>
-                        <p className="text-sm text-slate-400">
-                            This tool simulates <strong>Current Transformer (CT) Saturation</strong> during electrical faults.
-                            Your goal is to adjust parameters to see pass/fail conditions based on IEEE C37.110 standards.
-                        </p>
-                    </section>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-slate-800 p-4 rounded-lg">
-                            <h4 className="text-sm font-bold text-blue-400 mb-2">Inputs (Left Panel)</h4>
-                            <ul className="text-xs text-slate-300 space-y-2 list-disc pl-4">
-                                <li><strong>Knee Point (Vk):</strong> The CT's voltage capability (Quality).</li>
-                                <li><strong>Fault Mag (I):</strong> The severity of the short circuit.</li>
-                                <li><strong>Burden (Rb):</strong> Resistance of wires + relay.</li>
-                                <li><strong>X/R Ratio:</strong> Determines DC offset duration.</li>
-                            </ul>
-                        </div>
-                        <div className="bg-slate-800 p-4 rounded-lg">
-                            <h4 className="text-sm font-bold text-emerald-400 mb-2">Outputs (Right Panel)</h4>
-                            <ul className="text-xs text-slate-300 space-y-2 list-disc pl-4">
-                                <li><strong>Waveform:</strong> Visual distortion of current.</li>
-                                <li><strong>Harmonics:</strong> FFT analysis for relay logic.</li>
-                                <li><strong>Metrics:</strong> Pass/Fail based on saturation factors.</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <section>
-                        <h3 className="text-lg font-bold text-white mb-2">2. Key Standard Formula</h3>
-                        <div className="p-3 bg-slate-950 border border-slate-800 rounded font-mono text-xs text-center text-slate-300">
-                            Is Saturated? IF <span className="text-blue-400">Ks</span> {'<'} <span className="text-red-400">(1 + X/R)</span>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-2 text-center">
-                            Where Ks (Saturation Factor) = Vk / (I_fault × Burden)
-                        </p>
-                    </section>
-                </div>
-            </Modal>
+        <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
 
             {/* HEADER */}
-            <header className="border-b border-slate-800 bg-[#0f172a]/80 backdrop-blur-md sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-500/20">
-                            <Microscope className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-white tracking-tight font-display">CT Forensics Lab</h1>
-                            <div className="flex items-center gap-3 text-[10px] font-medium tracking-wider text-slate-400 uppercase">
-                                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-500" /> IEEE C37.110</span>
-                                <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
-                                <span>IEC 61869-2</span>
-                            </div>
+            <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className="flex items-center gap-3">
+                    <div className="bg-gradient-to-br from-red-600 to-orange-600 p-2 rounded-lg text-white shadow-lg shadow-red-500/20">
+                        <Microscope className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>GridGuard <span className="text-red-500">LAB</span></h1>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">CT Failure Analysis</span>
+                            <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/80">IEEE C57.13 / IEC 61869-2</span>
                         </div>
                     </div>
+                </div>
 
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => setShowGuide(true)} className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
-                            <HelpCircle className="w-4 h-4" /> How to Use
+                {/* Desktop Tabs */}
+                <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+                    {[
+                        { id: 'simulator', label: 'Simulator', icon: <MonitorPlay className="w-4 h-4" /> },
+                        { id: 'theory', label: 'Theory', icon: <Book className="w-4 h-4" /> },
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === tab.id
+                                ? (isDark ? 'bg-slate-800 text-red-400 shadow-sm' : 'bg-white text-red-600 shadow-sm')
+                                : 'opacity-60 hover:opacity-100'
+                                }`}
+                        >
+                            {tab.icon} <span>{tab.label}</span>
                         </button>
-                        <div className="h-6 w-px bg-slate-800"></div>
-                        <button onClick={() => { setMagnitude(100); setBurden(4); setXOverR(30); setKneePoint(100); }} className="px-4 py-2 text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition-all shadow-lg shadow-red-900/10">
-                            Load: Severe Fault
-                        </button>
-                        <button onClick={() => { setMagnitude(20); setBurden(1); setXOverR(5); setKneePoint(200); }} className="px-4 py-2 text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-all">
-                            Load: Normal
-                        </button>
-                    </div>
+                    ))}
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <button onClick={() => setIsDark(!isDark)} className={`p-2.5 rounded-lg transition-all border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-amber-400' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 shadow-sm'}`}>
+                        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    </button>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-12 gap-8">
+            {/* MAIN CONTENT */}
+            <div className="flex-1 overflow-y-auto">
+                {activeTab === 'theory' ? (
+                    <TheoryLibrary
+                        title="IEC/IEEE CT Theory"
+                        description="Understanding Saturation, Remanence, and Transient Dimensioning."
+                        sections={FAILURE_THEORY_CONTENT}
+                    />
+                ) : (
+                    <main className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-12 gap-8">
+                        {/* LEFT COLUMN: CONTROLS & METRICS */}
+                        <div className="col-span-12 lg:col-span-4 space-y-6">
 
-                {/* LEFT COLUMN: CONTROLS & METRICS */}
-                <div className="col-span-12 lg:col-span-4 space-y-6">
-
-                    {/* CONTROL PANEL */}
-                    <div className="bg-[#1e293b]/50 backdrop-blur rounded-2xl border border-slate-700/50 overflow-hidden shadow-xl">
-                        <div className="p-4 border-b border-slate-700/50 bg-slate-800/50 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Settings className="w-4 h-4 text-blue-400" />
-                                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">Simulation Parameters</h2>
-                            </div>
-                        </div>
-
-                        <div className="p-6 space-y-8">
-                            {/* CT Capability */}
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center mb-1">
-                                    <label className="text-xs font-bold text-blue-300 flex items-center gap-2">
-                                        <Sliders className="w-3 h-3" /> Knee Point (Vk)
-                                    </label>
-                                    <span className="font-mono text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">{kneePoint} V</span>
-                                </div>
-                                <input type="range" min="50" max="800" step="10" value={kneePoint} onChange={e => setKneePoint(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400" />
-                            </div>
-
-                            {/* Fault Magnitude */}
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center mb-1">
-                                    <label className="text-xs font-bold text-slate-300">Fault Current (I_sec)</label>
-                                    <span className="font-mono text-xs bg-slate-700 text-white px-2 py-0.5 rounded">{magnitude} A</span>
-                                </div>
-                                <input type="range" min="5" max="150" value={magnitude} onChange={e => setMagnitude(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-white" />
-                            </div>
-
-                            {/* Burden */}
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center mb-1">
-                                    <label className="text-xs font-bold text-amber-300">Total Burden (Rb)</label>
-                                    <span className="font-mono text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">{burden} Ω</span>
-                                </div>
-                                <input type="range" min="0.1" max="10" step="0.1" value={burden} onChange={e => setBurden(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400" />
-                            </div>
-
-                            {/* X/R Ratio */}
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center mb-1">
-                                    <label className="text-xs font-bold text-purple-300">System X/R Ratio</label>
-                                    <span className="font-mono text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">{xOverR}</span>
-                                </div>
-                                <input type="range" min="1" max="100" value={xOverR} onChange={e => setXOverR(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500 hover:accent-purple-400" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* STANDARDS ANALYSIS CARD */}
-                    <div className="bg-[#1e293b]/50 backdrop-blur rounded-2xl border border-slate-700/50 p-1">
-                        <div className="bg-slate-900/80 rounded-xl p-5 border border-slate-800/50">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 flex items-center gap-2 border-b border-slate-800 pb-2">
-                                <Activity className="w-3 h-3" /> IEEE C37.110 Compliance
-                            </h3>
-
-                            <div className="grid grid-cols-2 gap-3 mb-4">
-                                {renderMetric("Capability (Ks)", stats.ks, "Vk / (I × Rb)", stats.status === 'FAIL' ? 'WARN' : 'PASS')}
-                                {renderMetric("Requirement (Ktd)", stats.ktd, "1 + X/R", 'INFO')}
-                            </div>
-
-                            <div className={`flex items-center gap-3 p-3 rounded-lg border ${stats.status === 'FAIL' ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
-                                <div className={`p-2 rounded-full ${stats.status === 'FAIL' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                                    {stats.status === 'FAIL' ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-                                </div>
-                                <div>
-                                    <div className={`font-bold text-sm ${stats.status === 'FAIL' ? 'text-red-400' : 'text-emerald-400'}`}>
-                                        RESULT: {stats.status}
+                            {/* CONTROL PANEL */}
+                            <div className="bg-[#1e293b]/50 backdrop-blur rounded-2xl border border-slate-700/50 overflow-hidden shadow-xl">
+                                <div className="p-4 border-b border-slate-700/50 bg-slate-800/50 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Settings className="w-4 h-4 text-blue-400" />
+                                        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">Simulation Parameters</h2>
                                     </div>
-                                    <div className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                                        {stats.status === 'FAIL' ? 'CT cannot support transient flux. Deep saturation expected.' : 'CT has sufficient margin for transient DC offset.'}
+                                    <div className="flex gap-2">
+                                        <button onClick={() => { setMagnitude(80); setBurden(5); setXOverR(40); setKneePoint(100); setRemFlux(50); }} className="text-[10px] font-bold text-red-400 hover:text-red-300">
+                                            WORST CASE
+                                        </button>
+                                        <button onClick={() => { setMagnitude(20); setBurden(1); setXOverR(5); setKneePoint(200); setRemFlux(0); }} className="text-[10px] font-bold text-slate-400 hover:text-white underline">
+                                            DEFAULTS
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 space-y-8">
+                                    {/* CT Capability */}
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-xs font-bold text-blue-300 flex items-center gap-2">
+                                                <Sliders className="w-3 h-3" /> Knee Point (Vk)
+                                            </label>
+                                            <span className="font-mono text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">{kneePoint} V</span>
+                                        </div>
+                                        <input type="range" min="50" max="800" step="10" value={kneePoint} onChange={e => setKneePoint(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400" />
+                                    </div>
+
+                                    {/* Fault Magnitude */}
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-xs font-bold text-slate-300">Fault Current (I_sec)</label>
+                                            <span className="font-mono text-xs bg-slate-700 text-white px-2 py-0.5 rounded">{magnitude} A</span>
+                                        </div>
+                                        <input type="range" min="5" max="150" value={magnitude} onChange={e => setMagnitude(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-white" />
+                                    </div>
+
+                                    {/* Burden */}
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-xs font-bold text-amber-300">Total Burden (Rb)</label>
+                                            <span className="font-mono text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">{burden} Ω</span>
+                                        </div>
+                                        <input type="range" min="0.1" max="10" step="0.1" value={burden} onChange={e => setBurden(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400" />
+                                    </div>
+
+                                    {/* X/R Ratio */}
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-xs font-bold text-purple-300">System X/R Ratio</label>
+                                            <span className="font-mono text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">{xOverR}</span>
+                                        </div>
+                                        <input type="range" min="1" max="100" value={xOverR} onChange={e => setXOverR(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500 hover:accent-purple-400" />
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
 
-                {/* RIGHT COLUMN: VISUALIZATION */}
-                <div className="col-span-12 lg:col-span-8 space-y-6">
+                            {/* STANDARDS ANALYSIS CARD */}
+                            <div className="bg-[#1e293b]/50 backdrop-blur rounded-2xl border border-slate-700/50 p-1">
+                                <div className="bg-slate-900/80 rounded-xl p-5 border border-slate-800/50">
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 flex items-center gap-2 border-b border-slate-800 pb-2">
+                                        <Activity className="w-3 h-3" /> IEEE C37.110 Compliance
+                                    </h3>
 
-                    {/* MAIN GRAPH CARD */}
-                    <div className="bg-[#1e293b]/50 backdrop-blur rounded-2xl border border-slate-700/50 p-1 shadow-2xl flex flex-col h-[500px]">
-                        <div className="flex items-center gap-1 p-1 bg-slate-900/50 rounded-t-xl mx-1 mt-1">
-                            {[
-                                { id: 'WAVEFORM', label: 'Time Domain Analysis', icon: TrendingUp },
-                                { id: 'HARMONICS', label: 'Harmonic Spectrum (FFT)', icon: BarChart2 },
-                                { id: 'BH_LOOP', label: 'B-H Hysteresis Loop', icon: Compass },
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveView(tab.id)}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-wide rounded-lg transition-all
-                    ${activeView === tab.id
-                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
-                                            : 'text-slate-500 hover:text-slate-200 hover:bg-slate-800'
-                                        }`}
-                                >
-                                    <tab.icon className="w-4 h-4" /> {tab.label}
-                                </button>
-                            ))}
-                        </div>
+                                    <div className="grid grid-cols-2 gap-3 mb-4">
+                                        {renderMetric("Capability (Ks)", stats.ks, "Vk / (I × Rb)", stats.status === 'FAIL' ? 'WARN' : 'PASS')}
+                                        {renderMetric("Requirement (Ktd)", stats.ktd, "1 + X/R", 'INFO')}
+                                    </div>
 
-                        <div className="flex-1 bg-slate-950 rounded-b-xl m-1 relative overflow-hidden">
-                            {activeView === 'WAVEFORM' && renderWaveform()}
-                            {activeView === 'HARMONICS' && renderHarmonics()}
-                            {activeView === 'BH_LOOP' && renderBHLoop()}
-                        </div>
-                    </div>
+                                    <div className={`flex items-center gap-3 p-3 rounded-lg border ${stats.status === 'FAIL' ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
+                                        <div className={`p-2 rounded-full ${stats.status === 'FAIL' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                            {stats.status === 'FAIL' ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                                        </div>
+                                        <div>
+                                            <div className={`font-bold text-sm ${stats.status === 'FAIL' ? 'text-red-400' : 'text-emerald-400'}`}>
+                                                RESULT: {stats.status}
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                                                {stats.status === 'FAIL' ? 'CT cannot support transient flux. Deep saturation expected.' : 'CT has sufficient margin for transient DC offset.'}
+                                            </div>
+                                        </div>
+                                    </div>
 
-                    {/* EDUCATIONAL & BENEFITS SECTION */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 rounded-2xl border border-slate-800 p-6 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-3xl -mr-12 -mt-12"></div>
-                            <h4 className="text-sm font-bold text-white flex items-center gap-2 mb-4 relative z-10">
-                                <GraduationCap className="w-5 h-5 text-blue-500" /> Learning Outcomes
-                            </h4>
-                            <ul className="space-y-3 relative z-10">
-                                <li className="flex gap-3 text-xs text-slate-400">
-                                    <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700 text-blue-400 font-bold">1</span>
-                                    <span><strong>Visual Intuition:</strong> Connect abstract math ($K_s$, $X/R$) to physical waveform distortion.</span>
-                                </li>
-                                <li className="flex gap-3 text-xs text-slate-400">
-                                    <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700 text-blue-400 font-bold">2</span>
-                                    <span><strong>Relay Logic:</strong> Understand why differential relays use 2nd harmonic blocking during transients.</span>
-                                </li>
-                                <li className="flex gap-3 text-xs text-slate-400">
-                                    <span className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700 text-blue-400 font-bold">3</span>
-                                    <span><strong>Design Safety:</strong> Learn to size CTs correctly using the <span className="font-mono text-blue-300">V_k &gt; I·Z·(1+X/R)</span> rule.</span>
-                                </li>
-                            </ul>
-                        </div>
+                                    {/* V-burden Readout */}
+                                    <div className="mt-3 p-2 rounded-lg bg-slate-800 border border-slate-700 flex justify-between text-xs">
+                                        <span className="text-slate-400">V_burden = I × R</span>
+                                        <span className="font-mono font-bold text-white">{(magnitude * burden).toFixed(1)} V</span>
+                                    </div>
 
-                        <div className="bg-gradient-to-br from-slate-900 to-slate-900/50 rounded-2xl border border-slate-800 p-6 relative overflow-hidden">
-                            <h4 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
-                                <FileText className="w-5 h-5 text-emerald-500" /> Forensic Insight
-                            </h4>
-                            <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                                {stats.status === 'FAIL'
-                                    ? "CRITICAL FAILURE DETECTED: The DC offset component has pushed the magnetic flux beyond the core's saturation limit. This results in 'missing' secondary current. A differential relay would see this mismatch as an internal fault and likely trip erroneously."
-                                    : "OPTIMAL OPERATION: The CT has sufficient Knee Point Voltage to drive the fault current plus the DC offset without entering the saturation region. Protection relays will operate correctly."
-                                }
-                            </p>
-                            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono bg-slate-950 p-2 rounded border border-slate-800">
-                                <Info className="w-3 h-3 text-emerald-500" />
-                                Severity Index: {stats.severity} (Target: {'<'} 1.0)
+                                    {/* Copy Results */}
+                                    <button onClick={copyShareLink} className="mt-3 w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg transition-colors flex justify-center items-center gap-1">
+                                        <Share2 className="w-4 h-4" /> Share Simulation
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                </div>
-            </main>
+                        {/* RIGHT COLUMN: VISUALIZATION */}
+                        <div className="col-span-12 lg:col-span-8 space-y-6">
+
+                            {/* MAIN GRAPH CARD */}
+                            <div className="bg-[#1e293b]/50 backdrop-blur rounded-2xl border border-slate-700/50 p-1 shadow-2xl flex flex-col h-[500px]">
+                                <div className="flex items-center gap-1 p-1 bg-slate-900/50 rounded-t-xl mx-1 mt-1">
+                                    {[
+                                        { id: 'WAVEFORM', label: 'Time Domain Analysis', icon: TrendingUp },
+                                        { id: 'HARMONICS', label: 'Harmonic Spectrum (FFT)', icon: BarChart2 },
+                                        { id: 'BH_LOOP', label: 'B-H Hysteresis Loop', icon: Compass },
+                                    ].map(tab => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setActiveView(tab.id)}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-wide rounded-lg transition-all
+                                        ${activeView === tab.id
+                                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
+                                                    : 'text-slate-500 hover:text-slate-200 hover:bg-slate-800'
+                                                }`}
+                                        >
+                                            <tab.icon className="w-4 h-4" /> {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="flex-1 bg-slate-950 rounded-b-xl m-1 relative overflow-hidden">
+                                    {activeView === 'WAVEFORM' && renderWaveform()}
+                                    {activeView === 'HARMONICS' && renderHarmonics()}
+                                    {activeView === 'BH_LOOP' && renderBHLoop()}
+                                </div>
+                            </div>
+
+                        </div>
+                    </main>
+                )}
+            </div>
         </div>
     );
 };

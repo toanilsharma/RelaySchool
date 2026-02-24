@@ -9,6 +9,8 @@ import {
     MousePointer2, Book, GraduationCap, Menu, CheckCircle2, ShieldCheck,
     Settings, Grid, Share2
 } from 'lucide-react';
+import TheoryLibrary from '../components/TheoryLibrary';
+import { FORENSIC_THEORY_CONTENT } from '../data/learning-modules/forensic';
 
 // --- TYPES & MATH UTILS ---
 interface DataPoint {
@@ -21,155 +23,6 @@ interface DataPoint {
 }
 
 const toRad = (deg: number) => deg * Math.PI / 180;
-
-// --- 1. EXTENDED THEORY DATA ---
-const THEORY_DATA = [
-    {
-        id: 'intro',
-        title: "1. The Art of Forensics",
-        icon: <Search className="w-5 h-5 text-blue-500" />,
-        content: (
-            <div className="space-y-6 text-sm leading-relaxed">
-                <div className="p-5 rounded-2xl border-l-4 border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-sm">
-                    <h3 className="text-lg font-bold mb-2 text-blue-900 dark:text-blue-100">Why analyze faults?</h3>
-                    <p className="text-slate-700 dark:text-slate-300">
-                        Power system faults are violent, high-energy events. Protection relays must detect these in milliseconds.
-                        <strong>Forensic Analysis</strong> (or Post-Mortem Analysis) uses COMTRADE records to verify if the protection system operated correctly, identifying:
-                    </p>
-                    <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-600 dark:text-slate-400">
-                        <li><strong>Fault Type:</strong> Was it a lightning strike (L-G) or a clashing conductor (L-L)?</li>
-                        <li><strong>Location:</strong> Which mile of the line triggered the trip?</li>
-                        <li><strong>Speed:</strong> Did the breaker open fast enough (e.g., &lt;3 cycles) to prevent instability?</li>
-                    </ul>
-                </div>
-
-                <h4 className="font-bold text-slate-900 dark:text-white text-base border-b pb-2 border-slate-200 dark:border-slate-700">Standard Formats</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center justify-between mb-2">
-                            <strong className="text-purple-600 dark:text-purple-400">COMTRADE</strong>
-                            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-500">IEEE C37.111</span>
-                        </div>
-                        <p className="text-xs text-slate-500">
-                            The universal standard. Consists of a <strong>.CFG</strong> file (setup) and a <strong>.DAT</strong> file (samples). Modern relays sample at 32-128 samples per cycle.
-                        </p>
-                    </div>
-                    <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center justify-between mb-2">
-                            <strong className="text-emerald-600 dark:text-emerald-400">Sequence of Events (SOE)</strong>
-                            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-500">1ms Resolution</span>
-                        </div>
-                        <p className="text-xs text-slate-500">
-                            A digital log of contact changes. Tells you <em>"Breaker 52-1 Trip Coil Energized at 10:00:00.052"</em>.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'symmetrical',
-        title: "2. Symmetrical Components",
-        icon: <Layers className="w-5 h-5 text-indigo-500" />,
-        content: (
-            <div className="space-y-6 text-sm leading-relaxed">
-                <p className="text-slate-600 dark:text-slate-400">
-                    Dr. Charles Fortescue (1918) proved that any unbalanced 3-phase system can be decomposed into three balanced systems. This is the math behind almost all digital relays.
-                </p>
-
-                <div className="grid grid-cols-1 gap-4">
-                    <div className="flex gap-4 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 transition-colors group">
-                        <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center font-bold text-green-600 text-lg group-hover:scale-110 transition-transform">1</div>
-                        <div>
-                            <strong className="text-slate-900 dark:text-white">Positive Sequence (I1)</strong>
-                            <p className="text-xs text-slate-500 mt-1">Balanced, normal rotation (A-B-C). Present in all conditions. The "Workhorse" current.</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-4 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 transition-colors group">
-                        <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center font-bold text-amber-600 text-lg group-hover:scale-110 transition-transform">2</div>
-                        <div>
-                            <strong className="text-slate-900 dark:text-white">Negative Sequence (I2)</strong>
-                            <p className="text-xs text-slate-500 mt-1">Balanced, reverse rotation (A-C-B). Only appears during <strong>Unbalanced Faults</strong> (L-L, L-G). Generates counter-torque in motors (heating).</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-4 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 transition-colors group">
-                        <div className="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center font-bold text-red-600 text-lg group-hover:scale-110 transition-transform">0</div>
-                        <div>
-                            <strong className="text-slate-900 dark:text-white">Zero Sequence (I0)</strong>
-                            <p className="text-xs text-slate-500 mt-1">In-phase currents (A+B+C). Only flows to <strong>Ground</strong>. High I0 = Ground Fault (L-G).</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'signatures',
-        title: "3. Fault Type Library",
-        icon: <Activity className="w-5 h-5 text-red-500" />,
-        content: (
-            <div className="space-y-6 text-sm">
-                <div className="space-y-4">
-                    <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-bold">A-G</span>
-                            <strong className="text-slate-900 dark:text-white">Single Line to Ground</strong>
-                        </div>
-                        <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1 ml-1">
-                            <li>• <strong>Signature:</strong> IA High, VA Low. IB/IC Normal.</li>
-                            <li>• <strong>Sequence:</strong> I1 ≈ I2 ≈ I0 (All components present and equal).</li>
-                            <li>• <strong>Cause:</strong> Lightning, Insulator Flashover, Tree Contact.</li>
-                        </ul>
-                    </div>
-
-                    <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="px-2 py-1 rounded bg-amber-100 text-amber-700 text-xs font-bold">B-C</span>
-                            <strong className="text-slate-900 dark:text-white">Line to Line</strong>
-                        </div>
-                        <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1 ml-1">
-                            <li>• <strong>Signature:</strong> IB & IC High (180° opposed). VB & VC Collapse towards each other.</li>
-                            <li>• <strong>Sequence:</strong> I1 & I2 present. <strong>I0 = 0</strong> (No ground current).</li>
-                            <li>• <strong>Cause:</strong> Conductor clashing (wind), Animal bridging phases.</li>
-                        </ul>
-                    </div>
-
-                    <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="px-2 py-1 rounded bg-purple-100 text-purple-700 text-xs font-bold">ABC</span>
-                            <strong className="text-slate-900 dark:text-white">Three Phase (Symmetrical)</strong>
-                        </div>
-                        <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1 ml-1">
-                            <li>• <strong>Signature:</strong> All 3 currents high & balanced. All 3 voltages collapse to zero.</li>
-                            <li>• <strong>Sequence:</strong> Only I1. <strong>I2 = 0, I0 = 0</strong>.</li>
-                            <li>• <strong>Cause:</strong> Leaving grounding clamps on during energization (Human Error).</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'dc',
-        title: "4. DC Offset & Saturation",
-        icon: <TrendingUp className="w-5 h-5 text-amber-500" />,
-        content: (
-            <div className="space-y-6 text-sm leading-relaxed">
-                <h4 className="font-bold text-slate-900 dark:text-white">Why are waves asymmetric?</h4>
-                <p className="text-slate-600 dark:text-slate-400">
-                    In an inductive circuit (like a power grid), current cannot change instantly. If a fault occurs when the voltage is at <strong>Zero Crossing</strong>, the current <em>should</em> start at maximum, but it starts at zero. To satisfy physics, the entire waveform is shifted vertically. This shift is the <strong>DC Offset</strong>.
-                </p>
-
-                <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border-l-4 border-amber-500 rounded-r-lg">
-                    <h5 className="font-bold text-amber-800 dark:text-amber-200 text-xs uppercase mb-1">Impact on Protection</h5>
-                    <p className="text-slate-700 dark:text-slate-300 text-xs">
-                        DC Offset can double the peak current. This can saturate Current Transformers (CTs), causing the secondary output to "chop" or disappear. Digital relays must filter this DC out to measure the correct RMS value.
-                    </p>
-                </div>
-            </div>
-        )
-    }
-];
 
 // --- 2. DYNAMIC FAULT ENGINE ---
 const SAMPLE_RATE = 2000;
@@ -281,39 +134,6 @@ const generateScenario = (params: SimulationParams): DataPoint[] => {
 
 // --- 3. SUB-COMPONENTS ---
 
-const TheoryModule = ({ isDark }: { isDark: boolean }) => {
-    const [activeSection, setActiveSection] = useState(THEORY_DATA[0].id);
-    const content = THEORY_DATA.find(d => d.id === activeSection);
-
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-12 h-full">
-            <div className={`md:col-span-4 lg:col-span-3 border-r overflow-y-auto ${isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
-                <div className="p-4">
-                    <h2 className={`text-xs font-bold uppercase tracking-widest mb-4 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Handbook</h2>
-                    <div className="space-y-2">
-                        {THEORY_DATA.map((item) => (
-                            <button key={item.id} onClick={() => setActiveSection(item.id)} className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all text-sm font-medium ${activeSection === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : isDark ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-white hover:shadow-sm'}`}>
-                                {item.icon} <span>{item.title}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-            <div className={`md:col-span-8 lg:col-span-9 overflow-y-auto p-6 md:p-10 ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
-                <div className="max-w-3xl mx-auto">
-                    <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
-                        <h1 className={`text-3xl font-black mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{content?.title}</h1>
-                        <div className={`text-xs font-mono px-2 py-1 rounded inline-block ${isDark ? 'bg-slate-900 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                            Ref: IEEE C37.111 / C37.2
-                        </div>
-                    </div>
-                    <div className="animate-fade-in">{content?.content}</div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const PhasorDiagram = ({ magnitudes, angles, isDark }: { magnitudes: number[], angles: number[], isDark: boolean }) => {
     // 0-2: Iabc, 3-5: Vabc
     const scaleI = 90 / Math.max(10, ...magnitudes.slice(0, 3));
@@ -391,6 +211,28 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
 
     const graphRef = useRef<HTMLDivElement>(null);
     const animationRef = useRef<number | undefined>(undefined);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const stateParam = params.get('s');
+        if (stateParam) {
+            try {
+                const state = JSON.parse(atob(stateParam));
+                if (state.simParams) setSimParams(state.simParams);
+                if (state.cursor !== undefined) setCursor(state.cursor);
+                if (state.isPlaying !== undefined) setIsPlaying(state.isPlaying);
+            } catch (e) {
+                console.error("Failed to parse share link", e);
+            }
+        }
+    }, []);
+
+    const copyShareLink = () => {
+        const state = { simParams, cursor, isPlaying };
+        const str = btoa(JSON.stringify(state));
+        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
+        alert("Simulation link copied! You can share this URL to load the exact state.");
+    };
 
     // Regenerate data when params change
     useEffect(() => {
@@ -509,6 +351,10 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
                                     </button>
                                 ))}
                             </div>
+                            {/* Fault Classification */}
+                            <div className={`mt-3 p-2 rounded-lg text-[10px] font-bold text-center border ${simParams.type === 'Normal' ? (isDark ? 'bg-emerald-900/20 border-emerald-800 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDark ? 'bg-red-900/20 border-red-800 text-red-400' : 'bg-red-50 border-red-200 text-red-700')}`}>
+                                {simParams.type === 'Normal' ? '✓ System Healthy' : simParams.type === 'AG' ? '⚡ SLG Fault (Phase A-Ground)' : simParams.type === 'BC' ? '⚡ LL Fault (Phase B-C)' : '⚡ Three-Phase Bolted Fault'}
+                            </div>
                         </div>
 
                         <div>
@@ -573,6 +419,9 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
                         <button onClick={() => setCursor(0)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}>
                             <RotateCcw className="w-5 h-5" />
                         </button>
+                        <button onClick={copyShareLink} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg transition-colors">
+                            <Share2 className="w-3 h-3" /> Share
+                        </button>
                     </div>
                 </div>
 
@@ -617,11 +466,12 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
 
                 {/* Legend */}
                 <div className={`grid grid-cols-2 md:grid-cols-6 gap-4 p-4 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-600'}`}>
-                    <div className="flex items-center gap-2 text-xs font-mono"><div className="w-3 h-1 bg-red-500"></div> IA: {phasors.mag[0].toFixed(1)}A</div>
-                    <div className="flex items-center gap-2 text-xs font-mono"><div className="w-3 h-1 bg-yellow-500"></div> IB: {phasors.mag[1].toFixed(1)}A</div>
-                    <div className="flex items-center gap-2 text-xs font-mono"><div className="w-3 h-1 bg-blue-500"></div> IC: {phasors.mag[2].toFixed(1)}A</div>
+                    <div className="flex items-center gap-2 text-xs font-mono"><div className="w-3 h-1 bg-red-500"></div> IA: {phasors.mag[0].toFixed(1)}A ∠{phasors.ang[0].toFixed(0)}°</div>
+                    <div className="flex items-center gap-2 text-xs font-mono"><div className="w-3 h-1 bg-yellow-500"></div> IB: {phasors.mag[1].toFixed(1)}A ∠{phasors.ang[1].toFixed(0)}°</div>
+                    <div className="flex items-center gap-2 text-xs font-mono"><div className="w-3 h-1 bg-blue-500"></div> IC: {phasors.mag[2].toFixed(1)}A ∠{phasors.ang[2].toFixed(0)}°</div>
                     <div className="flex items-center gap-2 text-xs font-mono"><div className="w-3 h-1 bg-white/30 border-t border-dashed"></div> Voltage</div>
                     <div className="flex items-center gap-2 text-xs font-mono"><div className="w-3 h-1 bg-green-500"></div> Trip</div>
+                    <div className="flex items-center gap-2 text-xs font-mono"><div className="w-3 h-1 bg-purple-500"></div> DC: {simParams.dcOffset ? 'ON' : 'OFF'}</div>
                 </div>
 
             </div>
@@ -707,7 +557,11 @@ export default function ForensicLabApp() {
                     </div>
                     <div>
                         <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>GridGuard <span className="text-purple-500">PRO</span></h1>
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Forensic Lab Suite</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Forensic Lab Suite</span>
+                            <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-purple-500/80">IEEE C37.111 / IEC 60255-24</span>
+                        </div>
                     </div>
                 </div>
 
@@ -760,7 +614,13 @@ export default function ForensicLabApp() {
 
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative pb-16 md:pb-0">
-                {activeTab === 'theory' && <TheoryModule isDark={isDark} />}
+                {activeTab === 'theory' && (
+                    <TheoryLibrary
+                        title="Forensic Analysis"
+                        description="Master the art of post-mortem fault analysis using Symmetrical Components."
+                        sections={FORENSIC_THEORY_CONTENT}
+                    />
+                )}
 
                 {/* Simulator: Wrapped in overflow-y-auto for vertical scrolling */}
                 <div className={activeTab === 'simulator' ? 'block h-full overflow-y-auto' : 'hidden'}>

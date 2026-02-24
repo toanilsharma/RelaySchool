@@ -4,7 +4,7 @@ import {
     Download, Power, AlertTriangle, Database, 
     Activity, Play, RotateCcw, FileText, Server,
     Cpu, ShieldCheck, Zap, BookOpen, AlertOctagon,
-    CheckCircle2, HelpCircle, X, Settings, Menu
+    CheckCircle2, HelpCircle, X, Settings, Menu, Share2
 } from 'lucide-react';
 
 // --- CONSTANTS & STANDARDS ---
@@ -66,6 +66,29 @@ const EventAnalyzer = () => {
     const [breakerStatus, setBreakerStatus] = useState('CLOSED'); // CLOSED or TRIPPED
     const [records, setRecords] = useState([]);
     const [selectedRecordId, setSelectedRecordId] = useState(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const stateParam = params.get('s');
+        if (stateParam) {
+            try {
+                const state = JSON.parse(atob(stateParam));
+                if (state.isPowered !== undefined) setIsPowered(state.isPowered);
+                if (state.leds !== undefined) setLeds(state.leds);
+                if (state.breakerStatus) setBreakerStatus(state.breakerStatus);
+                if (state.records) setRecords(state.records);
+            } catch (e) {
+                console.error("Failed to parse share link", e);
+            }
+        }
+    }, []);
+
+    const copyShareLink = () => {
+        const state = { isPowered, leds, breakerStatus, records };
+        const str = btoa(JSON.stringify(state));
+        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
+        alert("Simulation link copied! You can share this URL to load the exact state.");
+    };
 
     // --- LOGIC ENGINE ---
     useEffect(() => {
@@ -203,10 +226,18 @@ const EventAnalyzer = () => {
                         </div>
                         <div>
                             <h1 className="text-xl font-bold tracking-tight">RelaySim <span className="text-blue-600">PRO</span></h1>
-                            <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">IEC 61850 Compliant Trainer</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">IEC 61850 Compliant Trainer</span>
+                                <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">IEEE C37.111 / IEC 60255-24</span>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 items-center">
+                        {records.length > 0 && <span className="bg-blue-600 text-white text-[9px] px-2 py-1 rounded-full font-bold">{records.length} Events</span>}
+                        <button onClick={copyShareLink} className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg text-xs font-bold transition-all border border-slate-200 dark:border-slate-700">
+                            <Share2 className="w-4 h-4" /> SHARE SIMULATION
+                        </button>
                         <button onClick={injectFault} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-md active:translate-y-0.5 transition-all">
                             <Zap className="w-4 h-4" /> INJECT FAULT
                         </button>
@@ -297,13 +328,16 @@ const EventAnalyzer = () => {
                                 <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
                                     <Activity className="w-4 h-4 text-emerald-500" /> Breaker Status (52)
                                 </h3>
-                                <div className="text-[10px] font-mono text-slate-400">CB-ID: 52-101</div>
+                                <div className="flex items-center gap-2">
+                                    <div className="text-[10px] font-mono text-slate-400">CB-ID: 52-101</div>
+                                    {leds.trip && <span className="text-[9px] font-bold bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">LOCKOUT (86)</span>}
+                                </div>
                             </div>
                             
                             <div className="flex gap-4 items-center">
                                 <div className={`flex-1 p-4 rounded-lg border-2 text-center transition-all ${
                                     breakerStatus === 'CLOSED' 
-                                    ? 'bg-red-50 border-red-500 text-red-700 dark:bg-red-900/20 dark:text-red-400' // Utility convention: Red = Closed/Energized
+                                    ? 'bg-red-50 border-red-500 text-red-700 dark:bg-red-900/20 dark:text-red-400'
                                     : 'bg-green-50 border-green-500 text-green-700 dark:bg-green-900/20 dark:text-green-400'
                                 }`}>
                                     <div className="text-2xl font-black">{breakerStatus}</div>
@@ -318,6 +352,29 @@ const EventAnalyzer = () => {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Fault Statistics */}
+                        {records.length > 0 && (
+                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+                                <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2 mb-3">
+                                    <Database className="w-4 h-4 text-blue-500" /> Fault Statistics
+                                </h3>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-center">
+                                        <div className="text-lg font-mono font-bold text-slate-900 dark:text-white">{records.length}</div>
+                                        <div className="text-[9px] text-slate-500 uppercase font-bold">Total Events</div>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-center">
+                                        <div className="text-lg font-mono font-bold text-red-500">{records[0]?.mag}</div>
+                                        <div className="text-[9px] text-slate-500 uppercase font-bold">Last Fault</div>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-center">
+                                        <div className="text-lg font-mono font-bold text-blue-500">{records[0]?.element}</div>
+                                        <div className="text-[9px] text-slate-500 uppercase font-bold">Trip Element</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Standards Reference */}
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">

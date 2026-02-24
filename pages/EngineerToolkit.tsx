@@ -166,12 +166,12 @@ const FaultChecker = () => {
             <div className="space-y-4 flex-1">
                 <div>
                     <label className="text-[10px] font-bold text-slate-500 uppercase">System Voltage (kV)</label>
-                    <input type="number" value={kv} onChange={(e) => setKv(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-sm text-slate-900 dark:text-white"/>
+                    <input type="number" min="0" value={kv} onChange={(e) => setKv(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-sm text-slate-900 dark:text-white"/>
                 </div>
 
                 <div>
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Short Circuit {mode}</label>
-                    <input type="number" value={val} onChange={(e) => setVal(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-sm text-slate-900 dark:text-white"/>
+                    <input type="number" min="0" value={val} onChange={(e) => setVal(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-sm text-slate-900 dark:text-white"/>
                 </div>
 
                 <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 text-center mt-auto">
@@ -229,11 +229,11 @@ const CTCheck = () => {
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Rated VA</label>
-                        <input type="number" value={ratedBurden} onChange={(e) => setRatedBurden(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
+                        <input type="number" min="0" value={ratedBurden} onChange={(e) => setRatedBurden(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
                     </div>
                     <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Loop &Omega;</label>
-                        <input type="number" step="0.1" value={actualBurden} onChange={(e) => setActualBurden(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
+                        <input type="number" min="0" step="0.1" value={actualBurden} onChange={(e) => setActualBurden(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
                     </div>
                 </div>
 
@@ -279,17 +279,17 @@ const PerUnitCalc = () => {
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Base MVA</label>
-                        <input type="number" value={baseMva} onChange={(e) => setBaseMva(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
+                        <input type="number" min="0" value={baseMva} onChange={(e) => setBaseMva(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
                     </div>
                     <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Base kV</label>
-                        <input type="number" value={baseKv} onChange={(e) => setBaseKv(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
+                        <input type="number" min="0" value={baseKv} onChange={(e) => setBaseKv(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
                     </div>
                 </div>
 
                 <div>
                     <label className="text-[10px] font-bold text-slate-500 uppercase">{mode === 'OHM_TO_PU' ? 'Impedance (Ω)' : 'Value (p.u.)'}</label>
-                    <input type="number" step="0.01" value={val} onChange={(e) => setVal(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-sm text-slate-900 dark:text-white"/>
+                    <input type="number" min="0" step="0.01" value={val} onChange={(e) => setVal(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-sm text-slate-900 dark:text-white"/>
                 </div>
 
                 <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 text-center mt-auto">
@@ -327,11 +327,11 @@ const PowerCalc = () => {
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Voltage (kV)</label>
-                        <input type="number" value={kv} onChange={(e) => setKv(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
+                        <input type="number" min="0" value={kv} onChange={(e) => setKv(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
                     </div>
                     <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Current (A)</label>
-                        <input type="number" value={amps} onChange={(e) => setAmps(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
+                        <input type="number" min="0" value={amps} onChange={(e) => setAmps(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
                     </div>
                 </div>
                 <div>
@@ -492,15 +492,15 @@ const BatterySizer = () => {
             <div className="space-y-4 flex-1">
                 <div>
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Standing Load (A)</label>
-                    <input type="number" value={loadA} onChange={(e) => setLoadA(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
+                    <input type="number" min="0" value={loadA} onChange={(e) => setLoadA(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
                 </div>
                 <div>
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Backup Time (Hours)</label>
-                    <input type="number" value={durationH} onChange={(e) => setDurationH(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
+                    <input type="number" min="0" value={durationH} onChange={(e) => setDurationH(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
                 </div>
                 <div>
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Trip Current (A)</label>
-                    <input type="number" value={tripA} onChange={(e) => setTripA(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
+                    <input type="number" min="0" value={tripA} onChange={(e) => setTripA(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
                 </div>
 
                 <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 text-center mt-auto">
