@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, MapPin, Phone, Send } from 'lucide-react';
+import { Mail, MapPin, Send } from 'lucide-react';
 
 const Contact = () => {
   return (
@@ -32,23 +32,10 @@ const Contact = () => {
                         <MapPin className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                        <h4 className="font-bold text-slate-900 dark:text-white">Headquarters</h4>
+                        <h4 className="font-bold text-slate-900 dark:text-white">Location</h4>
                         <p className="text-slate-600 dark:text-slate-400">
-                            123 Innovation Drive<br/>
-                            Tech District, CA 94043<br/>
-                            United States
+                            Vadodara, Gujarat, India
                         </p>
-                    </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
-                        <Phone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-slate-900 dark:text-white">Phone</h4>
-                        <p className="text-slate-600 dark:text-slate-400">+1 (555) 123-4567</p>
-                        <p className="text-xs text-slate-500 mt-1">Mon-Fri from 8am to 5pm PST.</p>
                     </div>
                 </div>
             </div>

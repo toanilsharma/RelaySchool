@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { InlineMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
 import {
   Activity, RotateCcw, ShieldCheck, Gauge, BookOpen, X, Check,
   LayoutDashboard, GraduationCap, Trophy, Factory, Power,
@@ -107,7 +109,7 @@ const THEORY_DATA = [
         <h4 className="font-bold text-slate-900 dark:text-white text-lg">The Induction Generator Effect</h4>
         <p className="text-slate-700 dark:text-slate-300">
           When a motor bus is disconnected from the grid, the motors do not stop instantly. They have significant <strong>Mechanical Inertia (J)</strong> in their rotors and the driven loads (fans, pumps).
-          Furthermore, the magnetic field in the rotor (trapped flux) does not vanish instantly; it decays based on the <strong>Open Circuit Time Constant ({"$T'_{do}$"})</strong>.
+          Furthermore, the magnetic field in the rotor (trapped flux) does not vanish instantly; it decays based on the <strong>Open Circuit Time Constant (<InlineMath math={'T'_{do}'} />)</strong>.
         </p>
         <p className="text-slate-700 dark:text-slate-300">
             As a result, the spinning motors act as <strong>Induction Generators</strong>, producing a "Back EMF" or Residual Voltage on the bus. This voltage is not synchronized with the grid.
@@ -118,15 +120,15 @@ const THEORY_DATA = [
             <h5 className="font-bold text-indigo-600 dark:text-indigo-400">1. Voltage Decay</h5>
             <p className="text-xs text-slate-600 dark:text-slate-400">
               The magnitude of the voltage drops exponentially.
-              <br/>{"$V(t) = V_0 \\times e^{-t/T'_{do}}$"}
-              <br/>Typical {"$T'_{do}$"} is 0.5s to 2.0s.
+              <br/><InlineMath math={'V(t) = V_0 \\times e^{-t/T'_{do}}'} />
+              <br/>Typical <InlineMath math={'T'_{do}'} /> is 0.5s to 2.0s.
             </p>
           </div>
           <div className="space-y-2 p-3 bg-slate-100 dark:bg-slate-800 rounded">
             <h5 className="font-bold text-indigo-600 dark:text-indigo-400">2. Frequency Decay</h5>
             <p className="text-xs text-slate-600 dark:text-slate-400">
               The motors slow down due to the mechanical load. As RPM drops, the generated frequency drops.
-              <br/>{"$f(t) = f_0 \\times e^{-t/H}$"}
+              <br/><InlineMath math={'f(t) = f_0 \\times e^{-t/H}'} />
               <br/>High Inertia = Slow Decay. Low Inertia = Fast Decay.
             </p>
           </div>
@@ -137,11 +139,11 @@ const THEORY_DATA = [
           <p className="text-xs text-slate-600 dark:text-slate-400">
             Since the Grid stays at 60Hz and the Motor Bus drops to 58Hz, they drift apart. The phase angle ($\delta$) between the Source Vector ($V_S$) and Bus Vector ($V_M$) increases continuously.
             <br /><br />
-            1. <strong>Slip Frequency ($f_s$):</strong> {"$f_{grid} - f_{motor}$"}
+            1. <strong>Slip Frequency ($f_s$):</strong> <InlineMath math={'f_{grid} - f_{motor}'} />
             <br />
             2. <strong>Angle Velocity:</strong> $360 \times f_s$ degrees/second
             <br />
-            3. <strong>Angle Change:</strong> {"$\\delta(t) = \\int (360 \\times f_s) dt$"}
+            3. <strong>Angle Change:</strong> <InlineMath math={'\\delta(t) = \\int (360 \\times f_s) dt'} />
           </p>
         </div>
       </div>
@@ -163,7 +165,7 @@ const THEORY_DATA = [
             <h4 className="font-bold text-emerald-700 dark:text-emerald-400 text-base">Type A: Fast Transfer</h4>
             <p className="text-xs text-slate-600 mb-2">"Beat the clock"</p>
             <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-700 dark:text-slate-300">
-              <li><strong>Logic:</strong> Close breaker immediately if phase angle is within specific limits (typically {"$\\pm 20^{\\circ}$"}).</li>
+              <li><strong>Logic:</strong> Close breaker immediately if phase angle is within specific limits (typically <InlineMath math={'\\pm 20^{\\circ}'} />).</li>
               <li><strong>Timeframe:</strong> Very fast. Total interruption time &lt; 100ms (6 cycles).</li>
               <li><strong>Hardware:</strong> Requires high-speed vacuum circuit breakers (3-cycle close) and fast relay processing (&lt;1 cycle).</li>
               <li><strong>Risk:</strong> Low torque shock if successful. High risk if the breaker is slow.</li>
@@ -207,7 +209,7 @@ const THEORY_DATA = [
         </p>
 
         <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded font-mono text-center my-4">
-             {"$\\Delta V = \\sqrt{V_S^2 + V_M^2 - 2 V_S V_M \\cos(\\delta)}$"}
+             <InlineMath math={'\\Delta V = \\sqrt{V_S^2 + V_M^2 - 2 V_S V_M \\cos(\\delta)}'} />
         </div>
 
         <ul className="space-y-4">
@@ -273,7 +275,7 @@ const THEORY_DATA = [
             <br/>
             You MUST use <strong>Predictive Advance Angle</strong> compensation logic:
             <br/>
-            {"$\\theta_{close} = \\theta_{meas} + (f_{slip} \\times 360 \\times T_{breake})$"}
+            <InlineMath math={'\\theta_{close} = \\theta_{meas} + (f_{slip} \\times 360 \\times T_{breake})'} />
           </p>
         </div>
       </div>
@@ -958,7 +960,7 @@ export default function FastBusTransferApp() {
             <div className="flex items-center gap-2 mt-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Transient Analysis Suite</span>
                 <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">IEEE C50.41 / NEMA MG-1</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">✅ IEEE C37.96 / C50.41 Compliant</span>
             </div>
           </div>
         </div>

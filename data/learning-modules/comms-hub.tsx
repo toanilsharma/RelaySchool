@@ -1,5 +1,6 @@
 import React from 'react';
 import { MathBlock, StandardRef, ProTip, Hazard } from '../../components/TheoryComponents';
+import { TheoryBarChart, TheoryFlowDiagram, TheoryTimeline } from '../../components/TheoryDiagrams';
 import { Network, Server, ShieldCheck, Clock, Lock, Database, Wifi, Globe, Share2, Layers } from 'lucide-react';
 
 export const COMMS_HUB_THEORY_CONTENT = [
@@ -54,6 +55,21 @@ export const COMMS_HUB_THEORY_CONTENT = [
                         </tbody>
                     </table>
                 </div>
+
+                <TheoryBarChart
+                    title="IEC 61850 Protocol Latency Comparison"
+                    data={[
+                        { name: 'GOOSE', latency: 3 },
+                        { name: 'Sampled Values', latency: 1 },
+                        { name: 'MMS (TCP/IP)', latency: 150 },
+                        { name: 'SNTP Sync', latency: 50 },
+                        { name: 'PTP (IEEE 1588)', latency: 0.001 }
+                    ]}
+                    xKey="name"
+                    yKeys={[{ key: 'latency', name: 'Typical Latency (ms)', color: '#3b82f6' }]}
+                    yAxisLabel="Latency (ms)"
+                    height={280}
+                />
                 
                 <ProTip>
                     Notice that GOOSE and SV skip the IP layer (Layer 3). They don't have IP addresses! They use <strong>Multicast MAC Addresses</strong> (e.g., 01:0C:CD:01:00:01) to "publish" to the network switch, which then filters them to subscribers.
@@ -82,6 +98,17 @@ export const COMMS_HUB_THEORY_CONTENT = [
                     </ul>
                     <p className="mt-2 text-slate-500">This "burst" ensures the message gets through even if the first packet is corrupted by EMI.</p>
                 </div>
+
+                <TheoryTimeline
+                    title="GOOSE Retransmission Sequence (IEC 61850-8-1)"
+                    events={[
+                        { time: 't = 0 ms', label: 'Event Occurs', detail: 'Breaker trip detected. 1st GOOSE published immediately.', color: '#ef4444' },
+                        { time: 't = 2 ms', label: '2nd Retransmission', detail: 'Redundant copy sent. StNum incremented.', color: '#f59e0b' },
+                        { time: 't = 4 ms', label: '3rd Retransmission', detail: 'Interval doubles (exponential backoff).', color: '#f59e0b' },
+                        { time: 't = 8 ms', label: '4th Retransmission', detail: 'Continues doubling: 8ms, 16ms, 32ms...', color: '#eab308' },
+                        { time: 't = 1000 ms', label: 'Heartbeat Interval', detail: 'Stable state. Periodic heartbeat every 1s confirms link alive.', color: '#22c55e' },
+                    ]}
+                />
 
                 <h4 className="font-bold text-lg text-slate-800 dark:text-slate-200 mt-6">MMS (Manufacturing Message Specification)</h4>
                 <p>
@@ -130,6 +157,22 @@ export const COMMS_HUB_THEORY_CONTENT = [
                     </div>
                 </div>
 
+                <TheoryFlowDiagram
+                    title="PRP Topology: Dual Independent LANs (IEC 62439-3)"
+                    blocks={[
+                        { id: 'ied', label: 'IED', sub: 'Dual NIC', color: '#3b82f6' },
+                        { id: 'lanA', label: 'LAN A', sub: 'Switch A', color: '#10b981' },
+                        { id: 'lanB', label: 'LAN B', sub: 'Switch B', color: '#a855f7' },
+                        { id: 'dst', label: 'Receiver', sub: 'Discard Dup', color: '#3b82f6' },
+                    ]}
+                    arrows={[
+                        { from: 'ied', to: 'lanA', label: 'Copy 1' },
+                        { from: 'ied', to: 'lanB', label: 'Copy 2' },
+                        { from: 'lanA', to: 'dst', label: '' },
+                        { from: 'lanB', to: 'dst', label: '' },
+                    ]}
+                />
+
                 <Hazard>
                     <strong>HSR Bandwidth Warning:</strong> Because every packet is duplicated and circulates the ring, HSR effectively halves the available network bandwidth. Do not use HSR for high-volume Sampled Values (SV) on 100Mbps networks.
                 </Hazard>
@@ -164,6 +207,21 @@ export const COMMS_HUB_THEORY_CONTENT = [
                         </p>
                     </div>
                 </div>
+
+                <TheoryFlowDiagram
+                    title="PTP Sync Chain: Grandmaster → Switches → IEDs"
+                    blocks={[
+                        { id: 'gps', label: 'GPS Clock', sub: 'Grandmaster', color: '#f59e0b' },
+                        { id: 'sw1', label: 'Switch 1', sub: 'Transparent', color: '#64748b' },
+                        { id: 'sw2', label: 'Switch 2', sub: 'Transparent', color: '#64748b' },
+                        { id: 'ied', label: 'IED / MU', sub: 'PTP Slave', color: '#3b82f6' },
+                    ]}
+                    arrows={[
+                        { from: 'gps', to: 'sw1', label: 'Sync Msg' },
+                        { from: 'sw1', to: 'sw2', label: '+Correction' },
+                        { from: 'sw2', to: 'ied', label: '+Correction' },
+                    ]}
+                />
             </>
         )
     },
@@ -188,6 +246,18 @@ export const COMMS_HUB_THEORY_CONTENT = [
                     <li><strong>Attack:</strong> They remotely opened breakers at 30 substations, cutting power to 225,000 customers.</li>
                     <li><strong>Kill Switch:</strong> They deployed "KillDisk" wiper malware to erase the SCADA servers and disabled the UPS systems to blind the operators.</li>
                 </ul>
+
+                <TheoryTimeline
+                    title="Ukraine Grid Attack Timeline (Dec 23, 2015)"
+                    events={[
+                        { time: 'Jun 2015', label: 'Initial Compromise', detail: 'Spear-phishing emails deliver BlackEnergy 3 malware.', color: '#ef4444' },
+                        { time: 'Jun–Dec 2015', label: 'Reconnaissance', detail: 'Attackers map SCADA network, learn breaker control interfaces.', color: '#f59e0b' },
+                        { time: 'Dec 23, 15:30', label: 'Attack Executed', detail: 'Remote operators open breakers at 30 substations. 225,000 customers lose power.', color: '#ef4444' },
+                        { time: 'Dec 23, 15:35', label: 'Denial of Service', detail: 'Telephone DDoS launched to flood call centers.', color: '#ef4444' },
+                        { time: 'Dec 23, 16:00', label: 'KillDisk Deployed', detail: 'SCADA servers wiped. UPS disabled. Operators blinded.', color: '#991b1b' },
+                        { time: 'Dec 24', label: 'Manual Recovery', detail: 'Operators manually close breakers at each substation.', color: '#22c55e' },
+                    ]}
+                />
 
                 <h3 className="text-xl font-bold mt-8 mb-4">Defense in Depth (IEC 62351)</h3>
                 <p>
@@ -225,6 +295,21 @@ export const COMMS_HUB_THEORY_CONTENT = [
                 <p className="mb-4">
                     Instead of letting switches learn MAC addresses automatically (risky), an SDN Controller pre-programs the "Flow Tables" of every switch. Only authorized GOOSE flows are allowed. If an unauthorized laptop plugs in, it gets zero traffic. This is the ultimate cybersecurity whitelist.
                 </p>
+
+                <TheoryFlowDiagram
+                    title="SDN Architecture in Digital Substations"
+                    blocks={[
+                        { id: 'ctrl', label: 'SDN Controller', sub: 'Central Brain', color: '#a855f7' },
+                        { id: 'sw1', label: 'Bay Switch 1', sub: 'Flow Rules', color: '#64748b' },
+                        { id: 'sw2', label: 'Bay Switch 2', sub: 'Flow Rules', color: '#64748b' },
+                        { id: 'ied', label: 'IED (Relay)', sub: 'GOOSE/SV', color: '#3b82f6' },
+                    ]}
+                    arrows={[
+                        { from: 'ctrl', to: 'sw1', label: 'Config' },
+                        { from: 'ctrl', to: 'sw2', label: 'Config' },
+                        { from: 'sw1', to: 'ied', label: 'Filtered' },
+                    ]}
+                />
 
                 <h4 className="font-bold text-lg mt-4 mb-2">Virtual Protection (vPAC)</h4>
                 <p>

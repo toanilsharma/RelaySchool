@@ -9,6 +9,7 @@ import { Menu, Loader2 } from 'lucide-react';
 // Lazy Load Pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Academy = lazy(() => import('./pages/Academy'));
+const Flashcards = lazy(() => import('./pages/Flashcards'));
 const TCCStudio = lazy(() => import('./pages/TCCStudio'));
 const DigitalTwin = lazy(() => import('./pages/DigitalTwin'));
 const FailureLab = lazy(() => import('./pages/FailureLab'));
@@ -22,6 +23,10 @@ const EngineerToolkit = lazy(() => import('./pages/EngineerToolkit'));
 const DigitalSubstation = lazy(() => import('./pages/DigitalSubstation'));
 const SymComponents = lazy(() => import('./pages/SymComponents'));
 const DistanceLab = lazy(() => import('./pages/DistanceLab'));
+const SubstationBuilder = lazy(() => import('./pages/SubstationBuilder'));
+const LogicSandbox = lazy(() => import('./pages/LogicSandbox'));
+const CaseStudies = lazy(() => import('./pages/CaseStudies'));
+const Calculators = lazy(() => import('./pages/Calculators'));
 const EventAnalyzer = lazy(() => import('./pages/EventAnalyzer'));
 const VectorLab = lazy(() => import('./pages/VectorLab'));
 const SmartGridTrends = lazy(() => import('./pages/SmartGridTrends'));
@@ -30,6 +35,9 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const Contact = lazy(() => import('./pages/Contact'));
 const DiffSlope = lazy(() => import('./pages/DiffSlope'));
+const Disclaimer = lazy(() => import('./pages/Disclaimer'));
+const CookiePolicy = lazy(() => import('./pages/CookiePolicy'));
+const AboutUs = lazy(() => import('./pages/AboutUs'));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -79,10 +87,15 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/academy" element={<Academy />} />
+                <Route path="/flashcards" element={<Flashcards />} />
                 <Route path="/tcc" element={<TCCStudio />} />
                 <Route path="/fbts" element={<FastBusTransfer />} />
                 <Route path="/symcomp" element={<SymComponents />} />
                 <Route path="/distance" element={<DistanceLab />} />
+                <Route path="/builder" element={<SubstationBuilder />} />
+                <Route path="/logic" element={<LogicSandbox />} />
+                <Route path="/cases" element={<CaseStudies />} />
+                <Route path="/calculators" element={<Calculators />} />
                 <Route path="/diffslope" element={<DiffSlope />} />
                 <Route path="/twin" element={<DigitalTwin />} />
                 <Route path="/vectors" element={<VectorLab />} />
@@ -100,6 +113,9 @@ const App = () => {
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/disclaimer" element={<Disclaimer />} />
+                <Route path="/cookies" element={<CookiePolicy />} />
+                <Route path="/about" element={<AboutUs />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>

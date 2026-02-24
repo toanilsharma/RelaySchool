@@ -4,8 +4,10 @@ import {
     Download, Power, AlertTriangle, Database, 
     Activity, Play, RotateCcw, FileText, Server,
     Cpu, ShieldCheck, Zap, BookOpen, AlertOctagon,
-    CheckCircle2, HelpCircle, X, Settings, Menu, Share2
+    CheckCircle2, HelpCircle, X, Settings, Menu, Share2, Upload
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { parseComtrade, ComtradeData } from '../utils/comtradeParser';
 
 // --- CONSTANTS & STANDARDS ---
 
@@ -66,6 +68,45 @@ const EventAnalyzer = () => {
     const [breakerStatus, setBreakerStatus] = useState('CLOSED'); // CLOSED or TRIPPED
     const [records, setRecords] = useState([]);
     const [selectedRecordId, setSelectedRecordId] = useState(null);
+
+    // COMTRADE Display State
+    const [comtradeData, setComtradeData] = useState<ComtradeData | null>(null);
+    const [isParsing, setIsParsing] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        const cfgFile = files.find(f => f.name.toLowerCase().endsWith('.cfg'));
+        const datFile = files.find(f => f.name.toLowerCase().endsWith('.dat'));
+
+        if (!cfgFile || !datFile) {
+            alert('Please select both .CFG and .DAT files to upload.');
+            return;
+        }
+
+        setIsParsing(true);
+        try {
+            const data = await parseComtrade(cfgFile, datFile);
+            setComtradeData(data);
+            
+            // Add a mock event to the relay HMI simply for UX tracking
+            const newRecord = {
+                id: records.length + 101,
+                date: data.triggerDate?.slice(0, 10) || new Date().toISOString().slice(0,10),
+                time: data.triggerDate?.slice(11, 19) || new Date().toISOString().slice(11,19),
+                type: 'CMTRD',
+                mag: 'Var',
+                element: 'FILE'
+            };
+            setRecords(prev => [newRecord, ...prev]);
+
+        } catch (error) {
+            console.error(error);
+            alert('Failed to parse COMTRADE file. Check console for details.');
+        } finally {
+            setIsParsing(false);
+        }
+    };
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -229,14 +270,18 @@ const EventAnalyzer = () => {
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">IEC 61850 Compliant Trainer</span>
                                 <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">IEEE C37.111 / IEC 60255-24</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">✅ IEEE C37.111 / IEC 60255-24 COMTRADE Compliant</span>
                             </div>
                         </div>
                     </div>
                     <div className="flex gap-3 items-center">
                         {records.length > 0 && <span className="bg-blue-600 text-white text-[9px] px-2 py-1 rounded-full font-bold">{records.length} Events</span>}
+                        <input type="file" ref={fileInputRef} multiple accept=".cfg,.dat" className="hidden" onChange={handleFileUpload} />
+                        <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-md active:translate-y-0.5 transition-all">
+                            {isParsing ? <RotateCcw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} LOAD COMTRADE
+                        </button>
                         <button onClick={copyShareLink} className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg text-xs font-bold transition-all border border-slate-200 dark:border-slate-700">
-                            <Share2 className="w-4 h-4" /> SHARE SIMULATION
+                            <Share2 className="w-4 h-4" /> SHARE
                         </button>
                         <button onClick={injectFault} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-md active:translate-y-0.5 transition-all">
                             <Zap className="w-4 h-4" /> INJECT FAULT
@@ -251,6 +296,60 @@ const EventAnalyzer = () => {
             <main className="max-w-7xl mx-auto px-6 py-8">
                 
                 {showGuide && <QuickGuide onClose={() => setShowGuide(false)} />}
+
+                {comtradeData && (
+                    <div className="mb-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xl">
+                        <div className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center border-b border-slate-700">
+                            <div>
+                                <h3 className="font-bold text-lg flex items-center gap-2"><Activity className="w-5 h-5 text-emerald-400" /> COMTRADE Oscillography</h3>
+                                <div className="text-xs text-slate-400 flex gap-4 mt-1">
+                                    <span>Station: {comtradeData.stationCode}</span>
+                                    <span>Device: {comtradeData.deviceId}</span>
+                                    <span>Rate: {comtradeData.sampleRate} Hz</span>
+                                    <span>Format: {comtradeData.dataFormat}</span>
+                                </div>
+                            </div>
+                            <button onClick={() => setComtradeData(null)} className="p-2 bg-slate-700 hover:bg-red-600 rounded-lg transition-colors"><X className="w-5 h-5" /></button>
+                        </div>
+                        <div className="p-6">
+                            {/* Render Analogs downsampled for performance (max 500 points) */}
+                            <div className="h-96 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={comtradeData.data.filter((_, i) => i % Math.max(1, Math.floor(comtradeData.data.length / 500)) === 0)} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                        <XAxis dataKey="timestamp" tickFormatter={(v) => v.toFixed(3) + 's'} stroke="#94a3b8" />
+                                        <YAxis stroke="#94a3b8" />
+                                        <Tooltip labelFormatter={(v) => Number(v).toFixed(4) + 's'} contentStyle={{ backgroundColor: '#1e293b', border: 'none', color: '#fff' }} />
+                                        <Legend />
+                                        {comtradeData.analogChannels.map((ch, idx) => (
+                                            <Line key={ch.id} type="monotone" dataKey={(d) => d.analogs[idx]} name={`${ch.id} (${ch.unit})`} stroke={`hsl(${(idx * 137.5) % 360}, 70%, 50%)`} dot={false} strokeWidth={2} />
+                                        ))}
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                            {/* Render Digitals individually */}
+                            <div className="mt-6 flex flex-col gap-2">
+                                <h4 className="text-sm font-bold text-slate-500 uppercase">Digital Channels</h4>
+                                {comtradeData.digitalChannels.map((dCh, idx) => {
+                                    const digData = comtradeData.data.filter((_, i) => i % Math.max(1, Math.floor(comtradeData.data.length / 500)) === 0);
+                                    return (
+                                        <div key={dCh.id} className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-2 rounded">
+                                            <span className="w-32 text-xs font-bold truncate" title={dCh.id}>{dCh.id}</span>
+                                            <div className="flex-1 h-8">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={digData}>
+                                                        <YAxis domain={[-0.5, 1.5]} hide />
+                                                        <Line type="stepAfter" dataKey={d => d.digitals[idx]} stroke="#10b981" strokeWidth={2} dot={false} isAnimationActive={false} />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     

@@ -1,5 +1,5 @@
 import { MathBlock, InlineMath, StandardRef, ProTip, Hazard } from '../../components/TheoryComponents';
-import { TheoryLineChart } from '../../components/TheoryDiagrams';
+import { TheoryLineChart, TheoryFlowDiagram, TheoryTimeline } from '../../components/TheoryDiagrams';
 import { Zap, Activity, TrendingUp, Clock, AlertTriangle, CheckCircle, Wifi, ShieldAlert } from 'lucide-react';
 
 export const DISTANCE_THEORY_CONTENT = [
@@ -211,6 +211,21 @@ export const DISTANCE_THEORY_CONTENT = [
                 <Hazard>
                     In <strong>Blocking Schemes (DCB)</strong>, the channel is only used during external faults. If the channel fails (broken wire), the relay will not receive a block for an external fault and will misoperate (over-trip). This is a "Dependability bias."
                 </Hazard>
+
+                <TheoryFlowDiagram
+                    title="POTT Scheme (Permissive Over-Reach Transfer Trip)"
+                    blocks={[
+                        { id: 'relA', label: 'Relay A', sub: 'Z2 Forward', color: '#3b82f6' },
+                        { id: 'chan', label: 'Fiber/PLC', sub: 'Comm Channel', color: '#64748b' },
+                        { id: 'relB', label: 'Relay B', sub: 'Z2 Forward', color: '#3b82f6' },
+                        { id: 'trip', label: 'BOTH TRIP', sub: 'Instantaneous', color: '#10b981' },
+                    ]}
+                    arrows={[
+                        { from: 'relA', to: 'chan', label: 'Permission' },
+                        { from: 'relB', to: 'chan', label: 'Permission' },
+                        { from: 'chan', to: 'trip', label: 'AND logic' },
+                    ]}
+                />
             </>
         )
     },
@@ -370,6 +385,17 @@ export const DISTANCE_THEORY_CONTENT = [
                 <Hazard>
                     Do not block Zone 1 for power swings indiscriminately! If a genuine fault occurs <em>during</em> a power swing, the relay must still trip. This requires sophisticated "Unblocking" logic.
                 </Hazard>
+
+                <TheoryTimeline
+                    title="2003 Northeast Blackout Cascade Sequence"
+                    events={[
+                        { time: '14:14', label: 'Alarm System Fails', detail: 'FirstEnergy SCADA alarm processor crashes silently.', color: '#f59e0b' },
+                        { time: '15:05', label: '345kV Line 1 Trips', detail: 'Chamberlin-Harding sags into tree. Zone 3 trips.', color: '#ef4444' },
+                        { time: '15:32', label: '345kV Line 2 Trips', detail: 'Hanna-Juniper sags on overload. Zone 3 trips.', color: '#ef4444' },
+                        { time: '15:41', label: '345kV Line 3 Trips', detail: 'Star-South Canton overloads. Cascade accelerates.', color: '#ef4444' },
+                        { time: '16:10', label: 'Cascade Complete', detail: '55 million people without power. 265 power plants offline.', color: '#991b1b' },
+                    ]}
+                />
             </>
         )
     },

@@ -1,5 +1,5 @@
 import { MathBlock, InlineMath, StandardRef, ProTip, Hazard } from '../../components/TheoryComponents';
-import { TheoryLineChart } from '../../components/TheoryDiagrams';
+import { TheoryLineChart, TheoryFlowDiagram, TheoryWaveform, TheoryTimeline } from '../../components/TheoryDiagrams';
 import { Layers, Activity, TrendingUp, Search, FileText, Binary, Sigma, Cpu, AlertTriangle, FileCode } from 'lucide-react';
 
 export const FORENSIC_THEORY_CONTENT = [
@@ -25,6 +25,21 @@ export const FORENSIC_THEORY_CONTENT = [
                         <li><strong>Was the breaker healthy?</strong> (Pole Scatter &lt; 5ms?)</li>
                     </ul>
                 </div>
+
+                <TheoryFlowDiagram
+                    title="Forensic Analysis Workflow (Post-Fault Investigation)"
+                    blocks={[
+                        { id: 'event', label: 'Fault Event', sub: 'Trip Signal', color: '#ef4444' },
+                        { id: 'capture', label: 'DFR / Relay', sub: 'COMTRADE', color: '#3b82f6' },
+                        { id: 'analysis', label: 'Waveform View', sub: 'V, I, Trip', color: '#a855f7' },
+                        { id: 'result', label: 'Report', sub: 'Type, Location', color: '#10b981' },
+                    ]}
+                    arrows={[
+                        { from: 'event', to: 'capture', label: 'Record' },
+                        { from: 'capture', to: 'analysis', label: 'Load' },
+                        { from: 'analysis', to: 'result', label: 'Analyze' },
+                    ]}
+                />
             </>
         )
     },
@@ -69,6 +84,19 @@ export const FORENSIC_THEORY_CONTENT = [
                 <ProTip>
                     Always check the <strong>Sampling Rate</strong> in the .CFG file. Older relays sample at 16 samples/cycle (960Hz), which is enough for impedance but misses high-frequency transients. Modern Digital Fault Recorders (DFRs) sample at &gt;10kHz.
                 </ProTip>
+
+                <TheoryFlowDiagram
+                    title="COMTRADE File Structure (IEEE C37.111)"
+                    blocks={[
+                        { id: 'cfg', label: '.CFG', sub: 'Text Metadata', color: '#a855f7' },
+                        { id: 'dat', label: '.DAT', sub: 'Binary Samples', color: '#10b981' },
+                        { id: 'hdr', label: '.HDR', sub: 'Header (Optional)', color: '#64748b' },
+                        { id: 'inf', label: '.INF', sub: 'Info (Optional)', color: '#64748b' },
+                    ]}
+                    arrows={[
+                        { from: 'cfg', to: 'dat', label: 'Defines' },
+                    ]}
+                />
             </>
         )
     },
@@ -107,6 +135,16 @@ export const FORENSIC_THEORY_CONTENT = [
                 <p>
                     If a 900Hz transient enters a relay sampling at 1000Hz, it will appear as a 100Hz "ghost" signal (Aliasing). Analog "Anti-Aliasing" Low-Pass Filters (RC circuits) are placed before the A/D converter to remove these high frequencies.
                 </p>
+
+                <TheoryWaveform
+                    title="Three-Phase Waveform with A-G Fault at t=0.3s"
+                    waves={[
+                        { label: 'Phase A', color: '#ef4444', amplitude: 1.0, phase: 0, saturateAfter: 0.3 },
+                        { label: 'Phase B', color: '#eab308', amplitude: 1.0, phase: -120 },
+                        { label: 'Phase C', color: '#3b82f6', amplitude: 1.0, phase: 120 },
+                    ]}
+                    duration={0.5}
+                />
             </>
         )
     },

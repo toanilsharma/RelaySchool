@@ -12,6 +12,7 @@ import {
 import TheoryLibrary from '../components/TheoryLibrary';
 import { useThemeObserver } from '../hooks/useThemeObserver';
 import { FORENSIC_THEORY_CONTENT } from '../data/learning-modules/forensic';
+import Peer, { DataConnection } from 'peerjs';
 
 // --- TYPES & MATH UTILS ---
 interface DataPoint {
@@ -213,6 +214,61 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
     const graphRef = useRef<HTMLDivElement>(null);
     const animationRef = useRef<number | undefined>(undefined);
 
+    // --- MULTIPLAYER STATE ---
+    const [peerId, setPeerId] = useState<string>('');
+    const [remoteIdInput, setRemoteIdInput] = useState('');
+    const [peerConnection, setPeerConnection] = useState<DataConnection | null>(null);
+    const peerRef = useRef<Peer | null>(null);
+    const isReceivingRef = useRef(false);
+
+    useEffect(() => {
+        const p = new Peer();
+        p.on('open', (id) => setPeerId(id));
+
+        p.on('connection', (conn) => {
+            setPeerConnection(conn);
+            conn.on('data', (data: any) => {
+                if (data.type === 'SYNC') {
+                    isReceivingRef.current = true;
+                    if (data.state.simParams) setSimParams(data.state.simParams);
+                    if (data.state.cursor !== undefined) setCursor(data.state.cursor);
+                    if (data.state.isPlaying !== undefined) setIsPlaying(data.state.isPlaying);
+                    setTimeout(() => isReceivingRef.current = false, 50);
+                }
+            });
+            conn.on('close', () => setPeerConnection(null));
+        });
+
+        peerRef.current = p;
+        return () => p.destroy();
+    }, []);
+
+    const connectToPeer = () => {
+        if (!peerRef.current || !remoteIdInput) return;
+        const conn = peerRef.current.connect(remoteIdInput);
+        conn.on('open', () => {
+            setPeerConnection(conn);
+            // Sync our current state to them upon connection
+            conn.send({ type: 'SYNC', state: { simParams, cursor, isPlaying } });
+        });
+        conn.on('data', (data: any) => {
+            if (data.type === 'SYNC') {
+                isReceivingRef.current = true;
+                if (data.state.simParams) setSimParams(data.state.simParams);
+                if (data.state.cursor !== undefined) setCursor(data.state.cursor);
+                if (data.state.isPlaying !== undefined) setIsPlaying(data.state.isPlaying);
+                setTimeout(() => isReceivingRef.current = false, 50);
+            }
+        });
+        conn.on('close', () => setPeerConnection(null));
+    };
+
+    const broadcastState = (newState: Partial<{ simParams: any; cursor: number; isPlaying: boolean }>) => {
+        if (peerConnection && !isReceivingRef.current) {
+            peerConnection.send({ type: 'SYNC', state: newState });
+        }
+    };
+
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const stateParam = params.get('s');
@@ -238,7 +294,10 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
     // Regenerate data when params change
     useEffect(() => {
         setRecord(generateScenario(simParams));
-        setCursor(40); // Reset cursor on new sim
+        if (!isReceivingRef.current) {
+            setCursor(40); // Reset cursor on new sim
+            broadcastState({ simParams, cursor: 40 });
+        }
     }, [simParams]);
 
     // Analysis Engine (Real-time DFT)
@@ -315,12 +374,21 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
         return () => { if (animationRef.current) cancelAnimationFrame(animationRef.current); };
     }, [isPlaying]);
 
+    const handlePlayToggle = () => {
+        const nextPlay = !isPlaying;
+        setIsPlaying(nextPlay);
+        broadcastState({ isPlaying: nextPlay });
+    };
+
     const handleGraphInteract = (e: React.MouseEvent) => {
         if (!graphRef.current) return;
         const rect = graphRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
-        const t = (x / rect.width) * TOTAL_DURATION;
-        setCursor(Math.max(0, Math.min(t, TOTAL_DURATION)));
+        const t = Math.max(0, Math.min((x / rect.width) * TOTAL_DURATION, TOTAL_DURATION));
+        setCursor(t);
+        if (e.type === 'mouseup' || e.type === 'mouseleave') {
+            broadcastState({ cursor: t });
+        }
     };
 
     return (
@@ -328,6 +396,40 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
 
             {/* LEFT: CONTROLS & SETTINGS */}
             <div className="lg:col-span-3 space-y-6">
+
+                {/* MULTIPLAYER PANEL */}
+                <div className={`p-4 rounded-xl border shadow-sm ${isDark ? 'bg-indigo-950 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
+                    <h3 className={`font-bold mb-3 flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                        <Network className="w-4 h-4" /> Live Co-op Session
+                    </h3>
+                    
+                    {!peerConnection ? (
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-[10px] font-bold uppercase opacity-70 block mb-1">Your Session ID</label>
+                                <div className="flex gap-2">
+                                    <input type="text" readOnly value={peerId || 'Connecting...'} className={`w-full text-xs font-mono p-1.5 rounded border outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-slate-300 text-slate-700'}`} />
+                                    <button onClick={() => navigator.clipboard.writeText(peerId)} className="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded text-xs font-bold transition-colors">Copy</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold uppercase opacity-70 block mb-1">Join Partner's ID</label>
+                                <div className="flex gap-2">
+                                    <input type="text" value={remoteIdInput} onChange={e => setRemoteIdInput(e.target.value)} placeholder="Paste ID here" className={`w-full text-xs font-mono p-1.5 rounded border outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-white focus:border-indigo-500' : 'bg-white border-slate-300 text-slate-900 focus:border-indigo-500'}`} />
+                                    <button onClick={connectToPeer} disabled={!remoteIdInput} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-3 py-1 rounded text-xs font-bold transition-colors">Join</button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                                <span className={`text-xs font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>Connected to Peer</span>
+                            </div>
+                            <button onClick={() => peerConnection.close()} className="text-[10px] font-bold uppercase text-red-500 hover:text-red-400">Disconnect</button>
+                        </div>
+                    )}
+                </div>
 
                 {/* Simulation Control */}
                 <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -412,7 +514,7 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
 
                     <div className="flex items-center gap-3">
                         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                            <button onClick={() => setIsPlaying(!isPlaying)} className={`p-1.5 rounded transition-colors ${isPlaying ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                            <button onClick={handlePlayToggle} className={`p-1.5 rounded transition-colors ${isPlaying ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'}`}>
                                 {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                             </button>
                             <span className="font-mono text-sm font-bold w-14 text-center">{cursor.toFixed(1)}ms</span>
@@ -432,6 +534,8 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
                     className="relative w-full h-[500px] bg-black rounded-xl border border-slate-800 shadow-2xl overflow-hidden cursor-crosshair select-none"
                     onMouseDown={handleGraphInteract}
                     onMouseMove={(e) => e.buttons === 1 && handleGraphInteract(e)}
+                    onMouseUp={handleGraphInteract}
+                    onMouseLeave={(e) => e.buttons === 1 && handleGraphInteract(e)}
                 >
                     {/* Grid Background */}
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(50,50,50,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(50,50,50,0.2)_1px,transparent_1px)] bg-[size:50px_50px]"></div>

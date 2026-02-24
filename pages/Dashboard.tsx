@@ -45,6 +45,8 @@ import {
   Globe,
   Eye,
   FastForward,
+  Settings,
+  Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -637,15 +639,26 @@ const GridPulseHero = () => {
           </div>
           
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
-            Master Power Systems <br />
+            Master Power System <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-              Interactive & Visual
+              Engineering Through Real Simulations
             </span>
           </h1>
           <p className="text-slate-300 text-lg leading-relaxed max-w-lg">
-            Train on physics-accurate models of Power Systems, IEC 61850
-            Networks, and Relay Logic. No cloud latency. No installs.
+            Learn protection, fault studies, relay coordination, digital substations, and system analysis using simulations aligned with IEC/IEEE practices and real industrial scenarios.
           </p>
+          
+          <div className="flex flex-wrap items-center gap-4 py-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> IEC-based simulations
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Industry case studies
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Interactive engineering tools
+            </div>
+          </div>
           
           {/* Guided Onboarding Paths */}
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -656,22 +669,22 @@ const GridPulseHero = () => {
               <div className="flex items-center gap-3">
                   <GraduationCap className="w-5 h-5 opacity-80" />
                   <div className="text-left">
-                     <div className="text-xs text-blue-200 uppercase tracking-widest">I am a Student</div>
-                     <div className="text-sm">Start Fundamentals</div>
+                     <div className="text-xs text-blue-200 uppercase tracking-widest">Start Now</div>
+                     <div className="text-sm">Start Simulation Lab</div>
                   </div>
               </div>
               <ArrowRight className="w-4 h-4 transform group-hover/btn:translate-x-1 transition-transform" />
             </Link>
             
             <Link
-              to="/forensic"
+              to="/academy"
               className="px-6 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-white rounded-xl font-bold transition-all shadow-lg flex items-center justify-between gap-4 group/btn"
             >
                <div className="flex items-center gap-3">
-                  <Microscope className="w-5 h-5 opacity-80 text-purple-400" />
+                  <BookOpen className="w-5 h-5 opacity-80 text-purple-400" />
                   <div className="text-left">
-                     <div className="text-xs text-slate-400 uppercase tracking-widest">I am a Pro</div>
-                     <div className="text-sm">Explore Advanced Tools</div>
+                     <div className="text-xs text-slate-400 uppercase tracking-widest">Curriculum</div>
+                     <div className="text-sm">Explore Learning Paths</div>
                   </div>
               </div>
               <ArrowRight className="w-4 h-4 transform group-hover/btn:translate-x-1 transition-transform" />
@@ -963,10 +976,14 @@ const ToolWidget = ({
   desc,
   status,
   theme = "blue",
+  difficulty = "Basic",
+  useCase,
+  standard,
+  isHighlighted = true,
 }: any) => {
   const t = TOOL_THEMES[theme] || TOOL_THEMES.blue;
   return (
-    <Link to={link} className="block group h-full focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-2xl">
+    <Link to={link} className={`block group h-full focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-2xl transition-opacity duration-300 ${isHighlighted ? 'opacity-100 grayscale-0' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0'}`}>
       <div
         className={`h-full ${t.bg} rounded-2xl border ${t.border} p-6 shadow-sm hover:shadow-2xl ${t.glow} hover:-translate-y-2 transition-all duration-500 relative overflow-hidden flex flex-col cursor-pointer`}
       >
@@ -979,27 +996,38 @@ const ToolWidget = ({
         </div>
 
         <div className="flex justify-between items-start mb-4 relative z-10">
-          <div className="perspective-1000">
+           <div className="perspective-1000">
              <div
                className={`p-3 ${t.iconBg} rounded-xl ${t.iconText} transform-gpu group-hover:rotate-x-12 group-hover:rotate-y-12 transition-transform duration-500 border border-white/10 shadow-lg`}
                style={{ transformStyle: 'preserve-3d' }}
              >
                <Icon className="w-6 h-6 transform-gpu translate-z-10 drop-shadow-md" />
              </div>
-          </div>
-          <div
-            className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${t.tagBg} ${t.tagText} shadow-sm backdrop-blur-sm border border-white/5`}
-          >
-            {status}
-          </div>
+           </div>
+           
+           <div className="flex flex-col items-end gap-1.5">
+              <div className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${difficulty === 'Expert' ? 'bg-red-500/10 text-red-500' : difficulty === 'Design' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'} border border-current/20`}>
+                {difficulty}
+              </div>
+              {standard && (
+                <div className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-slate-500/10 text-slate-500 border border-current/20`}>
+                  {standard}
+                </div>
+              )}
+           </div>
         </div>
         
         {/* Content container that slides up on hover */}
         <div className="flex-1 flex flex-col relative z-10">
-           <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+           <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
              {title}
            </h3>
-           <div className="relative flex-1 overflow-hidden h-24">
+           {useCase && (
+               <div className="text-[11px] text-slate-500 font-bold mb-3 pb-2 border-b border-slate-200/50 dark:border-slate-700/50 tracking-wider uppercase">
+                   Use Case: {useCase}
+               </div>
+           )}
+           <div className="relative flex-1 overflow-hidden min-h-[6rem]">
               <p className="absolute inset-0 text-sm text-slate-600 dark:text-slate-400 leading-relaxed group-hover:opacity-0 group-hover:translate-y-4 transition-all duration-500">
                 {desc}
               </p>
@@ -1068,18 +1096,25 @@ const EmbeddableWidget = ({ children }: { children: React.ReactNode }) => {
   };
   
   return (
-    <div className="relative group/embed h-full rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-transparent focus-within:border-blue-500/30">
-      {children}
-      <button 
-        onClick={handleEmbed}
-        title="Copy Embed Code"
-        className="absolute top-2 right-2 opacity-0 group-hover/embed:opacity-100 transition-all duration-300 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xl flex items-center gap-2 z-20 hover:scale-105 active:scale-95 group/btn focus:opacity-100 focus:outline-none"
-      >
-        {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 inline" /> : <Terminal className="w-3.5 h-3.5 inline group-hover/btn:text-blue-500 transition-colors" />}
-        <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline-block">
-           {copied ? "Copied HTML!" : "Embed"}
-        </span>
-      </button>
+    <div className="relative group/embed h-full rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col hover:border-blue-500/50">
+      <div className="relative flex-1 p-0.5">
+         {children}
+         <button 
+           onClick={handleEmbed}
+           title="Copy Embed Code"
+           className="absolute top-2 right-2 opacity-0 group-hover/embed:opacity-100 transition-all duration-300 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xl flex items-center gap-2 z-20 hover:scale-105 active:scale-95 group/btn focus:opacity-100 focus:outline-none"
+         >
+           {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 inline" /> : <Terminal className="w-3.5 h-3.5 inline group-hover/btn:text-blue-500 transition-colors" />}
+           <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline-block">
+              {copied ? "Copied HTML!" : "Embed"}
+           </span>
+         </button>
+      </div>
+      <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-900 flex flex-wrap gap-x-4 gap-y-2 text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-auto">
+         <span className="flex items-center gap-1.5"><Settings className="w-3 h-3 text-slate-400"/> Adjustable Parameters</span>
+         <span className="flex items-center gap-1.5"><ShieldCheck className="w-3 h-3 text-emerald-500"/> IEC-Aligned Logic</span>
+         <span className="flex items-center gap-1.5"><Download className="w-3 h-3 text-blue-500"/> Exportable Results</span>
+      </div>
     </div>
   );
 };
@@ -1087,6 +1122,21 @@ const EmbeddableWidget = ({ children }: { children: React.ReactNode }) => {
 // --- MAIN DASHBOARD ---
 
 const Dashboard = () => {
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const matchesSearch = (title: string, desc: string, useCase?: string, standard?: string) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return [title, desc, useCase || '', standard || ''].some(s => s.toLowerCase().includes(q));
+  };
+
+  const paths = [
+    { id: 'grad', title: '🟢 New to Power Systems', desc: 'Learn fundamentals through guided visual simulations and structured modules.', icon: GraduationCap, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20', scrollTo: 'section-fundamentals' },
+    { id: 'working', title: '🔵 Working Engineer', desc: 'Jump directly into relay logic, system studies, and commissioning-level simulations.', icon: ShieldCheck, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20', scrollTo: 'section-protection' },
+    { id: 'cases', title: '🟠 Explore Real Engineering Problems', desc: 'Practice diagnosing real faults, relay issues, and plant scenarios.', icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20', scrollTo: 'section-cases' }
+  ];
+
   return (
     <div className="space-y-10 animate-fade-in max-w-7xl mx-auto pb-12 overflow-hidden">
       
@@ -1098,12 +1148,33 @@ const Dashboard = () => {
          <ActivityTicker />
       </div>
 
-      {/* 2. PLATFORM STATS (Animated Counters) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-8 bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 shadow-xl shadow-slate-200/20 dark:shadow-none mb-12">
-         <AnimatedCounter value={12} label="Simulation Modules" icon={Layers} />
-         <AnimatedCounter value={100} label="Browser-Based" icon={Cpu} suffix="%" />
-         <AnimatedCounter value={2} label="Standard Math Used" icon={ShieldCheck} suffix=" (IEC/IEEE)" />
-         <AnimatedCounter value={0} label="Installs Required" icon={Download} />
+      {/* 2. START YOUR ENGINEERING JOURNEY */}
+      <div className="space-y-4">
+        <div className="text-center mb-6">
+           <h2 className="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-wider">Start Your Engineering Journey</h2>
+           <p className="text-sm text-slate-500">Choose your starting point — modules will filter accordingly</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            {paths.map(path => (
+                <button
+                   key={path.id}
+                   onClick={() => {
+                      setSelectedPath(selectedPath === path.id ? null : path.id);
+                      const el = document.getElementById(path.scrollTo);
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                   }}
+                   className={`text-left p-6 rounded-2xl border transition-all duration-300 ${selectedPath === path.id ? 'ring-2 ring-blue-500 border-blue-500 shadow-lg bg-white dark:bg-slate-800' : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:-translate-y-1 hover:shadow-lg'}`}
+                >
+                   <div className="flex items-center gap-3 mb-3">
+                      <div className={`p-3 rounded-xl ${path.bg} ${path.color}`}>
+                         <path.icon className="w-6 h-6" />
+                      </div>
+                      <h3 className="font-bold text-slate-900 dark:text-white text-base">{path.title}</h3>
+                   </div>
+                   <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{path.desc}</p>
+                </button>
+            ))}
+        </div>
       </div>
 
 
@@ -1286,98 +1357,114 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 4. MODULES GRID */}
-      <div>
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <Layers className="w-5 h-5 text-blue-600" />
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Core Simulation Modules
-            </h2>
+      {/* 3. MODULES GRID */}
+      <div className="space-y-16">
+        {/* SEARCH BAR */}
+        <div className="flex items-center gap-4">
+           <div className="relative flex-1 max-w-lg">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search simulation, relay topic, or standard…"
+                className="w-full pl-11 pr-4 py-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs font-bold">✕</button>
+              )}
+           </div>
+        </div>
+        {/* ENGINEERING FUNDAMENTALS */}
+        <div id="section-fundamentals">
+          <div className="mb-6 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-3">
+             <BookOpen className="w-6 h-6 text-blue-500" />
+             <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-wider">Engineering Fundamentals</h2>
           </div>
-          <p className="text-slate-500 dark:text-slate-400 text-sm ml-7">
-            Click any module below to open the simulator and start learning
-          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <ToolWidget title="Vector Lab" icon={Waves} link="/vectors" desc="Interactive phasor diagrams, symmetrical components visualization, and ABC sequence analysis." status="Phasors" theme="blue" difficulty="Basic" useCase="Visualizing unbalanced faults and phase shifts" standard="IEC 60044" isHighlighted={(!selectedPath || selectedPath === 'grad') && matchesSearch('Vector Lab', 'Interactive phasor diagrams symmetrical components', 'Visualizing unbalanced faults', 'IEC 60044')} />
+             <ToolWidget title="Digital Twin" icon={Server} link="/twin" desc="Operate a real-time substation topology model, toggle breakers, and observe consequences." status="Topology" theme="teal" difficulty="Design" useCase="SCADA operation and switching sequence training" standard="IEC 61850" isHighlighted={(!selectedPath || ['grad', 'working'].includes(selectedPath)) && matchesSearch('Digital Twin', 'substation topology breakers', 'SCADA switching', 'IEC 61850')} />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <ToolWidget
-            title="TCC Studio"
-            icon={Activity}
-            link="/tcc"
-            desc="Plot IEC/IEEE time-overcurrent curves, set grading margins, and verify relay coordination. Understand how selectivity prevents unnecessary blackouts."
-            status="Coordination"
-            theme="blue"
-          />
-          <ToolWidget
-            title="Fast Bus Transfer"
-            icon={FastForward}
-            link="/fbts"
-            desc="Simulate induction motor fast bus transfer scenarios. Analyze phase-angle drift, residual voltage decay, and torque transients during source changeover."
-            status="Motor Transfer"
-            theme="indigo"
-          />
-          <ToolWidget
-            title="Digital Twin"
-            icon={Server}
-            link="/twin"
-            desc="Operate a real-time substation topology model. Toggle breakers, observe load flow redistribution, and learn how switching sequences affect energization states."
-            status="Topology"
-            theme="teal"
-          />
-          <ToolWidget
-            title="Comms Hub"
-            icon={Network}
-            link="/comms"
-            desc="Inspect IEC 61850 GOOSE and Sampled Values packets. Simulate network storms and measure how latency impacts protection clearing times."
-            status="IEC 61850"
-            theme="purple"
-          />
-          <ToolWidget
-            title="Forensic Lab"
-            icon={Microscope}
-            link="/forensic"
-            desc="Analyze COMTRADE fault records with oscillography, phasor diagrams, and harmonic spectrum tools. Develop the investigative skills used in post-fault analysis."
-            status="Analysis"
-            theme="red"
-          />
-          <ToolWidget
-            title="Relay Tester"
-            icon={ClipboardCheck}
-            link="/tester"
-            desc="Perform simulated secondary injection tests. Generate ramp and pulse signals to verify pickup and timing of protection elements."
-            status="Injection"
-            theme="cyan"
-          />
-          <ToolWidget
-            title="Failure Lab"
-            icon={AlertTriangle}
-            link="/failure"
-            desc="Reconstruct CT saturation, DC offset, and harmonic restraint failures. Understand the physics behind relay misoperations and how to prevent them."
-            status="Root Cause"
-            theme="amber"
-          />
-          <ToolWidget
-            title="Distance Lab"
-            icon={Radar}
-            link="/distance"
-            desc="Visualize impedance zones on the R-X plane. Study Mho circles, load encroachment boundaries, and the impact of fault resistance on zone reach."
-            status="Impedance"
-            theme="emerald"
-          />
-          <ToolWidget
-            title="Engineer Toolkit"
-            icon={Calculator}
-            link="/tools"
-            desc="Quick engineering calculators for battery sizing (IEEE 485), cable adiabatic limits (IEC 60949), and CT burden verification."
-            status="Calculators"
-            theme="slate"
-          />
+        {/* PROTECTION & RELAY ENGINEERING */}
+        <div id="section-protection">
+          <div className="mb-6 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-3">
+             <ShieldCheck className="w-6 h-6 text-emerald-500" />
+             <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-wider">Protection & Relay Engineering</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <ToolWidget title="TCC Studio" icon={Activity} link="/tcc" desc="Plot IEC/IEEE time-overcurrent curves, set grading margins, and verify relay coordination." status="Coordination" theme="blue" difficulty="Expert" useCase="Overcurrent grading and protection selectivity" standard="IEEE C37.112 / IEC 60255" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('TCC Studio', 'overcurrent curves grading relay coordination', 'Overcurrent grading selectivity', 'IEEE C37.112 IEC 60255')} />
+             <ToolWidget title="Distance Lab" icon={Radar} link="/distance" desc="Visualize impedance zones on the R-X plane. Study load encroachment and fault resistance." status="Impedance" theme="emerald" difficulty="Expert" useCase="Line protection and zone reach calculation" standard="IEEE C37.113" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Distance Lab', 'impedance zones R-X plane encroachment fault resistance', 'Line protection zone reach', 'IEEE C37.113')} />
+             <ToolWidget title="Differential Slope" icon={Waves} link="/diffslope" desc="Analyze dual-slope percentage differential characteristics and harmonic restraint." status="Differential" theme="purple" difficulty="Expert" useCase="Transformer and generator protection configuration" standard="IEEE C37.91" isHighlighted={(!selectedPath || ['working', 'cases'].includes(selectedPath)) && matchesSearch('Differential Slope', 'differential harmonic restraint transformer', 'Transformer generator protection', 'IEEE C37.91')} />
+             <ToolWidget title="Symmetrical Components" icon={RefreshCw} link="/symcomp" desc="Calculate positive, negative, and zero sequence networks for unbalanced faults." status="Sequence Networks" theme="indigo" difficulty="Design" useCase="Fault current calculation and directional relaying" standard="IEC 60909" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Symmetrical Components', 'sequence networks unbalanced faults', 'Fault current directional relaying', 'IEC 60909')} />
+             <ToolWidget title="Relay Tester" icon={ClipboardCheck} link="/tester" desc="Perform simulated secondary injection tests. Generate ramp and pulse signals." status="Injection" theme="cyan" difficulty="Design" useCase="Commissioning and routine relay maintenance testing" standard="IEC 60255" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Relay Tester', 'secondary injection ramp pulse', 'Commissioning relay maintenance', 'IEC 60255')} />
+             <ToolWidget title="Logic Sandbox" icon={Cpu} link="/logic" desc="Build boolean protection logic with AND/OR/NOT gates and visualize live state changes." status="Boolean Logic" theme="amber" difficulty="Basic" useCase="Custom protection schemes and interlocking" standard="IEC 61131-3" isHighlighted={(!selectedPath || ['working', 'grad'].includes(selectedPath)) && matchesSearch('Logic Sandbox', 'boolean protection logic AND OR NOT gates', 'Custom protection interlocking', 'IEC 61131-3')} />
+          </div>
+        </div>
+
+        {/* SYSTEM STUDIES & CALCULATIONS */}
+        <div>
+          <div className="mb-6 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-3">
+             <Network className="w-6 h-6 text-purple-500" />
+             <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-wider">System Studies & Calculations</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <ToolWidget title="Substation Builder" icon={Layers} link="/builder" desc="Drag-and-drop SLD editor with live breadth-first search load flow simulation." status="SLD Design" theme="blue" difficulty="Design" useCase="Substation layout planning and contingency analysis" standard="IEC 61936" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Substation Builder', 'SLD drag-and-drop load flow', 'Substation layout contingency', 'IEC 61936')} />
+             <ToolWidget title="Fast Bus Transfer" icon={FastForward} link="/fbts" desc="Analyze phase-angle drift, residual voltage decay, and torque transients." status="Motor Transfer" theme="indigo" difficulty="Expert" useCase="Industrial continuous process plant reliability" standard="IEEE C37.96" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Fast Bus Transfer', 'phase-angle drift residual voltage motor', 'Industrial process plant', 'IEEE C37.96')} />
+             <ToolWidget title="Power Calculators" icon={Calculator} link="/calculators" desc="Step-by-step impedance base conversions and per-unit math solvers." status="Calculators" theme="slate" difficulty="Basic" useCase="Daily engineering math and per-unit conversions" standard="IEEE 399 / 141" isHighlighted={(!selectedPath || ['working', 'grad'].includes(selectedPath)) && matchesSearch('Power Calculators', 'impedance base conversion per-unit math', 'Daily engineering math', 'IEEE 399 141')} />
+             <ToolWidget title="Engineer Toolkit" icon={Calculator} link="/tools" desc="Quick engineering calculators for battery sizing, cable limits, and CT burden." status="Toolkit" theme="slate" difficulty="Design" useCase="Equipment sizing and specification checks" standard="IEEE 485 / IEC 60949" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Engineer Toolkit', 'battery sizing cable CT burden', 'Equipment sizing specification', 'IEEE 485 IEC 60949')} />
+          </div>
+        </div>
+
+        {/* DIGITAL & FORENSIC ENGINEERING */}
+        <div>
+          <div className="mb-6 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-3">
+             <Microscope className="w-6 h-6 text-red-500" />
+             <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-wider">Digital & Forensic Engineering</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <ToolWidget title="Comms Hub" icon={Network} link="/comms" desc="Inspect GOOSE and Sampled Values packets. Simulate network storms and latency gaps." status="IEC 61850" theme="purple" difficulty="Expert" useCase="Digital substation traffic analysis and troubleshooting" standard="IEC 61850-9-2" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Comms Hub', 'GOOSE Sampled Values network storms latency', 'Digital substation traffic', 'IEC 61850-9-2')} />
+             <ToolWidget title="Forensic Lab" icon={Microscope} link="/forensic" desc="Analyze COMTRADE fault records with multi-user WebRTC synchronization." status="Analysis" theme="red" difficulty="Expert" useCase="Post-mortem fault data decoding and team review" standard="IEEE C37.111" isHighlighted={(!selectedPath || ['working', 'cases'].includes(selectedPath)) && matchesSearch('Forensic Lab', 'COMTRADE fault records WebRTC', 'Post-mortem fault data', 'IEEE C37.111')} />
+             <ToolWidget title="Event Analyzer" icon={Activity} link="/events" desc="Parse ASCII and BINARY COMTRADE files to plot high-resolution oscillography." status="Oscillography" theme="amber" difficulty="Design" useCase="Waveform inspection and harmonic extraction" standard="IEEE C37.111" isHighlighted={(!selectedPath || ['working', 'cases'].includes(selectedPath)) && matchesSearch('Event Analyzer', 'ASCII BINARY COMTRADE oscillography', 'Waveform harmonic extraction', 'IEEE C37.111')} />
+             <ToolWidget title="Failure Lab" icon={AlertTriangle} link="/failure" desc="Reconstruct CT saturation, DC offset, and harmonic restraint failures physics." status="Root Cause" theme="amber" difficulty="Design" useCase="Understanding relay misoperations and blinding" standard="IEEE C37.110" isHighlighted={(!selectedPath || ['cases', 'grad'].includes(selectedPath)) && matchesSearch('Failure Lab', 'CT saturation DC offset harmonic restraint', 'relay misoperations blinding', 'IEEE C37.110')} />
+             <ToolWidget title="Case Studies" icon={BookOpen} link="/cases" desc="Interactive root-cause analysis of real-world grid blackouts based on SOE logs." status="Case Study" theme="slate" difficulty="Basic" useCase="Learning from historical industry failures" standard="NERC PRC" isHighlighted={(!selectedPath || ['cases', 'grad'].includes(selectedPath)) && matchesSearch('Case Studies', 'root-cause grid blackouts SOE logs', 'historical industry failures', 'NERC PRC')} />
+          </div>
         </div>
       </div>
 
-      {/* 4. INTERACTIVE WORKBENCH */}
-      <div className="space-y-4">
+      {/* 4. TRY REAL ENGINEERING CASES */}
+      <div id="section-cases" className="space-y-6 pt-12 border-t border-slate-200 dark:border-slate-800">
+        <div className="mb-2">
+           <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2">Try Real Engineering Cases</h2>
+           <p className="text-slate-500 text-lg">Each case is a scenario, not a lesson. Diagnose faults like you would in the field.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+           <Link to="/failure" className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col shadow-sm hover:shadow-xl transition-all h-full">
+              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><AlertTriangle className="w-6 h-6 text-red-500" /></div>
+              <h3 className="font-bold text-xl mb-3 text-slate-900 dark:text-white">Relay Didn't Trip on Time</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 flex-1 leading-relaxed">Investigate CT saturation, pickup error, and coordination issues in a simulated fault scenario.</p>
+              <div className="text-red-500 font-bold text-sm flex items-center gap-2 group-hover:gap-3 transition-all">Start Diagnosis <ArrowRight className="w-4 h-4" /></div>
+           </Link>
+           
+           <Link to="/diffslope" className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col shadow-sm hover:shadow-xl transition-all h-full">
+              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><Zap className="w-6 h-6 text-amber-500" /></div>
+              <h3 className="font-bold text-xl mb-3 text-slate-900 dark:text-white">Transformer Energization Problem</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 flex-1 leading-relaxed">Simulate inrush vs differential protection behaviour under various energization conditions.</p>
+              <div className="text-amber-500 font-bold text-sm flex items-center gap-2 group-hover:gap-3 transition-all">Analyze Differential <ArrowRight className="w-4 h-4" /></div>
+           </Link>
+           
+           <Link to="/symcomp" className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col shadow-sm hover:shadow-xl transition-all h-full">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><Calculator className="w-6 h-6 text-blue-500" /></div>
+              <h3 className="font-bold text-xl mb-3 text-slate-900 dark:text-white">Perform a Short Circuit Study</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 flex-1 leading-relaxed">Understand how real study tools calculate fault levels step-by-step using IEC 60909 logic.</p>
+              <div className="text-blue-500 font-bold text-sm flex items-center gap-2 group-hover:gap-3 transition-all">Calculate Faults <ArrowRight className="w-4 h-4" /></div>
+           </Link>
+        </div>
+      </div>
+
+      {/* 5. INTERACTIVE WORKBENCH */}
+      <div className="space-y-4 pt-8">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <MousePointer2 className="w-5 h-5 text-blue-600" /> Interactive
@@ -1486,8 +1573,35 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 6. MANIFESTO / WHY */}
-      <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl">
+      {/* 6. TRUST & CREDIBILITY STRIP */}
+      <div className="bg-slate-900 dark:bg-slate-950 border-y border-slate-800 py-12 relative overflow-hidden shadow-2xl">
+        <div className="absolute inset-0 opacity-5 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg==')] [background-size:20px_20px]"></div>
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-500"></div>
+        <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
+           <h2 className="text-2xl font-black text-white mb-8 uppercase tracking-wider">Built for Real Engineering Practice</h2>
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+              <div className="flex items-start gap-3">
+                 <span className="text-emerald-400 text-lg mt-0.5">✔</span>
+                 <p className="text-slate-300 text-sm leading-relaxed">Concepts aligned with IEC engineering logic</p>
+              </div>
+              <div className="flex items-start gap-3">
+                 <span className="text-emerald-400 text-lg mt-0.5">✔</span>
+                 <p className="text-slate-300 text-sm leading-relaxed">Designed for plant engineers, consultants, and students</p>
+              </div>
+              <div className="flex items-start gap-3">
+                 <span className="text-emerald-400 text-lg mt-0.5">✔</span>
+                 <p className="text-slate-300 text-sm leading-relaxed">Helps in relay settings, audits, and commissioning understanding</p>
+              </div>
+              <div className="flex items-start gap-3">
+                 <span className="text-emerald-400 text-lg mt-0.5">✔</span>
+                 <p className="text-slate-300 text-sm leading-relaxed">Focus on practical simulations, not just theory</p>
+              </div>
+           </div>
+        </div>
+      </div>
+
+      {/* 7. MANIFESTO / WHY */}
+      <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl mt-12">
         {/* Abstract Background */}
         <div className="absolute inset-0 opacity-20">
           <svg

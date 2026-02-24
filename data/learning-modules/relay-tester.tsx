@@ -1,5 +1,5 @@
 import { MathBlock, InlineMath, StandardRef, ProTip, Hazard } from '../../components/TheoryComponents';
-import { TheoryLineChart } from '../../components/TheoryDiagrams';
+import { TheoryLineChart, TheoryFlowDiagram, TheoryTimeline, TheoryWaveform } from '../../components/TheoryDiagrams';
 import { ShieldCheck, TrendingUp, Activity, CheckCircle2, Sliders, Clock, Zap, AlertTriangle, BookOpen, Compass } from 'lucide-react';
 
 export const RELAY_TESTER_THEORY_CONTENT = [
@@ -44,6 +44,22 @@ export const RELAY_TESTER_THEORY_CONTENT = [
                         </ul>
                     </div>
                 </div>
+
+                <TheoryFlowDiagram
+                    title="Overcurrent Protection: 50/51 Decision Logic"
+                    blocks={[
+                        { id: 'ct', label: 'CT Input', sub: 'Ia, Ib, Ic', color: '#64748b' },
+                        { id: 'pickup', label: '51 Element', sub: 'I > Is ?', color: '#3b82f6' },
+                        { id: 'inst', label: '50 Element', sub: 'I > I>> ?', color: '#ef4444' },
+                        { id: 'trip', label: 'TRIP', sub: 'Breaker Open', color: '#10b981' },
+                    ]}
+                    arrows={[
+                        { from: 'ct', to: 'pickup', label: 'Measure' },
+                        { from: 'ct', to: 'inst', label: 'Measure' },
+                        { from: 'pickup', to: 'trip', label: 'Delay' },
+                        { from: 'inst', to: 'trip', label: 'Instant' },
+                    ]}
+                />
             </>
         )
     },
@@ -173,6 +189,25 @@ export const RELAY_TESTER_THEORY_CONTENT = [
                 <p>
                     <strong>Result:</strong> Set Relay A TMS to <strong>0.18</strong> or <strong>0.20</strong> (always round up for safety).
                 </p>
+
+                <TheoryLineChart
+                    title="Time Grading: Relay B (Fast) vs Relay A (Slow)"
+                    data={[
+                        { I: 2, relayB: 0.1 * 0.14 / (Math.pow(2/0.4, 0.02) - 1), relayA: 0.20 * 0.14 / (Math.pow(2/0.6, 0.02) - 1) },
+                        { I: 5, relayB: 0.1 * 0.14 / (Math.pow(5/0.4, 0.02) - 1), relayA: 0.20 * 0.14 / (Math.pow(5/0.6, 0.02) - 1) },
+                        { I: 10, relayB: 0.1 * 0.14 / (Math.pow(10/0.4, 0.02) - 1), relayA: 0.20 * 0.14 / (Math.pow(10/0.6, 0.02) - 1) },
+                        { I: 20, relayB: 0.1 * 0.14 / (Math.pow(20/0.4, 0.02) - 1), relayA: 0.20 * 0.14 / (Math.pow(20/0.6, 0.02) - 1) },
+                    ]}
+                    xKey="I"
+                    yKeys={[
+                        { key: 'relayB', name: 'Relay B (TMS=0.1)', color: '#3b82f6' },
+                        { key: 'relayA', name: 'Relay A (TMS=0.2)', color: '#ef4444' },
+                    ]}
+                    xAxisLabel="Fault Current (kA)"
+                    yAxisLabel="Trip Time (s)"
+                    referenceLines={[{ y: 0.3, label: 'Grading Margin', color: '#f59e0b' }]}
+                    height={300}
+                />
             </>
         )
     },
@@ -210,6 +245,16 @@ export const RELAY_TESTER_THEORY_CONTENT = [
                         </p>
                     </div>
                 </div>
+
+                <TheoryWaveform
+                    title="Directional Element: Forward vs Reverse Fault Current"
+                    waves={[
+                        { label: 'Voltage Ref (Vbc)', color: '#64748b', amplitude: 1.0, phase: 0 },
+                        { label: 'Forward Ia', color: '#3b82f6', amplitude: 1.5, phase: -30 },
+                        { label: 'Reverse Ia', color: '#ef4444', amplitude: 1.5, phase: 150 },
+                    ]}
+                    duration={0.06}
+                />
             </>
         )
     },
@@ -245,6 +290,19 @@ export const RELAY_TESTER_THEORY_CONTENT = [
                 <Hazard>
                     <strong>Safety First:</strong> Never open-circuit a live CT secondary during testing. The back-EMF can generate thousands of volts, causing arcing and death. Always use test blocks (shorting links).
                 </Hazard>
+
+                <TheoryTimeline
+                    title="Standard Relay Commissioning Test Sequence"
+                    events={[
+                        { time: 'Step 1', label: 'Insulation Resistance', detail: 'Megger all CT/VT circuits. >100MΩ required.', color: '#64748b' },
+                        { time: 'Step 2', label: 'Pickup Test (51)', detail: 'Slowly ramp current. Verify Start at Is ±5%.', color: '#3b82f6' },
+                        { time: 'Step 3', label: 'Timing Test (2×Is)', detail: 'Inject 2× pickup, verify trip time ±5% or ±30ms.', color: '#3b82f6' },
+                        { time: 'Step 4', label: 'Timing Test (5×Is)', detail: 'Inject 5× pickup, verify steeper part of curve.', color: '#3b82f6' },
+                        { time: 'Step 5', label: 'Instantaneous (50)', detail: 'Verify I>> trips in <30ms.', color: '#ef4444' },
+                        { time: 'Step 6', label: 'Harmonic Restraint', detail: 'Inject 20% 2nd harmonic. Relay must BLOCK.', color: '#f59e0b' },
+                        { time: 'Step 7', label: 'End-to-End Trip', detail: 'Full trip through breaker. Verify close-trip cycle.', color: '#10b981' },
+                    ]}
+                />
             </>
         )
     },

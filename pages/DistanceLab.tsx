@@ -147,6 +147,28 @@ const QUESTION_BANK = [
     { id: 15, difficulty: 'hard', q: "What happens to the reach of a Mho relay if it is Cross-Polarized?", options: ["It decreases", "It expands for resistive faults", "It becomes non-directional", "It oscillates"], a: 1, explanation: "Cross-polarization uses healthy phase voltage to maintain directionality and expand the characteristic during unbalanced faults." },
 ];
 
+// --- Missions Data ---
+const MISSIONS = [
+    {
+        id: 1,
+        title: "Zone 1 Underreach",
+        desc: "Set Zone 1 to protect exactly 80% of a 10 Ohm transmission line with an angle of 75 degrees. Use MHO characteristic.",
+        target: { charType: 'MHO', z1Reach: 8.0, mta: 75 }
+    },
+    {
+        id: 2,
+        title: "Zone 2 Overreach",
+        desc: "Set Zone 2 to 120% of a 10 Ohm line. Maintain the same MTA of 75 degrees.",
+        target: { charType: 'MHO', z2Reach: 12.0, mta: 75 }
+    },
+    {
+        id: 3,
+        title: "Resistive Coverage",
+        desc: "Switch to a Quadrilateral characteristic. Set Zone 1 reach to 8.0 Ohms and expand the resistive reach to 15.0 Ohms to cover high arc resistance.",
+        target: { charType: 'QUAD', z1Reach: 8.0, quadResReach: 15.0 }
+    }
+];
+
 // --- Helper Functions ---
 
 const toRad = (deg) => deg * DEG_TO_RAD;
@@ -288,6 +310,10 @@ export default function RelaySimUltra() {
         feedback: null
     });
 
+    // Mission State
+    const [activeMission, setActiveMission] = useState<any>(null);
+    const [missionStatus, setMissionStatus] = useState<'IDLE' | 'SUCCESS' | 'FAIL'>('IDLE');
+
     // --- Handlers ---
     const handleHover = (key) => setContext(INFO_DB[key] || INFO_DB.default);
     const clearHover = () => setContext(INFO_DB.default);
@@ -417,7 +443,7 @@ export default function RelaySimUltra() {
                         <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-mono uppercase tracking-widest">
                             <span>Ver 2.5.0</span>
                             <span className="w-1 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
-                            <span>IEEE C37.113 Compliant</span>
+                            <span>✅ IEEE C37.113 / IEC 60255 Compliant</span>
                         </div>
                     </div>
                 </div>
@@ -450,7 +476,7 @@ export default function RelaySimUltra() {
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
 
                 {/* --- Left Panel: R-X Diagram (Visible only in Sim & Theory modes) --- */}
-                <div className={`flex-1 p-4 lg:p-8 overflow-y-auto flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 relative ${activeTab === 'quiz' ? 'hidden lg:flex' : ''} min-h-[400px] lg:min-h-auto border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-700`}>
+                <div className={`flex-1 p-4 lg:p-8 overflow-y-auto flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 relative ${activeTab === 'quiz' ? 'hidden lg:flex' : activeTab === 'theory' ? 'hidden' : ''} min-h-[400px] lg:min-h-auto border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-700`}>
 
                     {/* Axis Labels */}
                     <div className="absolute top-8 left-1/2 -translate-x-1/2 font-mono text-xs text-slate-400 font-bold">+ jX (Reactance Ω)</div>
@@ -533,13 +559,14 @@ export default function RelaySimUltra() {
                 </div>
 
                 {/* --- Right Panel: Controls, Theory & Quiz --- */}
-                <div className={`w-full lg:w-[480px] bg-white dark:bg-slate-900 flex flex-col shadow-xl z-10 ${activeTab === 'quiz' ? 'w-full lg:w-full' : ''}`}>
+                <div className={`w-full lg:w-[480px] bg-white dark:bg-slate-900 flex flex-col shadow-xl z-10 ${activeTab === 'quiz' || activeTab === 'theory' ? 'w-full lg:w-full' : ''}`}>
 
                     {/* Tabs */}
                     <div className="flex border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shrink-0 overflow-x-auto">
                         <TabButton active={activeTab === 'sim'} onClick={() => setActiveTab('sim')} icon={<Sliders className="w-4 h-4" />} label="Parameters" onHover={() => handleHover('default')} />
                         <TabButton active={activeTab === 'theory'} onClick={() => setActiveTab('theory')} icon={<BookOpen className="w-4 h-4" />} label="Theory Hub" onHover={() => handleHover('default')} />
                         <TabButton active={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} icon={<BrainCircuit className="w-4 h-4" />} label="Quiz" onHover={() => handleHover('default')} />
+                        <TabButton active={activeTab === 'missions'} onClick={() => setActiveTab('missions')} icon={<Target className="w-4 h-4" />} label="Missions" onHover={() => handleHover('default')} />
                     </div>
 
                     {/* Scrollable Content */}
@@ -548,6 +575,35 @@ export default function RelaySimUltra() {
                         {/* SIMULATION MODE */}
                         {activeTab === 'sim' && (
                             <div className="space-y-6">
+                                {activeMission && (
+                                    <div className={`p-4 rounded-xl border-2 shadow-sm relative overflow-hidden ${missionStatus === 'SUCCESS' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500' : missionStatus === 'FAIL' ? 'bg-red-50 dark:bg-red-900/20 border-red-500' : 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500'}`}>
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className={`font-bold text-sm tracking-wide ${missionStatus === 'SUCCESS' ? 'text-emerald-700 dark:text-emerald-400' : missionStatus === 'FAIL' ? 'text-red-700 dark:text-red-400' : 'text-indigo-800 dark:text-indigo-300'}`}>
+                                                Mission: {activeMission.title}
+                                            </h3>
+                                            <button onClick={() => { setActiveMission(null); setMissionStatus('IDLE'); }} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                                        </div>
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 mb-4">{activeMission.desc}</p>
+                                        {missionStatus === 'SUCCESS' ? (
+                                            <div className="flex items-center gap-2 font-bold text-emerald-600"><Trophy className="w-5 h-5" /> Mission Accomplished!</div>
+                                        ) : (
+                                            <div className="flex gap-2">
+                                                <button onClick={() => {
+                                                    let success = true;
+                                                    for (const key in activeMission.target) {
+                                                        if ((settings as any)[key] !== activeMission.target[key]) {
+                                                            success = false;
+                                                            break;
+                                                        }
+                                                    }
+                                                    setMissionStatus(success ? 'SUCCESS' : 'FAIL');
+                                                }} className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-indigo-500 transition-colors">
+                                                    Validate Settings
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 {/* Trip Status Banner */}
                                 <div className={`p-4 rounded-lg border-l-4 shadow-sm transition-all ${status.trip ? 'bg-red-50 dark:bg-red-900/20 border-red-500' : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600'}`}>
                                     <h3 className={`font-bold text-sm uppercase flex items-center gap-2 ${status.trip ? 'text-red-700 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
@@ -756,6 +812,29 @@ export default function RelaySimUltra() {
                                         )}
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* MISSIONS MODE */}
+                        {activeTab === 'missions' && (
+                            <div className="space-y-6 h-full flex flex-col animate-in fade-in slide-in-from-right-4">
+                                <div className="flex flex-col space-y-4">
+                                    <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800">
+                                        <h3 className="font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-2 mb-2"><Target className="w-5 h-5" /> Select a Mission</h3>
+                                        <p className="text-sm text-indigo-700 dark:text-indigo-400">Apply theoretical knowledge to practical coordination scenarios. Perfect your settings using the parameters tab.</p>
+                                    </div>
+                                    <div className="grid gap-3">
+                                        {MISSIONS.map(m => (
+                                            <button key={m.id} onClick={() => { setActiveMission(m); setMissionStatus('IDLE'); setActiveTab('sim'); }} className="p-4 text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-400 rounded-xl shadow-sm transition-all group">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 transition-colors">Mission {m.id}: {m.title}</span>
+                                                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                                                </div>
+                                                <p className="text-sm text-slate-500 line-clamp-2">{m.desc}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         )}
 

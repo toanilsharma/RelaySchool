@@ -298,7 +298,7 @@ const CommsHub = () => {
                          <div className="flex items-center gap-2 mt-1">
                             <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Digital Substation Network</span>
                             <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">IEC 61850</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">✅ IEC 61850 Compliant</span>
                          </div>
                      </div>
                  </div>

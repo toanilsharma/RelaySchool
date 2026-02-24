@@ -1,5 +1,5 @@
 import { MathBlock, InlineMath, StandardRef, ProTip, Hazard } from '../../components/TheoryComponents';
-import { TheoryLineChart } from '../../components/TheoryDiagrams';
+import { TheoryLineChart, TheoryAreaChart, TheoryWaveform } from '../../components/TheoryDiagrams';
 import { Layers, Activity, TrendingUp, Box, CheckCircle2, AlertTriangle, Zap, Clock, ShieldCheck, Thermometer } from 'lucide-react';
 
 export const TCC_THEORY_CONTENT = [
@@ -91,6 +91,26 @@ export const TCC_THEORY_CONTENT = [
                     <li><strong>Fuse Saving:</strong> The upstream recloser trips <em>fast</em> (Instantaneous) before the fuse melts. It recloses, checking if the fault is gone. If the fault persists, it switches to a <em>slow</em> curve to let the fuse blow. Evaluation: Saves truck rolls, but blinks the whole feeder.</li>
                     <li><strong>Fuse Blowing:</strong> The recloser always delays. The fuse blows immediately for any downstream fault. Evaluation: Permanent outage for that spur, but the main feeder never blinks. Preferable for industrial power quality.</li>
                 </ul>
+
+                <TheoryAreaChart
+                    title="Fuse Characteristics: Minimum Melt vs Total Clearing Band"
+                    data={[
+                        { x: 2, mm: 50, tc: 80 },
+                        { x: 3, mm: 10, tc: 18 },
+                        { x: 5, mm: 2, tc: 4 },
+                        { x: 8, mm: 0.3, tc: 0.8 },
+                        { x: 10, mm: 0.08, tc: 0.2 },
+                        { x: 15, mm: 0.02, tc: 0.06 },
+                    ]}
+                    xKey="x"
+                    yKeys={[
+                        { key: 'tc', name: 'Total Clearing (TC)', color: '#ef4444' },
+                        { key: 'mm', name: 'Minimum Melt (MM)', color: '#3b82f6' },
+                    ]}
+                    xAxisLabel="Current (Multiples of Rating)"
+                    yAxisLabel="Time (Seconds)"
+                    height={300}
+                />
             </>
         )
     },
@@ -189,6 +209,15 @@ export const TCC_THEORY_CONTENT = [
                 <Hazard>
                     <strong>Copper Tape Shields:</strong> The thin copper tape shielding on MV cables is the weak link. It can melt in cycles during a ground fault. Always verify the shield's thermal limit against the <strong>Ground Overcurrent</strong> trip time.
                 </Hazard>
+
+                <TheoryWaveform
+                    title="Motor Starting Current: LRA Spike then Run-Up"
+                    waves={[
+                        { label: 'Motor Current', color: '#3b82f6', amplitude: 6.0, phase: 0, saturateAfter: 0.2 },
+                        { label: 'Rated FLA', color: '#10b981', amplitude: 1.0, phase: 90 },
+                    ]}
+                    duration={0.5}
+                />
             </>
         )
     },

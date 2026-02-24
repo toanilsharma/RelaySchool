@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { InlineMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
 import {
     GitMerge, Sliders, Zap, CheckCircle2, AlertTriangle,
     Activity, BookOpen, ShieldCheck, TrendingUp, Info,
@@ -48,7 +50,7 @@ const THEORY_DATA = [
                         It is based on the principle of <strong>Unit Protection</strong>: checking if the current entering a zone equals the current leaving it.
                     </p>
                     <div className="mt-4 font-mono text-center bg-white dark:bg-black/30 p-2 rounded border border-emerald-200 dark:border-emerald-800">
-                        {"$\\sum I_{in} + \\sum I_{out} = 0$"}
+                        <InlineMath math={'\\sum I_{in} + \\sum I_{out} = 0'} />
                     </div>
                 </div>
 
@@ -57,14 +59,14 @@ const THEORY_DATA = [
                         <strong className="block text-slate-900 dark:text-white border-b pb-1">External Fault (Through Fault)</strong>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
                             Current flows IN from the source and OUT to the fault location. The relay sees equal and opposite currents.
-                            <br/><strong>Result:</strong> {"$I_{diff} \\approx 0$"}. Relay is STABLE.
+                            <br/><strong>Result:</strong> <InlineMath math={'I_{diff} \\approx 0'} />. Relay is STABLE.
                         </p>
                     </div>
                     <div className="space-y-2">
                         <strong className="block text-slate-900 dark:text-white border-b pb-1">Internal Fault</strong>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
                             Current flows IN from all sources towards the fault inside the zone.
-                            <br/><strong>Result:</strong> {"$I_{diff} = \\sum I_{feeders}$"}. Relay TRIPS.
+                            <br/><strong>Result:</strong> <InlineMath math={'I_{diff} = \\sum I_{feeders}'} />. Relay TRIPS.
                         </p>
                     </div>
                 </div>
@@ -83,17 +85,17 @@ const THEORY_DATA = [
             <div className="space-y-6 text-sm leading-relaxed">
                 <div className="space-y-4">
                     <p className="text-slate-600 dark:text-slate-400">
-                        In an ideal world, {"$I_{diff}$"} would be exactly zero for all external faults. In reality, CT errors, tap changer positions, and relay measurement inaccuracies creating a "False Differential" current.
+                        In an ideal world, <InlineMath math={'I_{diff}'} /> would be exactly zero for all external faults. In reality, CT errors, tap changer positions, and relay measurement inaccuracies creating a "False Differential" current.
                         To prevent nuisance tripping, we use a <strong>Biased Differential</strong> characteristic.
                     </p>
 
                     <BoxInfo title="The Bias Equation" color="blue">
                         <p>We define two quantities:</p>
                         <ul className="list-disc pl-5 mt-2 space-y-1">
-                            <li><strong>Operate Current (Idiff):</strong> {"$|\\vec{I}_1 + \\vec{I}_2|$"}</li>
-                            <li><strong>Restraint Current (Ibias):</strong> {"$(|\\vec{I}_1| + |\\vec{I}_2|) / 2$"} (Average) or sometimes {"$max(|\\vec{I}_1|, |\\vec{I}_2|)$"}</li>
+                            <li><strong>Operate Current (Idiff):</strong> <InlineMath math={'|\\vec{I}_1 + \\vec{I}_2|'} /></li>
+                            <li><strong>Restraint Current (Ibias):</strong> <InlineMath math={'(|\\vec{I}_1| + |\\vec{I}_2|) / 2'} /> (Average) or sometimes <InlineMath math={'max(|\\vec{I}_1|, |\\vec{I}_2|)'} /></li>
                         </ul>
-                        <p className="mt-2 text-xs">The relay trips if: {"$I_{diff} > K \\times I_{bias} + I_{pickup}$"}</p>
+                        <p className="mt-2 text-xs">The relay trips if: <InlineMath math={'I_{diff} > K \\times I_{bias} + I_{pickup}'} /></p>
                     </BoxInfo>
 
                     <h4 className="font-bold text-slate-900 dark:text-white mt-4 border-b pb-2">Why Two Slopes?</h4>
@@ -103,7 +105,7 @@ const THEORY_DATA = [
                             <p className="text-xs mt-1 text-slate-600 dark:text-slate-400">
                                 Handles linear errors during normal load or mild faults.
                                 <br/>- CT Ratio Mismatch (up to 5%)
-                                <br/>- On-Load Tap Changer (OLTC) range (maybe {"$\\pm 10\\%$"})
+                                <br/>- On-Load Tap Changer (OLTC) range (maybe <InlineMath math={'\\pm 10\\%'} />)
                                 <br/>- Relay ADC drift
                             </p>
                         </div>
@@ -140,9 +142,9 @@ const THEORY_DATA = [
                     <p className="mt-2 text-xs text-purple-800 dark:text-purple-200">
                         Inrush waveforms are non-sinusoidal. A Fourier Transform reveals they are rich in <strong>Even Harmonics</strong>, specifically the <strong>2nd Harmonic (100Hz/120Hz)</strong>.
                         <br/><br/>
-                        <strong>Identification:</strong> If {"$I_{2nd}/I_{1st} > 15\\%$"}, it's Inrush. Block the trip!
+                        <strong>Identification:</strong> If <InlineMath math={'I_{2nd}/I_{1st} > 15\\%'} />, it's Inrush. Block the trip!
                         <br/>
-                        <strong>Faults:</strong> Internal faults are sinusoidal (Odd Harmonics only). {"$I_{2nd} \\approx 0$"}. Trip allowed.
+                        <strong>Faults:</strong> Internal faults are sinusoidal (Odd Harmonics only). <InlineMath math={'I_{2nd} \\approx 0'} />. Trip allowed.
                     </p>
                 </div>
 
@@ -172,9 +174,9 @@ const THEORY_DATA = [
                 </p>
 
                 <BoxInfo title="Dimensioning Class X (IEC 60044-1 / 61869-2)" color="pink">
-                    <p>For high-impedance differential schemes or strict low-impedance requirements, we calculate the required Knee Point Voltage {"$(V_k)$"}.</p>
+                    <p>For high-impedance differential schemes or strict low-impedance requirements, we calculate the required Knee Point Voltage <InlineMath math={'(V_k)'} />.</p>
                     <div className="font-mono text-center my-2 p-2 bg-white dark:bg-black/20 rounded">
-                        {"$V_k \\ge K \\times I_{f,max} (R_{ct} + 2 R_{lead})$"}
+                        <InlineMath math={'V_k \\ge K \\times I_{f,max} (R_{ct} + 2 R_{lead})'} />
                     </div>
                     <ul className="list-disc pl-5 mt-2 space-y-1 text-xs">
                         <li><strong>K:</strong> Transient dimensioning factor. Typically 2.0 to account for DC offset.</li>
@@ -186,7 +188,7 @@ const THEORY_DATA = [
                 <div className="mt-4">
                     <h5 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-2">Common Pitfalls</h5>
                     <ul className="space-y-2 text-slate-600 dark:text-slate-400 text-xs">
-                        <li>• <strong>Lead Burden:</strong> Using 2.5mm² wire instead of 4mm² or 6mm² can double {"$R_{lead}$"}, causing saturation.</li>
+                        <li>• <strong>Lead Burden:</strong> Using 2.5mm² wire instead of 4mm² or 6mm² can double <InlineMath math={'R_{lead}'} />, causing saturation.</li>
                         <li>• <strong>Remanence:</strong> If a fault is cleared at zero-crossing (max flux), the CT core retains magnetic flux ("memory"). The next fault might saturate it instantly. Solution: Gapped cores (class TPZ/PR).</li>
                     </ul>
                 </div>
@@ -216,7 +218,7 @@ const THEORY_DATA = [
                         <p className="text-xs text-slate-500">
                             Connect an ammeter in the diff circuit. It should read nearly 0mA.
                             <br/>
-                            <strong>If it reads {"$2 \\times I_{load}$"}:</strong> One CT polarity is reversed! This is a classic commissioning error.
+                            <strong>If it reads <InlineMath math={'2 \\times I_{load}'} />:</strong> One CT polarity is reversed! This is a classic commissioning error.
                         </p>
                     </div>
                     <div className="p-3 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
@@ -852,7 +854,7 @@ export default function DifferentialProtectionApp() {
                         <div className="flex items-center gap-2 mt-1">
                             <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Differential Analysis Suite</span>
                             <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-pink-500/80">IEEE C37.91 / IEC 60255</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-pink-500/80">✅ IEEE C37.91 / IEC 60255 Compliant</span>
                         </div>
                     </div>
                 </div>

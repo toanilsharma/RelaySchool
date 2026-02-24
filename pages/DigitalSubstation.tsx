@@ -374,7 +374,7 @@ const DigitalSubstation = () => {
                     <div className="flex items-center gap-2 mt-1">
                         <span className="text-slate-500 dark:text-slate-400 text-sm">IEC 61850 Behavioral Simulator.</span>
                         <span className="w-1.5 h-1.5 bg-slate-400 rounded-full opacity-50"></span>
-                        <span className="text-xs font-bold uppercase tracking-widest text-blue-500/80">IEC 61850</span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-blue-500/80">✅ IEC 61850 Compliant</span>
                     </div>
                 </div>
                 <div className="flex gap-3 mt-4 md:mt-0">

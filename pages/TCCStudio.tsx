@@ -376,6 +376,7 @@ const QuizModule = () => {
 const SimulatorView = ({ isActive }) => {
     // Simulator State
     const [devices, setDevices] = useState(JSON.parse(JSON.stringify(SCENARIOS[0].devices)));
+    const [snapshots, setSnapshots] = useState<any[]>([]);
     const [selectedId, setSelectedId] = useState(SCENARIOS[0].devices[0].id);
     const [faultAmps, setFaultAmps] = useState(2000);
     const [showHelp, setShowHelp] = useState(false);
@@ -429,7 +430,15 @@ const SimulatorView = ({ isActive }) => {
         return () => ro.disconnect();
     }, [leftPanelOpen, rightPanelOpen, footerOpen, isActive]);
 
-    // Actions
+    const saveSnapshot = () => {
+        setSnapshots(prev => [...prev, {
+            id: Date.now(),
+            color: '#94a3b8', // slate-400
+            devices: JSON.parse(JSON.stringify(devices))
+        }]);
+    };
+    const clearSnapshots = () => setSnapshots([]);
+
     const addDevice = () => {
         const id = `dev_${Date.now()}`;
         const newDev = {
@@ -492,7 +501,7 @@ const SimulatorView = ({ isActive }) => {
         return <g className="text-slate-500 pointer-events-none">{lines}</g>;
     }, [view, dims]);
 
-    const CurvePath = ({ dev }) => {
+    const CurvePath = ({ dev, isSnapshot = false }: { dev: any, isSnapshot?: boolean }) => {
         if (!dev.visible) return null;
         let d = "";
         let dMin = "", dMax = "";
@@ -501,8 +510,8 @@ const SimulatorView = ({ isActive }) => {
         const startI = Math.max(dev.pickup, view.minX);
         const endI = dev.instantaneous ? Math.min(dev.instantaneous, view.maxX) : view.maxX;
 
-        const strokeDash = isEquipment ? "4,4" : (dev.locked ? "5,5" : "");
-        const strokeWidth = isEquipment ? 3 : (selectedId === dev.id ? 3 : 2);
+        const strokeDash = isEquipment ? "4,4" : (dev.locked ? "5,5" : (isSnapshot ? "8,4" : ""));
+        const strokeWidth = isEquipment ? 3 : (selectedId === dev.id && !isSnapshot ? 3 : 2);
 
         if (dev.curve === CurveType.EQUIP_TRANSFORMER_DAMAGE) {
             const points = [];
@@ -544,19 +553,19 @@ const SimulatorView = ({ isActive }) => {
             }
         }
 
-        const isSelected = selectedId === dev.id;
+        const isSelected = selectedId === dev.id && !isSnapshot;
         const handlePickX = toPxX(dev.pickup);
         const handleTDSX = toPxX(dev.pickup * 5);
         const handleTDSY = toPxY(calculateTripTime(dev.pickup * 5, dev.pickup, dev.tds, dev.curve, dev.instantaneous) || 10);
 
         return (
-            <g className="group">
-                {dev.showBand && !isEquipment && <path d={`${dMin} ${dMax} Z`} fill={dev.color} fillOpacity="0.1" stroke="none" />}
+            <g className={`group ${isSnapshot ? 'opacity-40 pointer-events-none' : ''}`}>
+                {dev.showBand && !isEquipment && !isSnapshot && <path d={`${dMin} ${dMax} Z`} fill={dev.color} fillOpacity="0.1" stroke="none" />}
                 <path d={d} fill="none" stroke={dev.color} strokeWidth={strokeWidth} strokeDasharray={strokeDash}
-                    className={`transition-all duration-200 cursor-pointer ${isSelected ? 'opacity-100' : 'opacity-80'} hover:stroke-[4px] hover:opacity-100 shadow-xl`}
-                    onClick={(e) => { e.stopPropagation(); setSelectedId(dev.id); if (!rightPanelOpen) setRightPanelOpen(true); }}
+                    className={`transition-all duration-200 ${isSnapshot ? '' : 'cursor-pointer hover:stroke-[4px] hover:opacity-100 shadow-xl'} ${isSelected ? 'opacity-100' : 'opacity-80'}`}
+                    onClick={(e) => { if(!isSnapshot) { e.stopPropagation(); setSelectedId(dev.id); if (!rightPanelOpen) setRightPanelOpen(true); } }}
                 />
-                {!isEquipment && (
+                {!isEquipment && !isSnapshot && (
                     <text x={handlePickX + 5} y={dims.h - 20} fill={dev.color} fontSize="10" fontWeight="bold" className="pointer-events-none select-none shadow-sm">{dev.name} {isFuse ? '(Fuse)' : ''}</text>
                 )}
                 {isSelected && !dev.locked && !isEquipment && (
@@ -843,6 +852,11 @@ const SimulatorView = ({ isActive }) => {
                         <Plus className="w-3 h-3" /> Add Device
                     </button>
                     <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                    <button onClick={saveSnapshot} className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-700">
+                        <Save className="w-3 h-3" /> Snapshot
+                    </button>
+                    {snapshots.length > 0 && <button onClick={clearSnapshots} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Clear Snapshots"><Trash2 className="w-4 h-4" /></button>}
+                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
                     <button onClick={() => setRightPanelOpen(!rightPanelOpen)} className={`p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
                         {rightPanelOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
                     </button>
@@ -926,6 +940,7 @@ const SimulatorView = ({ isActive }) => {
                     <div ref={graphRef} className="flex-1 relative m-2 bg-white dark:bg-black rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner overflow-hidden">
                         <svg width={dims.w} height={dims.h} className="absolute inset-0 block">
                             {GridLines}
+                            {snapshots.map(snap => snap.devices.map((dev: any) => <CurvePath key={`snap-${snap.id}-${dev.id}`} dev={{...dev, color: snap.color}} isSnapshot={true} />))}
                             {devices.map(dev => <CurvePath key={dev.id} dev={dev} />)}
                             <FaultLine />
                         </svg>

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { 
     BookOpen, CheckCircle, Lock, Play, Star, Trophy, Zap, 
     ArrowRight, Activity, GitMerge, Radar, Network, Server, 
-    ShieldCheck, GraduationCap, ChevronRight
+    ShieldCheck, GraduationCap, ChevronRight, Check
 } from 'lucide-react';
 
 const CURRICULUM = [
@@ -112,7 +112,74 @@ const CURRICULUM = [
     }
 ];
 
+const CertificateSVG = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" className="w-full max-w-lg mx-auto drop-shadow-2xl">
+        <defs>
+            <linearGradient id="cert-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="100%" stopColor="#f8fafc" />
+            </linearGradient>
+            <linearGradient id="cert-border" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fbbf24" />
+                <stop offset="50%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#d97706" />
+            </linearGradient>
+        </defs>
+        <rect width="800" height="600" fill="url(#cert-bg)" />
+        <rect x="20" y="20" width="760" height="560" fill="none" stroke="url(#cert-border)" strokeWidth="12" />
+        <rect x="30" y="30" width="740" height="540" fill="none" stroke="#e2e8f0" strokeWidth="2" />
+        
+        <g transform="translate(400, 100)">
+            <path d="M-30,-20 L30,-20 L40,10 L0,40 L-40,10 Z" fill="#f59e0b" />
+            <path d="M-20,-10 L20,-10 L25,10 L0,30 L-25,10 Z" fill="#fbbf24" />
+        </g>
+        
+        <text x="400" y="180" fontFamily="serif" fontSize="48" fontWeight="bold" textAnchor="middle" fill="#0f172a">CERTIFICATE OF MASTERY</text>
+        <text x="400" y="220" fontFamily="sans-serif" fontSize="16" letterSpacing="4" textAnchor="middle" fill="#64748b">PROUDLY PRESENTED TO</text>
+        
+        <line x1="200" y1="300" x2="600" y2="300" stroke="#cbd5e1" strokeWidth="2" />
+        <text x="400" y="290" fontFamily="serif" fontSize="36" fontStyle="italic" textAnchor="middle" fill="#1e293b">RelaySchool Engineer</text>
+        
+        <text x="400" y="360" fontFamily="sans-serif" fontSize="14" textAnchor="middle" fill="#475569" width="500">For successfully completing the comprehensive Power Systems Protection Curriculum,</text>
+        <text x="400" y="380" fontFamily="sans-serif" fontSize="14" textAnchor="middle" fill="#475569">demonstrating advanced proficiency in electrical theory, coordination, and digital substations.</text>
+        
+        <g transform="translate(200, 480)">
+            <line x1="-80" y1="0" x2="80" y2="0" stroke="#94a3b8" strokeWidth="2" />
+            <text x="0" y="20" fontFamily="sans-serif" fontSize="12" textAnchor="middle" fill="#64748b">DATE COMPLETED</text>
+            <text x="0" y="-10" fontFamily="sans-serif" fontSize="16" textAnchor="middle" fill="#0f172a">{new Date().toLocaleDateString()}</text>
+        </g>
+        
+        <g transform="translate(600, 480)">
+            <line x1="-80" y1="0" x2="80" y2="0" stroke="#94a3b8" strokeWidth="2" />
+            <text x="0" y="20" fontFamily="sans-serif" fontSize="12" textAnchor="middle" fill="#64748b">PLATFORM VERIFIED</text>
+            <text x="0" y="-10" fontFamily="serif" fontSize="20" fontStyle="italic" textAnchor="middle" fill="#0f172a">RelaySchool</text>
+        </g>
+        
+        <circle cx="400" cy="460" r="40" fill="#f59e0b" />
+        <circle cx="400" cy="460" r="35" fill="none" stroke="#ffffff" strokeWidth="2" strokeDasharray="4 2" />
+        <path d="M385,460 L395,470 L415,445" fill="none" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M380,490 L400,530 L420,490 Z" fill="#d97706" />
+    </svg>
+);
+
 const Academy = () => {
+    const [progress, setProgress] = useState<Record<string, boolean>>(() => {
+        try {
+            const stored = localStorage.getItem('rs_academy_progress');
+            return stored ? JSON.parse(stored) : {};
+        } catch { return {}; }
+    });
+
+    const toggleModule = (id: string, isCompleted: boolean) => {
+        const newProgress = { ...progress, [id]: isCompleted };
+        setProgress(newProgress);
+        localStorage.setItem('rs_academy_progress', JSON.stringify(newProgress));
+    };
+
+    const totalModules = CURRICULUM.reduce((acc, tier) => acc + tier.modules.length, 0);
+    const completedCount = Object.values(progress).filter(Boolean).length;
+    const isCertified = completedCount === totalModules;
+
     return (
         <div className="space-y-8 animate-fade-in max-w-6xl mx-auto pb-12">
             
@@ -135,13 +202,13 @@ const Academy = () => {
                     </p>
                     <div className="flex items-center gap-4">
                         <div className="flex -space-x-2">
-                            {[1,2,3,4].map(i => (
-                                <div key={i} className="w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-800 flex items-center justify-center text-[10px] font-bold">
-                                    {i}
+                            {[...Array(totalModules)].map((_, i) => (
+                                <div key={i} className={`w-8 h-8 rounded-full border-2 border-slate-800 flex items-center justify-center text-[10px] font-bold ${i < completedCount ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                                    {i < completedCount ? <Check className="w-4 h-4" /> : i + 1}
                                 </div>
                             ))}
                         </div>
-                        <span className="text-sm text-slate-400 font-medium">4 Tiers • 7 Core Modules</span>
+                        <span className="text-sm text-slate-400 font-medium">4 Tiers • {completedCount}/{totalModules} Modules</span>
                     </div>
                 </div>
             </div>
@@ -179,15 +246,14 @@ const Academy = () => {
                                                 <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 transition-colors">
                                                     <mod.icon className="w-6 h-6" />
                                                 </div>
-                                                {/* Simulate progress - First module unlocked */}
-                                                {idx === 0 ? (
-                                                    <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1">
-                                                        <Play className="w-3 h-3 fill-current" /> Active
-                                                    </span>
+                                                {progress[mod.id] ? (
+                                                    <button onClick={() => toggleModule(mod.id, false)} className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider flex items-center gap-1 hover:bg-emerald-200 transition-colors cursor-pointer">
+                                                        <CheckCircle className="w-3 h-3" /> Mastered
+                                                    </button>
                                                 ) : (
-                                                    <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider flex items-center gap-1">
-                                                        <Lock className="w-3 h-3" /> Locked
-                                                    </span>
+                                                    <button onClick={() => toggleModule(mod.id, true)} className="bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider flex items-center gap-1 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+                                                        <Play className="w-3 h-3" /> Mark Complete
+                                                    </button>
                                                 )}
                                             </div>
 
@@ -200,8 +266,8 @@ const Academy = () => {
 
                                             <div className="space-y-3 mb-6">
                                                 {mod.objectives.map((obj, i) => (
-                                                    <div key={i} className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400">
-                                                        <CheckCircle className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 shrink-0 mt-0.5" />
+                                                    <div key={i} className={`flex items-start gap-2 text-xs ${progress[mod.id] ? 'text-slate-700 dark:text-slate-300 font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                        <CheckCircle className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${progress[mod.id] ? 'text-emerald-500' : 'text-slate-300 dark:text-slate-600'}`} />
                                                         <span>{obj}</span>
                                                     </div>
                                                 ))}
@@ -209,7 +275,7 @@ const Academy = () => {
 
                                             <Link 
                                                 to={mod.toolLink}
-                                                className="w-full py-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group-hover:border-blue-500 group-hover:text-blue-600"
+                                                className={`w-full py-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-colors ${progress[mod.id] ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30' : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 group-hover:border-blue-500 group-hover:text-blue-600'}`}
                                             >
                                                 Open {mod.toolName} <ArrowRight className="w-4 h-4" />
                                             </Link>
@@ -222,21 +288,31 @@ const Academy = () => {
                 </div>
             </div>
 
-            {/* Certification Badge (Simulated) */}
-            <div className="mt-16 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl p-8 border border-amber-200 dark:border-amber-800/50 flex flex-col md:flex-row items-center gap-8">
-                <div className="w-24 h-24 bg-amber-500 rounded-full flex items-center justify-center shadow-xl shadow-amber-500/30 shrink-0">
-                    <Trophy className="w-10 h-10 text-white" />
+            {/* Certification Badge */}
+            {isCertified ? (
+                <div className="mt-16 animate-in zoom-in duration-500">
+                    <CertificateSVG />
+                    <div className="text-center mt-6">
+                        <p className="text-emerald-600 dark:text-emerald-400 font-bold text-lg flex justify-center items-center gap-2">
+                            <Trophy className="w-6 h-6" /> Curriculum Mastered!
+                        </p>
+                        <p className="text-slate-500 mt-2">You can save this certificate by right clicking on it.</p>
+                    </div>
                 </div>
-                <div className="text-center md:text-left">
-                    <h3 className="text-xl font-bold text-amber-900 dark:text-amber-100 mb-2">Completion Certificate</h3>
-                    <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed max-w-2xl">
-                        Complete all challenges in the "Challenges" module and verify your understanding in the "Academy" path to unlock your virtual Certificate of Competency in Digital Protection Engineering.
-                    </p>
+            ) : (
+                <div className="mt-16 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl p-8 border border-amber-200 dark:border-amber-800/50 flex flex-col md:flex-row items-center gap-8">
+                    <div className="w-24 h-24 bg-amber-500 rounded-full flex items-center justify-center shadow-xl shadow-amber-500/30 shrink-0">
+                        <Lock className="w-10 h-10 text-white" />
+                    </div>
+                    <div className="text-center md:text-left">
+                        <h3 className="text-xl font-bold text-amber-900 dark:text-amber-100 mb-2">Completion Certificate Locked</h3>
+                        <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed max-w-2xl">
+                            Complete all {totalModules} modules in the curriculum to unlock your digital Certificate of Mastery. 
+                            Currently completed: {completedCount}/{totalModules}.
+                        </p>
+                    </div>
                 </div>
-                <Link to="/challenges" className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold shadow-lg shadow-amber-600/20 transition-all whitespace-nowrap">
-                    Take Final Exam
-                </Link>
-            </div>
+            )}
 
         </div>
     );

@@ -1,5 +1,6 @@
 import React from 'react';
 import { MathBlock, StandardRef, ProTip, Hazard } from '../../components/TheoryComponents';
+import { TheoryBarChart, TheoryFlowDiagram } from '../../components/TheoryDiagrams';
 import { Globe, FileCode, Layers, Server, ShieldCheck, Zap, Database, Boxes, Cpu, Activity } from 'lucide-react';
 
 export const DIGITAL_TWIN_THEORY_CONTENT = [
@@ -32,6 +33,23 @@ export const DIGITAL_TWIN_THEORY_CONTENT = [
                         </ul>
                     </div>
                 </div>
+
+                <TheoryBarChart
+                    title="Wiring Complexity: Legacy vs. Digital Substation"
+                    data={[
+                        { name: 'CT Wiring', Legacy: 500, Digital: 20 },
+                        { name: 'Trip Circuits', Legacy: 200, Digital: 4 },
+                        { name: 'SCADA Signals', Legacy: 300, Digital: 1 },
+                        { name: 'Interlock Wires', Legacy: 150, Digital: 0 },
+                    ]}
+                    xKey="name"
+                    yKeys={[
+                        { key: 'Legacy', name: 'Legacy (Copper Wires)', color: '#ef4444' },
+                        { key: 'Digital', name: 'Digital (Fiber/Ethernet)', color: '#3b82f6' },
+                    ]}
+                    yAxisLabel="Number of Connections per Bay"
+                    height={280}
+                />
             </>
         )
     },
@@ -81,6 +99,20 @@ export const DIGITAL_TWIN_THEORY_CONTENT = [
                         </div>
                     </div>
                 </div>
+
+                <TheoryFlowDiagram
+                    title="IEC 61850 Three-Layer Architecture"
+                    direction="vertical"
+                    blocks={[
+                        { id: 'station', label: 'Station Level', sub: 'SCADA, HMI, Gateway', color: '#10b981' },
+                        { id: 'bay', label: 'Bay Level', sub: 'Relays, BCUs (GOOSE)', color: '#3b82f6' },
+                        { id: 'process', label: 'Process Level', sub: 'MU, Switchgear (SV)', color: '#f59e0b' },
+                    ]}
+                    arrows={[
+                        { from: 'station', to: 'bay', label: 'MMS (TCP/IP)' },
+                        { from: 'bay', to: 'process', label: 'GOOSE + SV' },
+                    ]}
+                />
             </>
         )
     },
@@ -130,6 +162,21 @@ export const DIGITAL_TWIN_THEORY_CONTENT = [
                 <ProTip>
                     <strong>Never edit a .CID file directly!</strong> Always edit the system-wide .SCD file and re-export the CIDs. If you edit a CID manually, the relay will understand, but the rest of the system (and the documentation) will be out of sync.
                 </ProTip>
+
+                <TheoryFlowDiagram
+                    title="SCL Workflow: From Template to Configured Relay"
+                    blocks={[
+                        { id: 'icd', label: '.ICD', sub: 'Vendor Template', color: '#a855f7' },
+                        { id: 'ssd', label: '.SSD', sub: 'Topology Def', color: '#3b82f6' },
+                        { id: 'scd', label: '.SCD', sub: 'Master Config', color: '#10b981' },
+                        { id: 'cid', label: '.CID', sub: 'Per IED File', color: '#f59e0b' },
+                    ]}
+                    arrows={[
+                        { from: 'icd', to: 'scd', label: 'Import' },
+                        { from: 'ssd', to: 'scd', label: 'Merge' },
+                        { from: 'scd', to: 'cid', label: 'Export' },
+                    ]}
+                />
             </>
         )
     },
@@ -196,6 +243,21 @@ export const DIGITAL_TWIN_THEORY_CONTENT = [
                         </p>
                     </div>
                 </div>
+
+                <TheoryBarChart
+                    title="Digital Substation ROI Factors (Typical Savings %)"
+                    data={[
+                        { name: 'Copper Cabling', savings: 80 },
+                        { name: 'Commissioning Time', savings: 50 },
+                        { name: 'Control Room Size', savings: 40 },
+                        { name: 'Maintenance Hours', savings: 35 },
+                        { name: 'Testing Time', savings: 60 },
+                    ]}
+                    xKey="name"
+                    yKeys={[{ key: 'savings', name: 'Cost Reduction (%)', color: '#10b981' }]}
+                    yAxisLabel="Savings (%)"
+                    height={280}
+                />
             </>
         )
     },

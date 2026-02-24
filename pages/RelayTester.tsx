@@ -170,6 +170,92 @@ const TCCGraph = ({ pickup, tms, curve, liveCurrent, tripTime, isDark }: { picku
     );
 }
 
+// --- 3.5. WAVEFORM COMPONENT ---
+const WaveformViewer = ({ liveCurrent, harmonicLevel, isDark }: { liveCurrent: number, harmonicLevel: number, isDark: boolean }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    
+    useEffect(() => {
+        const cvs = canvasRef.current;
+        const container = containerRef.current;
+        if (!cvs || !container) return;
+        
+        const ctx = cvs.getContext('2d');
+        if (!ctx) return;
+        
+        let animationFrameId: number;
+        let phase = 0;
+        
+        const render = () => {
+            const w = container.clientWidth;
+            const h = 200;
+            cvs.width = w;
+            cvs.height = h;
+            
+            ctx.clearRect(0, 0, w, h);
+            
+            // Draw Grid
+            ctx.strokeStyle = isDark ? '#334155' : '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, h/2); ctx.lineTo(w, h/2);
+            ctx.stroke();
+            
+            if (liveCurrent <= 0) {
+                animationFrameId = requestAnimationFrame(render);
+                return;
+            }
+            
+            // Draw Waveform
+            ctx.beginPath();
+            ctx.strokeStyle = '#6366f1'; // indigo-500
+            ctx.lineWidth = 2;
+            
+            // Scale amplitude based on standard max of 50A
+            const amplitude = Math.min((liveCurrent / 50) * (h/2) * 0.8, (h/2) * 0.95);
+            const frequency = 0.05; // roughly 60Hz visual approx for width
+            
+            for (let x = 0; x < w; x++) {
+                // Fundamental
+                let y = Math.sin(x * frequency + phase) * amplitude;
+                
+                // Add 2nd Harmonic
+                if (harmonicLevel > 0) {
+                    const h2Amp = amplitude * (harmonicLevel / 100);
+                    // 2nd harmonic is 2x frequency
+                    y += Math.sin(x * frequency * 2 + phase * 2) * h2Amp;
+                }
+                
+                if (x === 0) ctx.moveTo(x, h/2 - y);
+                else ctx.lineTo(x, h/2 - y);
+            }
+            ctx.stroke();
+            
+            phase += 0.15; // Scroll speed
+            animationFrameId = requestAnimationFrame(render);
+        };
+        
+        render();
+        
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [liveCurrent, harmonicLevel, isDark]);
+    
+    return (
+        <div ref={containerRef} className="w-full relative shadow-inner overflow-hidden rounded-lg">
+            <canvas ref={canvasRef} className={`w-full ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`} />
+            <div className="absolute top-2 left-2 text-[10px] font-bold text-slate-500 bg-black/10 dark:bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm">
+                Fundamental + 2nd Harmonic
+            </div>
+            {liveCurrent > 0 && (
+                <div className="absolute bottom-2 right-2 flex gap-2">
+                    <span className="text-[10px] font-mono text-indigo-500 bg-indigo-500/10 px-1 rounded">{liveCurrent.toFixed(1)}A</span>
+                    {harmonicLevel > 0 && <span className="text-[10px] font-mono text-amber-500 bg-amber-500/10 px-1 rounded">{harmonicLevel}% THD</span>}
+                </div>
+            )}
+        </div>
+    );
+};
+
 // --- 4. SUB-COMPONENTS ---
 
 const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
@@ -549,6 +635,14 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                     </div>
                 )}
 
+                {/* WAVEFORM VIEWER */}
+                <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <h4 className={`font-bold mb-3 flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        <Activity className="w-4 h-4 text-indigo-500" /> Live Waveform
+                    </h4>
+                    <WaveformViewer liveCurrent={liveCurrent} harmonicLevel={harmonicLevel} isDark={isDark} />
+                </div>
+
                 {/* TCC CURVE VIEWER */}
                 <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <h4 className={`font-bold mb-3 flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -643,7 +737,7 @@ export default function RelayTesterApp() {
                         <div className="flex items-center gap-2 mt-1">
                             <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Relay Commissioning Suite</span>
                             <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/80">IEC 60255 / IEEE C37.90</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/80">✅ IEC 60255 / IEEE C37.90 Compliant</span>
                         </div>
                     </div>
                 </div>

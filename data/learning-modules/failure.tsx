@@ -1,5 +1,5 @@
 import { MathBlock, InlineMath, StandardRef, ProTip, Hazard } from '../../components/TheoryComponents';
-import { TheoryLineChart } from '../../components/TheoryDiagrams';
+import { TheoryLineChart, TheoryWaveform, TheoryFlowDiagram } from '../../components/TheoryDiagrams';
 import { Zap, AlertTriangle, Activity, Magnet, TrendingDown, Battery, ShieldAlert, BookOpen } from 'lucide-react';
 
 export const FAILURE_THEORY_CONTENT = [
@@ -39,6 +39,15 @@ export const FAILURE_THEORY_CONTENT = [
                 <p>
                     If an Auto-Reclose occurs 500ms later into a fault of the same polarity, standard CTs may saturate instantly (in &lt; 2ms) because they started with the "tank half full" of flux.
                 </p>
+
+                <TheoryWaveform
+                    title="CT Secondary Output: Normal vs Saturated (Clipped Waveform)"
+                    waves={[
+                        { label: 'Normal (Low I)', color: '#3b82f6', amplitude: 1.0, phase: 0 },
+                        { label: 'Saturated (High I)', color: '#ef4444', amplitude: 3.0, phase: 0, saturateAfter: 0.01 },
+                    ]}
+                    duration={0.06}
+                />
 
                 <div className="mt-8 mb-4">
                      <TheoryLineChart 
@@ -262,6 +271,21 @@ export const FAILURE_THEORY_CONTENT = [
                 <Hazard>
                     If a <strong>Negative</strong> wire <em>also</em> touches ground later, you create a short circuit across the battery. Alternatively, a double ground fault can bypass the relay contact, energizing the trip coil directly and causing a "Ghost Trip."
                 </Hazard>
+
+                <TheoryFlowDiagram
+                    title="Trip Circuit Supervision (ANSI 74) Logic"
+                    blocks={[
+                        { id: 'batt', label: 'DC Battery', sub: '125V DC', color: '#f59e0b' },
+                        { id: 'relay', label: 'Relay Contact', sub: '86/Trip', color: '#3b82f6' },
+                        { id: 'coil', label: 'Trip Coil', sub: 'Solenoid', color: '#ef4444' },
+                        { id: 'cb', label: 'Breaker', sub: 'Opens', color: '#10b981' },
+                    ]}
+                    arrows={[
+                        { from: 'batt', to: 'relay', label: '110VDC' },
+                        { from: 'relay', to: 'coil', label: 'Close' },
+                        { from: 'coil', to: 'cb', label: 'Latch' },
+                    ]}
+                />
             </>
         )
     },
