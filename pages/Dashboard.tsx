@@ -49,6 +49,7 @@ import {
   Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import SEO from "../components/SEO";
 
 // --- CONSTANTS ---
 
@@ -1139,6 +1140,8 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-10 animate-fade-in max-w-7xl mx-auto pb-12 overflow-hidden">
+<SEO title="Dashboard" description="Interactive Power System simulation and engineering tool: Dashboard." url="/dashboard" />
+
       
       {/* 1. HERO SECTION & TICKER */}
       <div className="relative -mx-4 md:-mx-8 lg:-mx-10 mb-12">

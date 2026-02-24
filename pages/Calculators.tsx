@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Calculator, ArrowRight, Zap, RefreshCw, Equal } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
+import SEO from "../components/SEO";
 
 // Complex Number Helper
 class Complex {
@@ -189,6 +190,8 @@ const ImpedanceBaseConversion = () => {
 export default function Calculators() {
     return (
         <div className="space-y-8 animate-fade-in max-w-5xl mx-auto pb-12">
+<SEO title="Calculators" description="Interactive Power System simulation and engineering tool: Calculators." url="/calculators" />
+
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">

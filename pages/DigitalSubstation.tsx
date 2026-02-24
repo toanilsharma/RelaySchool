@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Network, Activity, Clock, Server, AlertTriangle, ShieldAlert, Zap, Settings, Play, RotateCcw, AlertOctagon, Info, CheckCircle, XCircle, Share2, Layers, Cpu, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import SEO from "../components/SEO";
 
 // --- TYPES & INTERFACES ---
 
@@ -364,6 +365,8 @@ const DigitalSubstation = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 p-4 font-sans animate-fade-in flex flex-col gap-4">
+<SEO title="Digital Substation" description="Interactive Power System simulation and engineering tool: Digital Substation." url="/digitalsubstation" />
+
             
             {/* --- HEADER --- */}
             <header className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">

@@ -1,9 +1,12 @@
 import React from 'react';
 import { Zap, Target, BookOpen, ShieldCheck, Users, Award } from 'lucide-react';
+import SEO from "../components/SEO";
 
 const AboutUs = () => {
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+<SEO title="About Us" description="Interactive Power System simulation and engineering tool: About Us." url="/aboutus" />
+
       <div className="flex items-center gap-3 mb-8">
         <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
           <Zap className="w-7 h-7 text-blue-600 dark:text-blue-400" />

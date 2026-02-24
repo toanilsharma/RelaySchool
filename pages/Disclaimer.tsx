@@ -1,9 +1,12 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
+import SEO from "../components/SEO";
 
 const Disclaimer = () => {
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+<SEO title="Disclaimer" description="Interactive Power System simulation and engineering tool: Disclaimer." url="/disclaimer" />
+
       <div className="flex items-center gap-3 mb-8">
         <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
           <AlertTriangle className="w-7 h-7 text-amber-600 dark:text-amber-400" />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BookOpen, AlertTriangle, FileText, Search, ShieldCheck, Activity, Calendar, GitCommit } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
+import SEO from "../components/SEO";
 
 const CASES = [
     {
@@ -41,6 +42,8 @@ export default function CaseStudies() {
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto pb-12 animate-fade-in">
+<SEO title="Case Studies" description="Interactive Power System simulation and engineering tool: Case Studies." url="/casestudies" />
+
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">

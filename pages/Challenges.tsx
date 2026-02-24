@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Trophy, ArrowRight, RefreshCcw, Check, XCircle, AlertTriangle, Target, Star, ChevronRight, Zap, ShieldAlert, Timer, HelpCircle, BookOpen, X, CheckCircle, Scale, PenTool } from 'lucide-react';
 import { calculateTripTime } from '../services/mathEngine';
 import { CurveType } from '../types';
+import SEO from "../components/SEO";
 
 // --- HELP MODAL ---
 const ChallengesHelpModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
@@ -240,6 +241,8 @@ const Challenges = () => {
 
     return (
         <div className="space-y-8 max-w-5xl mx-auto">
+<SEO title="Challenges" description="Interactive Power System simulation and engineering tool: Challenges." url="/challenges" />
+
             <ChallengesHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
                 <div>

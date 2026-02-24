@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { parseComtrade, ComtradeData } from '../utils/comtradeParser';
+import SEO from "../components/SEO";
 
 // --- CONSTANTS & STANDARDS ---
 
@@ -257,6 +258,8 @@ const EventAnalyzer = () => {
 
     return (
         <div className="bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-100 pb-20">
+<SEO title="Event Analyzer" description="Interactive Power System simulation and engineering tool: Event Analyzer." url="/eventanalyzer" />
+
             
             {/* --- HEADER --- */}
             <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">

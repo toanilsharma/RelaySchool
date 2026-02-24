@@ -3,6 +3,7 @@ import { InlineMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { Zap, Activity, Hexagon, ArrowRight, RefreshCw, Triangle, Download, CheckCircle2, AlertTriangle, BookOpen, Calculator, Beaker, Menu, Divide, Share2, PieChart, Settings, Info, MousePointer2, X, Sliders as SlidersIcon, RotateCw, HelpCircle, Book, GraduationCap, Layers, MoreVertical } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
+import SEO from "../components/SEO";
 
 // --- MATH KERNEL ---
 
@@ -764,6 +765,8 @@ const SymComponents = () => {
 
   return (
     <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+<SEO title="Sym Components" description="Interactive Power System simulation and engineering tool: Sym Components." url="/symcomponents" />
+
       
       {/* Header */}
       <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>

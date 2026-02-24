@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { BookOpen, Cpu, Shield, Zap, Wifi, Activity, Server, Clock, GitMerge, FileCode, CheckCircle2, ArrowRight, Microchip, Layers, Lock } from 'lucide-react';
+import SEO from "../components/SEO";
 
 const INSIGHTS = [
     {
@@ -122,6 +123,8 @@ const INSIGHTS = [
 const SmartGridTrends = () => {
     return (
         <div className="space-y-8 animate-fade-in max-w-7xl mx-auto pb-12">
+<SEO title="Smart Grid Trends" description="Interactive Power System simulation and engineering tool: Smart Grid Trends." url="/smartgridtrends" />
+
             
             {/* Header */}
             <div className="bg-slate-900 rounded-3xl p-8 md:p-12 overflow-hidden shadow-2xl border border-slate-800 relative">

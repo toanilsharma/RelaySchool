@@ -7,6 +7,7 @@ import {
     ChevronDown, ChevronUp, ExternalLink, Lightbulb, Binary, Save, MousePointer2
 } from 'lucide-react';
 import { LogicNode } from '../types';
+import SEO from "../components/SEO";
 
 // --- CONSTANTS FOR LIBRARY ---
 
@@ -677,6 +678,8 @@ const KnowledgeEngine = () => {
 
     return (
         <div className="flex flex-col h-full space-y-6">
+<SEO title="Knowledge Engine" description="Interactive Power System simulation and engineering tool: Knowledge Engine." url="/knowledgeengine" />
+
             <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">

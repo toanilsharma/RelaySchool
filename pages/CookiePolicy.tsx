@@ -1,9 +1,12 @@
 import React from 'react';
 import { ShieldCheck } from 'lucide-react';
+import SEO from "../components/SEO";
 
 const CookiePolicy = () => {
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+<SEO title="Cookie Policy" description="Interactive Power System simulation and engineering tool: Cookie Policy." url="/cookiepolicy" />
+
       <div className="flex items-center gap-3 mb-8">
         <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
           <ShieldCheck className="w-7 h-7 text-blue-600 dark:text-blue-400" />

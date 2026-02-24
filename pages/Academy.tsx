@@ -6,6 +6,7 @@ import {
     ArrowRight, Activity, GitMerge, Radar, Network, Server, 
     ShieldCheck, GraduationCap, ChevronRight, Check
 } from 'lucide-react';
+import SEO from "../components/SEO";
 
 const CURRICULUM = [
     {
@@ -182,6 +183,8 @@ const Academy = () => {
 
     return (
         <div className="space-y-8 animate-fade-in max-w-6xl mx-auto pb-12">
+<SEO title="Academy" description="Interactive Power System simulation and engineering tool: Academy." url="/academy" />
+
             
             {/* Hero Section */}
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 relative overflow-hidden border border-slate-700 shadow-2xl text-white">

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeObserver } from '../hooks/useThemeObserver';
+import SEO from "../components/SEO";
 
 // --- 1. ENGINEERING CONSTANTS & PHYSICS ---
 const NOMINAL_FREQ = 60; // Hz
@@ -949,6 +950,8 @@ export default function FastBusTransferApp() {
 
   return (
     <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+<SEO title="Fast Bus Transfer" description="Interactive Power System simulation and engineering tool: Fast Bus Transfer." url="/fastbustransfer" />
+
       {/* Header */}
       <header className={`h-16 border-b shrink-0 flex items-center justify-between px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center gap-3">

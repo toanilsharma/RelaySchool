@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import TheoryLibrary from '../components/TheoryLibrary';
 import { TCC_THEORY_CONTENT } from '../data/learning-modules/tcc';
+import SEO from "../components/SEO";
 
 // --- 1. CONSTANTS & DATA BANKS ---
 
@@ -19,58 +20,193 @@ const CurveType = {
     IEC_STANDARD_INVERSE: 'IEC_SI',
     IEC_VERY_INVERSE: 'IEC_VI',
     IEC_EXTREMELY_INVERSE: 'IEC_EI',
+    IEC_LONG_TIME_INVERSE: 'IEC_LTI',
     ANSI_MODERATELY_INVERSE: 'ANSI_MI',
     ANSI_VERY_INVERSE: 'ANSI_VI',
     ANSI_EXTREMELY_INVERSE: 'ANSI_EI',
+    ANSI_SHORT_TIME_INVERSE: 'ANSI_STI',
+    ANSI_LONG_TIME_INVERSE: 'ANSI_LTI',
     DT_DEFINITE_TIME: 'DT',
-    // Special Types
+    // Fuse Types (real data)
+    FUSE_K_FAST: 'FUSE_K',
+    FUSE_T_SLOW: 'FUSE_T',
+    FUSE_NH_GG: 'FUSE_NH',
+    // Equipment Limits
     EQUIP_TRANSFORMER_DAMAGE: 'EQ_TX_DMG',
     EQUIP_MOTOR_START: 'EQ_MOT_START',
-    // New Fuse Type
-    GENERIC_FUSE: 'FUSE_GEN'
+    EQUIP_CABLE_DAMAGE: 'EQ_CABLE',
 };
 
-const COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
+const COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6'];
+
+// Real fuse I-t data: [current_multiple, mmt_seconds, tct_seconds]
+const FUSE_DATA = {
+    [CurveType.FUSE_K_FAST]: { name: 'K-Link (Fast)', data: [
+        [1.3, 1000, 1200], [1.5, 300, 400], [2, 40, 60], [3, 4.5, 7],
+        [4, 1.2, 2.0], [5, 0.5, 0.9], [6, 0.25, 0.5], [8, 0.08, 0.18],
+        [10, 0.035, 0.08], [15, 0.012, 0.03], [20, 0.006, 0.015],
+    ]},
+    [CurveType.FUSE_T_SLOW]: { name: 'T-Link (Slow)', data: [
+        [1.3, 1500, 1800], [1.5, 600, 800], [2, 100, 140], [3, 12, 18],
+        [4, 3.5, 5.5], [5, 1.5, 2.5], [6, 0.7, 1.3], [8, 0.2, 0.45],
+        [10, 0.08, 0.2], [15, 0.025, 0.06], [20, 0.01, 0.025],
+    ]},
+    [CurveType.FUSE_NH_GG]: { name: 'NH gG (IEC)', data: [
+        [1.25, 3600, 4000], [1.5, 500, 700], [2, 50, 80], [3, 6, 10],
+        [4, 1.5, 3.0], [5, 0.6, 1.2], [6, 0.3, 0.6], [8, 0.1, 0.25],
+        [10, 0.04, 0.12], [15, 0.015, 0.04], [20, 0.007, 0.02],
+    ]},
+};
+
+// Cable K-factors per IEC 60364-5-54 Table 54C
+const CABLE_K_FACTORS = {
+    'Cu_PVC': { k: 115, label: 'Copper / PVC' },
+    'Cu_XLPE': { k: 143, label: 'Copper / XLPE' },
+    'Cu_EPR': { k: 143, label: 'Copper / EPR' },
+    'Al_PVC': { k: 76, label: 'Aluminum / PVC' },
+    'Al_XLPE': { k: 94, label: 'Aluminum / XLPE' },
+};
+
+// IEEE C57.109 Transformer damage curve data: Category -> [current_mult, time_s] (mechanical + thermal)
+const TX_DAMAGE_CURVES = {
+    'I': { label: 'Cat I (5-500kVA 1Ø)', points: [[2,1800],[3,300],[4,60],[5,15],[6,5],[8,2],[10,1.2],[12,0.7],[16,0.4],[20,0.25],[25,0.17]] },
+    'II': { label: 'Cat II (501-1667kVA 1Ø)', points: [[2,600],[3,100],[4,30],[5,10],[6,4],[8,1.5],[10,0.8],[12,0.5],[16,0.25],[20,0.15],[25,0.1]] },
+    'III': { label: 'Cat III (1668-10000kVA)', points: [[2,300],[3,60],[4,15],[5,5],[6,2],[8,0.8],[10,0.5],[12,0.3],[16,0.15],[20,0.08],[25,0.05]] },
+    'IV': { label: 'Cat IV (>10000kVA)', points: [[2,120],[3,30],[4,8],[5,3],[6,1.2],[8,0.5],[10,0.25],[12,0.15],[16,0.07],[20,0.04],[25,0.03]] },
+};
+
+// Manufacturer formula variations
+const MANUFACTURERS = {
+    'generic': { label: 'Generic (IEEE)', multiplyB: true },
+    'sel': { label: 'SEL (Schweitzer)', multiplyB: false },
+    'abb': { label: 'ABB', multiplyB: true },
+    'ge': { label: 'GE Multilin', multiplyB: true },
+};
 
 const CURVE_LIB = [
     { label: "IEC Standard Inverse (SI)", value: CurveType.IEC_STANDARD_INVERSE, group: 'Relay' },
     { label: "IEC Very Inverse (VI)", value: CurveType.IEC_VERY_INVERSE, group: 'Relay' },
     { label: "IEC Extremely Inverse (EI)", value: CurveType.IEC_EXTREMELY_INVERSE, group: 'Relay' },
+    { label: "IEC Long Time Inverse", value: CurveType.IEC_LONG_TIME_INVERSE, group: 'Relay' },
     { label: "ANSI Moderately Inverse", value: CurveType.ANSI_MODERATELY_INVERSE, group: 'Relay' },
     { label: "ANSI Very Inverse", value: CurveType.ANSI_VERY_INVERSE, group: 'Relay' },
     { label: "ANSI Extremely Inverse", value: CurveType.ANSI_EXTREMELY_INVERSE, group: 'Relay' },
+    { label: "ANSI Short-Time Inverse", value: CurveType.ANSI_SHORT_TIME_INVERSE, group: 'Relay' },
+    { label: "ANSI Long-Time Inverse", value: CurveType.ANSI_LONG_TIME_INVERSE, group: 'Relay' },
     { label: "Definite Time (50)", value: CurveType.DT_DEFINITE_TIME, group: 'Relay' },
-    { label: "Generic Fuse (Fast)", value: CurveType.GENERIC_FUSE, group: 'Fuse' },
+    { label: "K-Link Fuse (Fast)", value: CurveType.FUSE_K_FAST, group: 'Fuse' },
+    { label: "T-Link Fuse (Slow)", value: CurveType.FUSE_T_SLOW, group: 'Fuse' },
+    { label: "NH gG Fuse (IEC)", value: CurveType.FUSE_NH_GG, group: 'Fuse' },
 ];
 
 const SCENARIOS = [
     {
-        id: 'dist_feeder',
-        name: 'Distribution Feeder Grading',
+        id: 'dist_feeder', name: 'Distribution Feeder Grading',
         description: 'Classic source-to-load coordination (Blue feeder below Red incomer).',
         devices: [
-            { id: 'dev_up', name: 'Substation Incomer', type: 'Relay', curve: CurveType.IEC_VERY_INVERSE, pickup: 600, tds: 0.40, instantaneous: 12000, ctRatio: 1200, color: '#ef4444', visible: true, locked: false, showBand: false },
-            { id: 'dev_down', name: 'Feeder Relay', type: 'Relay', curve: CurveType.IEC_STANDARD_INVERSE, pickup: 200, tds: 0.15, instantaneous: 3000, ctRatio: 400, color: '#3b82f6', visible: true, locked: false, showBand: true }
+            { id: 'dev_up', name: 'Substation Incomer', type: 'Relay', curve: CurveType.IEC_VERY_INVERSE, pickup: 600, tds: 0.40, instantaneous: 12000, ctRatio: 1200, color: '#ef4444', visible: true, locked: false, showBand: false, manufacturer: 'generic' },
+            { id: 'dev_down', name: 'Feeder Relay', type: 'Relay', curve: CurveType.IEC_STANDARD_INVERSE, pickup: 200, tds: 0.15, instantaneous: 3000, ctRatio: 400, color: '#3b82f6', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
         ]
     },
     {
-        id: 'tx_protection',
-        name: 'Transformer Damage Protection',
-        description: 'Coordinate relay to trip BEFORE the Transformer Damage Curve (ANSI C57.109).',
+        id: 'tx_protection', name: 'Transformer Damage (C57.109)',
+        description: 'Coordinate relay to trip BEFORE the Transformer Damage Curve.',
         devices: [
-            { id: 'tx_limit', name: 'TX Damage Curve (Category II)', type: 'Limit', curve: CurveType.EQUIP_TRANSFORMER_DAMAGE, pickup: 1000, tds: 1, instantaneous: null, ctRatio: null, color: '#dc2626', visible: true, locked: true, showBand: false },
-            { id: 'tx_relay', name: 'HV Side Relay', type: 'Relay', curve: CurveType.ANSI_EXTREMELY_INVERSE, pickup: 100, tds: 2.0, instantaneous: 2000, ctRatio: 200, color: '#3b82f6', visible: true, locked: false, showBand: true }
+            { id: 'tx_limit', name: 'TX Damage Cat II', type: 'Limit', curve: CurveType.EQUIP_TRANSFORMER_DAMAGE, pickup: 1000, tds: 1, instantaneous: null, ctRatio: null, color: '#dc2626', visible: true, locked: true, showBand: false, manufacturer: 'generic', txCategory: 'II' },
+            { id: 'tx_relay', name: 'HV Side Relay', type: 'Relay', curve: CurveType.ANSI_EXTREMELY_INVERSE, pickup: 100, tds: 2.0, instantaneous: 2000, ctRatio: 200, color: '#3b82f6', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
         ]
     },
     {
-        id: 'motor_start',
-        name: 'Motor Protection & Starting',
+        id: 'motor_start', name: 'Motor Protection & Starting',
         description: 'Allow Motor Starting (Inrush) while protecting against stall.',
         devices: [
-            { id: 'mot_start', name: 'Motor Starting Curve', type: 'Limit', curve: CurveType.EQUIP_MOTOR_START, pickup: 100, tds: 1, instantaneous: null, ctRatio: null, color: '#f59e0b', visible: true, locked: true, showBand: false },
-            { id: 'dev_mot', name: 'Motor Protection Relay', type: 'Relay', curve: CurveType.IEC_EXTREMELY_INVERSE, pickup: 110, tds: 0.8, instantaneous: 1200, ctRatio: 150, color: '#10b981', visible: true, locked: false, showBand: true }
+            { id: 'mot_start', name: 'Motor Starting Curve', type: 'Limit', curve: CurveType.EQUIP_MOTOR_START, pickup: 100, tds: 1, instantaneous: null, ctRatio: null, color: '#f59e0b', visible: true, locked: true, showBand: false, manufacturer: 'generic' },
+            { id: 'dev_mot', name: 'Motor Protection Relay', type: 'Relay', curve: CurveType.IEC_EXTREMELY_INVERSE, pickup: 110, tds: 0.8, instantaneous: 1200, ctRatio: 150, color: '#10b981', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
         ]
-    }
+    },
+    {
+        id: 'fuse_relay', name: 'Fuse-Relay Coordination',
+        description: 'K-Link fuse downstream coordinated with upstream ANSI relay (IEEE C37.48).',
+        devices: [
+            { id: 'fr_relay', name: 'Upstream OC Relay', type: 'Relay', curve: CurveType.ANSI_VERY_INVERSE, pickup: 400, tds: 0.5, instantaneous: 8000, ctRatio: 800, color: '#ef4444', visible: true, locked: false, showBand: false, manufacturer: 'generic' },
+            { id: 'fr_fuse', name: '100A K-Fuse', type: 'Fuse', curve: CurveType.FUSE_K_FAST, pickup: 100, tds: 1, instantaneous: null, ctRatio: null, color: '#3b82f6', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
+        ]
+    },
+    {
+        id: 'three_level', name: '3-Level Cascade Grading',
+        description: 'Load relay → Feeder relay → Main incomer. Verify CTI at all levels.',
+        devices: [
+            { id: 'tl_main', name: 'Main Incomer', type: 'Relay', curve: CurveType.IEC_VERY_INVERSE, pickup: 800, tds: 0.50, instantaneous: 16000, ctRatio: 1600, color: '#ef4444', visible: true, locked: false, showBand: false, manufacturer: 'generic' },
+            { id: 'tl_feeder', name: 'Feeder Relay', type: 'Relay', curve: CurveType.IEC_VERY_INVERSE, pickup: 400, tds: 0.30, instantaneous: 8000, ctRatio: 800, color: '#8b5cf6', visible: true, locked: false, showBand: false, manufacturer: 'generic' },
+            { id: 'tl_load', name: 'Load Relay', type: 'Relay', curve: CurveType.IEC_STANDARD_INVERSE, pickup: 100, tds: 0.10, instantaneous: 2000, ctRatio: 200, color: '#3b82f6', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
+        ]
+    },
+    {
+        id: 'cable_prot', name: 'Cable Protection Check',
+        description: 'Verify fuse clears BEFORE cable damage limit per IEC 60364.',
+        devices: [
+            { id: 'cp_cable', name: 'Cable 95mm² Cu/XLPE', type: 'Limit', curve: CurveType.EQUIP_CABLE_DAMAGE, pickup: 50, tds: 1, instantaneous: null, ctRatio: null, color: '#dc2626', visible: true, locked: true, showBand: false, manufacturer: 'generic', cableType: 'Cu_XLPE', cableSize: 95 },
+            { id: 'cp_fuse', name: '200A K-Fuse', type: 'Fuse', curve: CurveType.FUSE_K_FAST, pickup: 200, tds: 1, instantaneous: null, ctRatio: null, color: '#3b82f6', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
+        ]
+    },
+    {
+        id: 'fuse_fuse', name: 'Fuse-Fuse Coordination',
+        description: 'Two fuse stages: downstream K-Link must clear before upstream T-Link melts.',
+        devices: [
+            { id: 'ff_up', name: '200A T-Fuse (Upstream)', type: 'Fuse', curve: CurveType.FUSE_T_SLOW, pickup: 200, tds: 1, instantaneous: null, ctRatio: null, color: '#ef4444', visible: true, locked: false, showBand: true, manufacturer: 'generic' },
+            { id: 'ff_down', name: '100A K-Fuse (Downstream)', type: 'Fuse', curve: CurveType.FUSE_K_FAST, pickup: 100, tds: 1, instantaneous: null, ctRatio: null, color: '#3b82f6', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
+        ]
+    },
+    {
+        id: 'gen_backup', name: 'Generator Backup (C37.102)',
+        description: 'Generator backup protection with voltage-restrained overcurrent.',
+        devices: [
+            { id: 'gb_gen', name: 'Generator Damage', type: 'Limit', curve: CurveType.EQUIP_TRANSFORMER_DAMAGE, pickup: 500, tds: 1, instantaneous: null, ctRatio: null, color: '#dc2626', visible: true, locked: true, showBand: false, manufacturer: 'generic', txCategory: 'III' },
+            { id: 'gb_relay', name: '51V Backup Relay', type: 'Relay', curve: CurveType.ANSI_VERY_INVERSE, pickup: 80, tds: 1.5, instantaneous: 3000, ctRatio: 200, color: '#3b82f6', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
+        ]
+    },
+    {
+        id: 'solar_pv', name: 'Solar PV Inverter (IEEE 1547)',
+        description: 'PV inverter trip coordination with AC breaker and utility relay.',
+        devices: [
+            { id: 'pv_util', name: 'Utility Feeder Relay', type: 'Relay', curve: CurveType.IEC_STANDARD_INVERSE, pickup: 600, tds: 0.3, instantaneous: 10000, ctRatio: 1200, color: '#ef4444', visible: true, locked: false, showBand: false, manufacturer: 'generic' },
+            { id: 'pv_pcc', name: 'PCC Breaker Relay', type: 'Relay', curve: CurveType.ANSI_EXTREMELY_INVERSE, pickup: 200, tds: 0.5, instantaneous: 3000, ctRatio: 400, color: '#3b82f6', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
+        ]
+    },
+    {
+        id: 'mcc_industrial', name: 'Industrial MCC Grading',
+        description: 'Motor Control Center: Main → MCC Bus → Motor Feeder with fuse.',
+        devices: [
+            { id: 'mcc_main', name: 'Main Incomer 51', type: 'Relay', curve: CurveType.ANSI_MODERATELY_INVERSE, pickup: 1000, tds: 0.6, instantaneous: 20000, ctRatio: 2000, color: '#ef4444', visible: true, locked: false, showBand: false, manufacturer: 'generic' },
+            { id: 'mcc_bus', name: 'MCC Bus Relay', type: 'Relay', curve: CurveType.ANSI_VERY_INVERSE, pickup: 400, tds: 0.3, instantaneous: 8000, ctRatio: 800, color: '#8b5cf6', visible: true, locked: false, showBand: false, manufacturer: 'generic' },
+            { id: 'mcc_fuse', name: '60A Motor Fuse', type: 'Fuse', curve: CurveType.FUSE_K_FAST, pickup: 60, tds: 1, instantaneous: null, ctRatio: null, color: '#10b981', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
+        ]
+    },
+    {
+        id: 'ring_main', name: 'Ring Main Unit Grading',
+        description: 'Three relays in loop configuration per IEC 60255.',
+        devices: [
+            { id: 'rm_source', name: 'Source Relay', type: 'Relay', curve: CurveType.IEC_VERY_INVERSE, pickup: 500, tds: 0.45, instantaneous: 10000, ctRatio: 1000, color: '#ef4444', visible: true, locked: false, showBand: false, manufacturer: 'generic' },
+            { id: 'rm_mid', name: 'Mid-Ring Relay', type: 'Relay', curve: CurveType.IEC_VERY_INVERSE, pickup: 300, tds: 0.25, instantaneous: 6000, ctRatio: 600, color: '#8b5cf6', visible: true, locked: false, showBand: false, manufacturer: 'generic' },
+            { id: 'rm_load', name: 'Load RMU Relay', type: 'Relay', curve: CurveType.IEC_STANDARD_INVERSE, pickup: 100, tds: 0.10, instantaneous: 2000, ctRatio: 200, color: '#3b82f6', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
+        ]
+    },
+    {
+        id: 'manufacturer_compare', name: 'SEL vs GE Comparison',
+        description: 'Same ANSI EI curve with different manufacturer formula interpretations.',
+        devices: [
+            { id: 'mc_sel', name: 'SEL-751 (B not × TDS)', type: 'Relay', curve: CurveType.ANSI_EXTREMELY_INVERSE, pickup: 200, tds: 1.0, instantaneous: 5000, ctRatio: 400, color: '#ef4444', visible: true, locked: false, showBand: false, manufacturer: 'sel' },
+            { id: 'mc_ge', name: 'GE 750 (B × TDS)', type: 'Relay', curve: CurveType.ANSI_EXTREMELY_INVERSE, pickup: 200, tds: 1.0, instantaneous: 5000, ctRatio: 400, color: '#3b82f6', visible: true, locked: false, showBand: false, manufacturer: 'ge' }
+        ]
+    },
+    {
+        id: 'nh_fuse_eu', name: 'European NH Fuse System',
+        description: 'NH gG fuse coordination with IEC relay per IEC 60269.',
+        devices: [
+            { id: 'nh_relay', name: 'IEC Incomer Relay', type: 'Relay', curve: CurveType.IEC_VERY_INVERSE, pickup: 400, tds: 0.35, instantaneous: 8000, ctRatio: 800, color: '#ef4444', visible: true, locked: false, showBand: false, manufacturer: 'generic' },
+            { id: 'nh_fuse', name: '160A NH gG Fuse', type: 'Fuse', curve: CurveType.FUSE_NH_GG, pickup: 160, tds: 1, instantaneous: null, ctRatio: null, color: '#3b82f6', visible: true, locked: false, showBand: true, manufacturer: 'generic' }
+        ]
+    },
 ];
 
 const THEORY_TOPICS = [
@@ -192,49 +328,189 @@ const QUIZ_BANK = [
 
 // --- 2. MATH ENGINE ---
 
-const calculateTripTime = (current, pickup, tds, curveType, instantaneous) => {
-    // Special Logic for Equipment Limits (Non-Relay Curves)
+// Log-log interpolation for fuse data
+const interpolateFuseTime = (fuseData, currentMultiple, useTCT = false) => {
+    const data = fuseData.data;
+    const idx = useTCT ? 2 : 1; // 1=MMT, 2=TCT
+    if (currentMultiple < data[0][0]) return null;
+    if (currentMultiple >= data[data.length - 1][0]) {
+        return data[data.length - 1][idx] * 0.8; // extrapolate slightly
+    }
+    for (let i = 0; i < data.length - 1; i++) {
+        if (currentMultiple >= data[i][0] && currentMultiple < data[i + 1][0]) {
+            const logI1 = Math.log10(data[i][0]), logI2 = Math.log10(data[i + 1][0]);
+            const logT1 = Math.log10(data[i][idx]), logT2 = Math.log10(data[i + 1][idx]);
+            const logI = Math.log10(currentMultiple);
+            const logT = logT1 + (logT2 - logT1) * (logI - logI1) / (logI2 - logI1);
+            return Math.pow(10, logT);
+        }
+    }
+    return null;
+};
+
+// IEEE C57.109 transformer damage lookup with log-log interpolation
+const interpolateTxDamage = (txData, currentMultiple) => {
+    const pts = txData.points;
+    if (currentMultiple < pts[0][0]) return null;
+    if (currentMultiple >= pts[pts.length - 1][0]) {
+        return pts[pts.length - 1][1] * Math.pow(pts[pts.length - 1][0] / currentMultiple, 2);
+    }
+    for (let i = 0; i < pts.length - 1; i++) {
+        if (currentMultiple >= pts[i][0] && currentMultiple < pts[i + 1][0]) {
+            const logI1 = Math.log10(pts[i][0]), logI2 = Math.log10(pts[i + 1][0]);
+            const logT1 = Math.log10(pts[i][1]), logT2 = Math.log10(pts[i + 1][1]);
+            const logI = Math.log10(currentMultiple);
+            return Math.pow(10, logT1 + (logT2 - logT1) * (logI - logI1) / (logI2 - logI1));
+        }
+    }
+    return null;
+};
+
+const calculateTripTime = (current, pickup, tds, curveType, instantaneous, manufacturer = 'generic', extraParams: any = {}) => {
+    // --- Equipment Limits ---
+
+    // IEEE C57.109 Transformer Damage (by category)
     if (curveType === CurveType.EQUIP_TRANSFORMER_DAMAGE) {
-        // Approximate ANSI Damage Curve: t = k / I^2
         if (current < pickup) return null;
-        return (tds * 2000000) / (current * current); // Simplified I2t
+        const M = current / pickup;
+        const cat = extraParams?.txCategory || 'II';
+        const txData = TX_DAMAGE_CURVES[cat];
+        if (!txData) return null;
+        return interpolateTxDamage(txData, M);
     }
 
+    // Motor Starting Curve
     if (curveType === CurveType.EQUIP_MOTOR_START) {
-        // Motor Start is a vertical line (Current limit) and horizontal line (Time limit)
-        if (current < pickup) return 20; // Pre-start
-        if (current > pickup * 6) return null; // Post start
-        return Math.max(0.1, 1000 / current); // Arbitrary start curve
+        if (current < pickup) return 20;
+        if (current > pickup * 6) return null;
+        return Math.max(0.1, 1000 / current);
     }
 
-    // Generic Fuse Model (Approximation: I^2.5 * t = K)
-    if (curveType === CurveType.GENERIC_FUSE) {
+    // Cable Damage: t = (K × S / I)² per IEC 60364
+    if (curveType === CurveType.EQUIP_CABLE_DAMAGE) {
         if (current < pickup) return null;
-        // Simplified steep inverse curve for fuse viz
-        // t = multiplier / (M^2.2)
+        const cableType = extraParams?.cableType || 'Cu_PVC';
+        const cableSize = extraParams?.cableSize || 95; // mm²
+        const kFactor = CABLE_K_FACTORS[cableType]?.k || 115;
+        return Math.pow((kFactor * cableSize) / current, 2);
+    }
+
+    // --- Real Fuse Models (log-log interpolation) ---
+    if (curveType === CurveType.FUSE_K_FAST || curveType === CurveType.FUSE_T_SLOW || curveType === CurveType.FUSE_NH_GG) {
+        if (current < pickup) return null;
         const M = current / pickup;
         if (M <= 1) return null;
-        return (tds * 100) / Math.pow(M, 2.2);
+        const fuseData = FUSE_DATA[curveType];
+        if (!fuseData) return null;
+        // Return TCT (worst case) for trip time. MMT used for band rendering.
+        return interpolateFuseTime(fuseData, M, true);
     }
 
-    // Standard Relay Logic
+    // --- Standard Relay Logic ---
     if (instantaneous && current >= instantaneous) return 0.01;
     if (current < pickup) return null;
     const M = current / pickup;
     if (M <= 1.0) return null;
 
-    let time = 0;
+    // ANSI formula constants: t = TDS × [A / (M^p - 1) + B]
+    // Manufacturer variation: SEL does NOT multiply B by TDS
+    const mfr = MANUFACTURERS[manufacturer] || MANUFACTURERS['generic'];
+
+    let A = 0, B = 0, p = 0;
+    let isIEC = false;
+
     switch (curveType) {
-        case CurveType.IEC_STANDARD_INVERSE: time = tds * (0.14 / (Math.pow(M, 0.02) - 1)); break;
-        case CurveType.IEC_VERY_INVERSE: time = tds * (13.5 / (M - 1)); break;
-        case CurveType.IEC_EXTREMELY_INVERSE: time = tds * (80 / (Math.pow(M, 2) - 1)); break;
-        case CurveType.ANSI_MODERATELY_INVERSE: time = tds * (0.0515 / (Math.pow(M, 0.02) - 1) + 0.1140); break;
-        case CurveType.ANSI_VERY_INVERSE: time = tds * (19.61 / (Math.pow(M, 2) - 1) + 0.491); break;
-        case CurveType.ANSI_EXTREMELY_INVERSE: time = tds * (28.2 / (Math.pow(M, 2) - 1) + 0.1217); break;
-        case CurveType.DT_DEFINITE_TIME: time = tds; break;
+        // IEC 60255-151 curves (no additive constant)
+        case CurveType.IEC_STANDARD_INVERSE: A = 0.14; p = 0.02; isIEC = true; break;
+        case CurveType.IEC_VERY_INVERSE: A = 13.5; p = 1.0; isIEC = true; break;
+        case CurveType.IEC_EXTREMELY_INVERSE: A = 80; p = 2.0; isIEC = true; break;
+        case CurveType.IEC_LONG_TIME_INVERSE: A = 120; p = 1.0; isIEC = true; break;
+        // IEEE C37.112 curves (with additive constant B)
+        case CurveType.ANSI_MODERATELY_INVERSE: A = 0.0515; B = 0.1140; p = 0.02; break;
+        case CurveType.ANSI_VERY_INVERSE: A = 19.61; B = 0.491; p = 2.0; break;
+        case CurveType.ANSI_EXTREMELY_INVERSE: A = 28.2; B = 0.1217; p = 2.0; break;
+        case CurveType.ANSI_SHORT_TIME_INVERSE: A = 0.00342; B = 0.00262; p = 0.02; break;
+        case CurveType.ANSI_LONG_TIME_INVERSE: A = 120; B = 10.0; p = 2.0; break;
+        case CurveType.DT_DEFINITE_TIME: return tds;
         default: return null;
     }
+
+    let time;
+    if (isIEC) {
+        time = tds * (A / (Math.pow(M, p) - 1));
+    } else {
+        // Manufacturer-specific: SEL treats B as additive OUTSIDE the TDS multiplier
+        if (mfr.multiplyB) {
+            time = tds * (A / (Math.pow(M, p) - 1) + B);
+        } else {
+            time = tds * (A / (Math.pow(M, p) - 1)) + B;
+        }
+    }
     return Math.max(0.01, time);
+};
+
+// Fuse MMT time (for rendering the band lower bound)
+const calculateFuseMMT = (current, pickup, curveType) => {
+    if (current < pickup) return null;
+    const M = current / pickup;
+    if (M <= 1) return null;
+    const fuseData = FUSE_DATA[curveType];
+    if (!fuseData) return null;
+    return interpolateFuseTime(fuseData, M, false);
+};
+
+// Arc Flash Energy (IEEE 1584-2018 simplified Lee method)
+const calculateArcFlash = (faultAmps, tripTime, workingDistance = 457) => {
+    // Lee method: E = 5.12 × 10^5 × V × I_bf × t / D²
+    // Simplified for 480V - per IEEE 1584-2018
+    const V = 0.48; // kV
+    const Ibf = faultAmps / 1000; // kA
+    const t = tripTime; // seconds
+    const D = workingDistance / 10; // mm to cm
+    const E = (5.12e5 * V * Ibf * t) / (D * D);
+    return E; // cal/cm²
+};
+
+const getArcFlashCategory = (energy) => {
+    if (energy <= 1.2) return { level: 0, label: 'Cat 0', color: '#22c55e', bgColor: '#dcfce7' };
+    if (energy <= 4) return { level: 1, label: 'Cat 1', color: '#84cc16', bgColor: '#ecfccb' };
+    if (energy <= 8) return { level: 2, label: 'Cat 2', color: '#eab308', bgColor: '#fef9c3' };
+    if (energy <= 25) return { level: 3, label: 'Cat 3', color: '#f97316', bgColor: '#ffedd5' };
+    if (energy <= 40) return { level: 4, label: 'Cat 4', color: '#ef4444', bgColor: '#fee2e2' };
+    return { level: 5, label: 'DANGER', color: '#7f1d1d', bgColor: '#fecaca' };
+};
+
+// Full-range coordination sweep
+const sweepCoordination = (upDev, downDev, manufacturer = 'generic') => {
+    const startI = Math.max(upDev.pickup, downDev.pickup) * 1.05;
+    const endI = Math.min(
+        upDev.instantaneous || 100000,
+        downDev.instantaneous || 100000,
+        100000
+    );
+    if (startI >= endI) return { minMargin: null, worstCurrent: 0, points: [], crossings: [] };
+
+    let minMargin = Infinity;
+    let worstCurrent = startI;
+    const points: any[] = [];
+    const crossings: any[] = [];
+
+    for (let i = startI; i <= endI; i *= 1.08) {
+        const tUp = calculateTripTime(i, upDev.pickup, upDev.tds, upDev.curve, upDev.instantaneous, manufacturer);
+        const tDown = calculateTripTime(i, downDev.pickup, downDev.tds, downDev.curve, downDev.instantaneous, manufacturer);
+        if (tUp !== null && tDown !== null) {
+            const margin = tUp - tDown;
+            points.push({ current: i, margin, tUp, tDown });
+            if (margin < minMargin) { minMargin = margin; worstCurrent = i; }
+            if (points.length > 1) {
+                const prev = points[points.length - 2];
+                if ((prev.margin > 0 && margin < 0) || (prev.margin < 0 && margin > 0)) {
+                    crossings.push({ current: i, margin });
+                }
+            }
+        }
+    }
+    return { minMargin: minMargin === Infinity ? null : minMargin, worstCurrent, points, crossings };
 };
 
 // --- 3. SUB-COMPONENTS ---
@@ -373,6 +649,119 @@ const QuizModule = () => {
     );
 };
 
+// Help Modal - Commercial Grade
+const HelpModal = ({ onClose }) => {
+    const [tab, setTab] = useState('quick');
+    const HelpTab = ({ id, label, icon }) => (
+        <button onClick={() => setTab(id)} className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}>
+            {icon} {label}
+        </button>
+    );
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
+                <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                    <h2 className="text-xl font-black flex items-center gap-2 text-slate-900 dark:text-white uppercase tracking-wider"><BookOpen className="w-6 h-6 text-blue-600" /> TCC Studio Operations Manual</h2>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                </div>
+                <div className="flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto">
+                    <HelpTab id="quick" label="Quick Start" icon={<MousePointerClick className="w-4 h-4" />} />
+                    <HelpTab id="params" label="Device Parameters" icon={<Settings className="w-4 h-4" />} />
+                    <HelpTab id="coord" label="Coordination Guide" icon={<GitCompare className="w-4 h-4" />} />
+                    <HelpTab id="equip" label="Equipment Protection" icon={<Shield className="w-4 h-4" />} />
+                </div>
+                <div className="p-8 overflow-y-auto space-y-6 text-slate-600 dark:text-slate-300 text-sm leading-relaxed bg-white dark:bg-slate-900 flex-1">
+                    {tab === 'quick' && (
+                        <div className="space-y-6 animate-fade-in">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 className="font-bold text-slate-900 dark:text-white mb-4 text-lg">Graph Controls</h3>
+                                    <ul className="space-y-3">
+                                        <li className="flex gap-3"><span className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs shrink-0">1</span><span><strong>Select Curve:</strong> Click directly on any curve to select it. The settings panel on the right will activate.</span></li>
+                                        <li className="flex gap-3"><span className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs shrink-0">2</span><span><strong>Drag Handles:</strong> Selected curves show a <span className="font-bold text-blue-500">Square</span> handle for Pickup (Current) and a <span className="font-bold text-purple-500">Circle</span> handle for Time Dial (Vertical Shift).</span></li>
+                                        <li className="flex gap-3"><span className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs shrink-0">3</span><span><strong>Fault Slider:</strong> Drag the vertical <span className="font-bold text-red-500">Red Dashed Line</span> to simulate different fault levels. The analysis panel updates in real-time.</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900 dark:text-white mb-4 text-lg">Toolbar Functions</h3>
+                                    <ul className="space-y-3">
+                                        <li className="flex gap-3"><Layers className="w-5 h-5 text-blue-500 shrink-0" /> <span><strong>Scenarios:</strong> Load pre-configured industry examples (e.g., Transformer Damage, Motor Start).</span></li>
+                                        <li className="flex gap-3"><Plus className="w-5 h-5 text-blue-500 shrink-0" /> <span><strong>Add Device:</strong> Adds a new generic relay to the graph. Default is IEC Standard Inverse.</span></li>
+                                        <li className="flex gap-3"><Zap className="w-5 h-5 text-amber-500 shrink-0" /> <span><strong>Sim Fault:</strong> Numeric input for precise fault current simulation.</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {tab === 'params' && (
+                        <div className="space-y-6 animate-fade-in">
+                            <p>Understanding the core parameters of Overcurrent Protection relays (50/51).</p>
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <h4 className="font-bold text-blue-600 dark:text-blue-400 mb-2">Pickup / Plug Setting (Is)</h4>
+                                    <p>The minimum current required to initiate the timing mechanism. Below this value, the relay never trips. Usually set based on Full Load Amps (FLA).</p>
+                                </div>
+                                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <h4 className="font-bold text-purple-600 dark:text-purple-400 mb-2">Time Dial / TMS (Time Multiplier Setting)</h4>
+                                    <p>Shifts the curve vertically. A higher TMS means a longer trip time for the same fault current. Used to achieve selectivity between upstream and downstream devices.</p>
+                                </div>
+                                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <h4 className="font-bold text-slate-800 dark:text-white mb-2">Instantaneous (50)</h4>
+                                    <p>Defines a current threshold above which the relay trips immediately (typically &lt;0.05s) with no intentional delay. Used for high-current close-in faults.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {tab === 'coord' && (
+                        <div className="space-y-6 animate-fade-in">
+                            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800 mb-4">
+                                <h3 className="font-bold text-green-800 dark:text-green-300 text-lg mb-2">Coordination Margin (CTI)</h3>
+                                <p>The <strong>Coordination Time Interval (CTI)</strong> is the minimum time difference required between the primary (downstream) and backup (upstream) protective devices to ensure only the nearest breaker trips.</p>
+                                <ul className="list-disc pl-5 mt-3 space-y-1">
+                                    <li><strong>IEEE 242 (Buff Book) Recommendation:</strong> 0.2s - 0.4s</li>
+                                    <li><strong>Components:</strong> Breaker operating time (0.08s) + Relay Overshoot (0.05s) + Safety Margin.</li>
+                                </ul>
+                            </div>
+                            <h4 className="font-bold text-slate-900 dark:text-white">How to use the Coordinator Tool:</h4>
+                            <ol className="list-decimal pl-5 space-y-2">
+                                <li>Open the <strong>Coordinator</strong> tab in the right panel.</li>
+                                <li>Select an <strong>Upstream Device</strong> (e.g., Main Incomer).</li>
+                                <li>Select a <strong>Downstream Device</strong> (e.g., Feeder).</li>
+                                <li>Move the <strong>Fault Line</strong> to the maximum fault current.</li>
+                                <li>Observe the calculated margin. If it is red (&lt;0.2s), increase the TMS of the upstream device using the quick-edit controls provided in the panel.</li>
+                            </ol>
+                        </div>
+                    )}
+                    {tab === 'equip' && (
+                        <div className="space-y-6 animate-fade-in">
+                            <h3 className="font-bold text-slate-900 dark:text-white text-lg">Equipment Limits</h3>
+                            <p>Protective devices must operate <em>before</em> equipment damage occurs but <em>after</em> normal transient events.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                <div className="border border-slate-200 dark:border-slate-700 p-4 rounded-xl">
+                                    <h4 className="font-bold flex items-center gap-2 mb-2"><Flame className="w-5 h-5 text-red-500" /> Transformer Damage</h4>
+                                    <p className="mb-2"><strong>ANSI C57.109:</strong> Defines thermal and mechanical withstand limits.</p>
+                                    <p>The relay curve must remain <strong>below</strong> and to the <strong>left</strong> of the damage curve for all fault currents.</p>
+                                </div>
+                                <div className="border border-slate-200 dark:border-slate-700 p-4 rounded-xl">
+                                    <h4 className="font-bold flex items-center gap-2 mb-2"><Factory className="w-5 h-5 text-amber-500" /> Motor Starting</h4>
+                                    <p className="mb-2"><strong>Inrush Current:</strong> Motors draw 6-10x FLA during start.</p>
+                                    <p>The relay curve must remain <strong>above</strong> and to the <strong>right</strong> of the motor starting curve to avoid nuisance tripping during startup.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex justify-end">
+                    <button onClick={onClose} className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95">
+                        Close Manual
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const SimulatorView = ({ isActive }) => {
     // Simulator State
     const [devices, setDevices] = useState(JSON.parse(JSON.stringify(SCENARIOS[0].devices)));
@@ -444,7 +833,7 @@ const SimulatorView = ({ isActive }) => {
         const newDev = {
             id, name: `New Device ${devices.length + 1}`, type: 'Relay', curve: CurveType.IEC_STANDARD_INVERSE,
             pickup: 100, tds: 0.1, ctRatio: 100, color: COLORS[devices.length % COLORS.length],
-            visible: true, locked: false, showBand: false
+            visible: true, locked: false, showBand: false, manufacturer: 'generic'
         };
         setDevices([...devices, newDev]);
         setSelectedId(id);
@@ -504,19 +893,30 @@ const SimulatorView = ({ isActive }) => {
     const CurvePath = ({ dev, isSnapshot = false }: { dev: any, isSnapshot?: boolean }) => {
         if (!dev.visible) return null;
         let d = "";
+        let dFuseBand = "";
         let dMin = "", dMax = "";
         const isEquipment = dev.type === 'Limit';
-        const isFuse = dev.curve === CurveType.GENERIC_FUSE;
+        const isFuse = [CurveType.FUSE_K_FAST, CurveType.FUSE_T_SLOW, CurveType.FUSE_NH_GG].includes(dev.curve);
         const startI = Math.max(dev.pickup, view.minX);
         const endI = dev.instantaneous ? Math.min(dev.instantaneous, view.maxX) : view.maxX;
+        const mfr = dev.manufacturer || 'generic';
+        const extraParams = { txCategory: dev.txCategory, cableType: dev.cableType, cableSize: dev.cableSize };
 
         const strokeDash = isEquipment ? "4,4" : (dev.locked ? "5,5" : (isSnapshot ? "8,4" : ""));
         const strokeWidth = isEquipment ? 3 : (selectedId === dev.id && !isSnapshot ? 3 : 2);
 
         if (dev.curve === CurveType.EQUIP_TRANSFORMER_DAMAGE) {
             const points = [];
-            for (let i = dev.pickup; i <= view.maxX; i *= 1.1) {
-                const t = calculateTripTime(i, dev.pickup, dev.tds, dev.curve, null);
+            for (let i = dev.pickup * 2; i <= view.maxX; i *= 1.08) {
+                const t = calculateTripTime(i, dev.pickup, dev.tds, dev.curve, null, mfr, extraParams);
+                if (t && t >= view.minY && t <= view.maxY) points.push({ x: toPxX(i), y: toPxY(t) });
+            }
+            points.forEach((p, i) => d += `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y} `);
+        }
+        else if (dev.curve === CurveType.EQUIP_CABLE_DAMAGE) {
+            const points = [];
+            for (let i = Math.max(dev.pickup, view.minX); i <= view.maxX; i *= 1.08) {
+                const t = calculateTripTime(i, dev.pickup, dev.tds, dev.curve, null, mfr, extraParams);
                 if (t && t >= view.minY && t <= view.maxY) points.push({ x: toPxX(i), y: toPxY(t) });
             }
             points.forEach((p, i) => d += `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y} `);
@@ -527,16 +927,34 @@ const SimulatorView = ({ isActive }) => {
             const xEnd = toPxX(dev.pickup * 6);
             d = `M ${x} ${dims.h} L ${x} ${y} L ${xEnd} ${y} L ${xEnd} ${dims.h}`;
         }
+        else if (isFuse) {
+            // Fuse: render TCT curve as main line, and MMT-TCT as a shaded band
+            const tctPoints = [];
+            const mmtPoints = [];
+            for (let i = startI * 1.01; i <= endI; i *= 1.05) {
+                const tTCT = calculateTripTime(i, dev.pickup, dev.tds, dev.curve, dev.instantaneous, mfr, extraParams);
+                const tMMT = calculateFuseMMT(i, dev.pickup, dev.curve);
+                if (tTCT && tTCT >= view.minY && tTCT <= view.maxY) tctPoints.push({ x: toPxX(i), y: toPxY(tTCT), t: tTCT });
+                if (tMMT && tMMT >= view.minY && tMMT <= view.maxY) mmtPoints.push({ x: toPxX(i), y: toPxY(tMMT) });
+            }
+            tctPoints.forEach((p, i) => d += `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y} `);
+            // Build fuse band (TCT path forward, MMT path backward)
+            if (tctPoints.length > 0 && mmtPoints.length > 0) {
+                const fwd = tctPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                const bwd = [...mmtPoints].reverse().map((p) => `L ${p.x} ${p.y}`).join(' ');
+                dFuseBand = `${fwd} ${bwd} Z`;
+            }
+        }
         else {
             if (dev.pickup >= view.minX && dev.pickup <= view.maxX) {
                 const x = toPxX(dev.pickup);
-                const topT = calculateTripTime(dev.pickup * 1.01, dev.pickup, dev.tds, dev.curve, dev.instantaneous);
+                const topT = calculateTripTime(dev.pickup * 1.01, dev.pickup, dev.tds, dev.curve, dev.instantaneous, mfr, extraParams);
                 const yTop = topT ? Math.max(0, toPxY(topT)) : 0;
                 d += `M ${x} ${dims.h} L ${x} ${yTop} `;
             }
             const points = [];
             for (let i = startI * 1.01; i <= endI; i *= 1.05) {
-                const t = calculateTripTime(i, dev.pickup, dev.tds, dev.curve, dev.instantaneous);
+                const t = calculateTripTime(i, dev.pickup, dev.tds, dev.curve, dev.instantaneous, mfr, extraParams);
                 if (t && t >= view.minY && t <= view.maxY) points.push({ x: toPxX(i), y: toPxY(t), t });
             }
             points.forEach((p, i) => d += `${i === 0 && d === "" ? 'M' : 'L'} ${p.x} ${p.y} `);
@@ -546,29 +964,33 @@ const SimulatorView = ({ isActive }) => {
                 d += `L ${instX} ${lastY} L ${instX} ${toPxY(0.01)}`;
             }
             if (dev.showBand && points.length > 0) {
-                const minPoints = points.map(p => ({ x: p.x, y: toPxY(p.t * 0.9) }));
-                const maxPoints = points.map(p => ({ x: p.x, y: toPxY(p.t * 1.1) }));
-                dMin = maxPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-                dMax = [...minPoints].reverse().map((p, i) => `L ${p.x} ${p.y}`).join(' ');
+                const minPts = points.map(p => ({ x: p.x, y: toPxY(p.t * 0.9) }));
+                const maxPts = points.map(p => ({ x: p.x, y: toPxY(p.t * 1.1) }));
+                dMin = maxPts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                dMax = [...minPts].reverse().map((p) => `L ${p.x} ${p.y}`).join(' ');
             }
         }
 
         const isSelected = selectedId === dev.id && !isSnapshot;
         const handlePickX = toPxX(dev.pickup);
         const handleTDSX = toPxX(dev.pickup * 5);
-        const handleTDSY = toPxY(calculateTripTime(dev.pickup * 5, dev.pickup, dev.tds, dev.curve, dev.instantaneous) || 10);
+        const handleTDSY = toPxY(calculateTripTime(dev.pickup * 5, dev.pickup, dev.tds, dev.curve, dev.instantaneous, mfr, extraParams) || 10);
+        const fuseLabel = isFuse ? ` (${FUSE_DATA[dev.curve]?.name || 'Fuse'})` : '';
 
         return (
             <g className={`group ${isSnapshot ? 'opacity-40 pointer-events-none' : ''}`}>
-                {dev.showBand && !isEquipment && !isSnapshot && <path d={`${dMin} ${dMax} Z`} fill={dev.color} fillOpacity="0.1" stroke="none" />}
+                {/* Fuse MMT/TCT band */}
+                {isFuse && dFuseBand && !isSnapshot && <path d={dFuseBand} fill={dev.color} fillOpacity="0.15" stroke="none" />}
+                {/* Relay tolerance band */}
+                {dev.showBand && !isEquipment && !isFuse && !isSnapshot && dMin && <path d={`${dMin} ${dMax} Z`} fill={dev.color} fillOpacity="0.1" stroke="none" />}
                 <path d={d} fill="none" stroke={dev.color} strokeWidth={strokeWidth} strokeDasharray={strokeDash}
                     className={`transition-all duration-200 ${isSnapshot ? '' : 'cursor-pointer hover:stroke-[4px] hover:opacity-100 shadow-xl'} ${isSelected ? 'opacity-100' : 'opacity-80'}`}
                     onClick={(e) => { if(!isSnapshot) { e.stopPropagation(); setSelectedId(dev.id); if (!rightPanelOpen) setRightPanelOpen(true); } }}
                 />
                 {!isEquipment && !isSnapshot && (
-                    <text x={handlePickX + 5} y={dims.h - 20} fill={dev.color} fontSize="10" fontWeight="bold" className="pointer-events-none select-none shadow-sm">{dev.name} {isFuse ? '(Fuse)' : ''}</text>
+                    <text x={handlePickX + 5} y={dims.h - 20} fill={dev.color} fontSize="10" fontWeight="bold" className="pointer-events-none select-none shadow-sm">{dev.name}{fuseLabel}</text>
                 )}
-                {isSelected && !dev.locked && !isEquipment && (
+                {isSelected && !dev.locked && !isEquipment && !isFuse && (
                     <g>
                         <rect x={handlePickX - 5} y={dims.h - 12} width={10} height={12} fill={dev.color} stroke="white" strokeWidth="1" className="cursor-ew-resize hover:scale-125 transition-transform" onMouseDown={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('PICKUP'); }} />
                         <circle cx={handleTDSX} cy={handleTDSY} r={5} fill={dev.color} stroke="white" strokeWidth="2" className="cursor-ns-resize hover:scale-125 transition-transform" onMouseDown={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('TDS'); }} />
@@ -582,6 +1004,17 @@ const SimulatorView = ({ isActive }) => {
         const x = toPxX(faultAmps);
         if (x < 0 || x > dims.w) return null;
 
+        // Calculate arc flash energy for fastest-tripping device
+        let arcFlashInfo = null;
+        const activeRelays = devices.filter(d => d.visible && (d.type === 'Relay' || d.type === 'Fuse'));
+        const tripTimes = activeRelays.map(d => calculateTripTime(faultAmps, d.pickup, d.tds, d.curve, d.instantaneous, d.manufacturer || 'generic')).filter(t => t !== null);
+        if (tripTimes.length > 0) {
+            const fastestTrip = Math.min(...tripTimes);
+            const energy = calculateArcFlash(faultAmps, fastestTrip);
+            const cat = getArcFlashCategory(energy);
+            arcFlashInfo = { energy, cat, tripTime: fastestTrip };
+        }
+
         // Coordination Arrow Visual logic
         let coordArrow = null;
         if (settingsTab === 'analysis' && analysisPair.up && analysisPair.down) {
@@ -589,8 +1022,8 @@ const SimulatorView = ({ isActive }) => {
             const downDev = devices.find(d => d.id === analysisPair.down);
 
             if (upDev && downDev) {
-                const tUp = calculateTripTime(faultAmps, upDev.pickup, upDev.tds, upDev.curve, upDev.instantaneous);
-                const tDown = calculateTripTime(faultAmps, downDev.pickup, downDev.tds, downDev.curve, downDev.instantaneous);
+                const tUp = calculateTripTime(faultAmps, upDev.pickup, upDev.tds, upDev.curve, upDev.instantaneous, upDev.manufacturer || 'generic');
+                const tDown = calculateTripTime(faultAmps, downDev.pickup, downDev.tds, downDev.curve, downDev.instantaneous, downDev.manufacturer || 'generic');
 
                 if (tUp && tDown) {
                     const yUp = toPxY(tUp);
@@ -606,7 +1039,6 @@ const SimulatorView = ({ isActive }) => {
                             <text x={midX + 35} y={(yUp + yDown) / 2 + 3} textAnchor="middle" fill={isOk ? '#059669' : '#b91c1c'} fontSize="10" fontWeight="bold">
                                 Δ {margin.toFixed(2)}s
                             </text>
-                            {/* Definition of markers */}
                             <defs>
                                 <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="0" refY="2" orient="auto">
                                     <polygon points="0 0, 6 2, 0 4" fill={isOk ? '#10b981' : '#ef4444'} />
@@ -626,6 +1058,15 @@ const SimulatorView = ({ isActive }) => {
                 <line x1={x} y1={0} x2={x} y2={dims.h} stroke="#ef4444" strokeWidth="2" strokeDasharray="4,4" className="opacity-70 group-hover:opacity-100 transition-opacity" />
                 <polygon points={`${x},0 ${x - 6},10 ${x + 6},10`} fill="#ef4444" className="drop-shadow-md group-hover:scale-125 transition-transform origin-top" />
                 <text x={x + 8} y={20} fill="#ef4444" fontSize="11" fontWeight="bold" className="pointer-events-none select-none">Fault: {faultAmps.toFixed(0)}A</text>
+                {/* Arc Flash HRC indicator */}
+                {arcFlashInfo && (
+                    <g className="pointer-events-none">
+                        <rect x={x - 40} y={dims.h - 52} width={80} height={48} rx="6" fill={arcFlashInfo.cat.bgColor} stroke={arcFlashInfo.cat.color} strokeWidth="1.5" opacity="0.95" />
+                        <text x={x} y={dims.h - 36} textAnchor="middle" fill={arcFlashInfo.cat.color} fontSize="9" fontWeight="bold">⚡ ARC FLASH</text>
+                        <text x={x} y={dims.h - 24} textAnchor="middle" fill={arcFlashInfo.cat.color} fontSize="12" fontWeight="900">{arcFlashInfo.cat.label}</text>
+                        <text x={x} y={dims.h - 12} textAnchor="middle" fill={arcFlashInfo.cat.color} fontSize="8">{arcFlashInfo.energy.toFixed(1)} cal/cm²</text>
+                    </g>
+                )}
                 {coordArrow}
             </g>
         );
@@ -658,13 +1099,13 @@ const SimulatorView = ({ isActive }) => {
 
         const trips = relays.map(d => ({
             id: d.id, name: d.name, color: d.color,
-            time: calculateTripTime(faultAmps, d.pickup, d.tds, d.curve, d.instantaneous)
+            time: calculateTripTime(faultAmps, d.pickup, d.tds, d.curve, d.instantaneous, d.manufacturer || 'generic')
         })).filter(t => t.time !== null).sort((a, b) => a.time - b.time);
 
         const report = [];
 
         limits.forEach(limit => {
-            const limitTime = calculateTripTime(faultAmps, limit.pickup, limit.tds, limit.curve, null);
+            const limitTime = calculateTripTime(faultAmps, limit.pickup, limit.tds, limit.curve, null, limit.manufacturer || 'generic', { txCategory: limit.txCategory, cableType: limit.cableType, cableSize: limit.cableSize });
             if (limitTime) {
                 const slowerRelays = trips.filter(t => t.time > limitTime);
                 if (slowerRelays.length > 0) {
@@ -691,119 +1132,6 @@ const SimulatorView = ({ isActive }) => {
     }, [devices, faultAmps]);
 
     const selectedDevice = devices.find(d => d.id === selectedId);
-
-    // Help Modal - Commercial Grade
-    const HelpModal = ({ onClose }) => {
-        const [tab, setTab] = useState('quick');
-        const HelpTab = ({ id, label, icon }) => (
-            <button onClick={() => setTab(id)} className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}>
-                {icon} {label}
-            </button>
-        );
-
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
-                    <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-                        <h2 className="text-xl font-black flex items-center gap-2 text-slate-900 dark:text-white uppercase tracking-wider"><BookOpen className="w-6 h-6 text-blue-600" /> TCC Studio Operations Manual</h2>
-                        <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"><X className="w-5 h-5" /></button>
-                    </div>
-                    <div className="flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto">
-                        <HelpTab id="quick" label="Quick Start" icon={<MousePointerClick className="w-4 h-4" />} />
-                        <HelpTab id="params" label="Device Parameters" icon={<Settings className="w-4 h-4" />} />
-                        <HelpTab id="coord" label="Coordination Guide" icon={<GitCompare className="w-4 h-4" />} />
-                        <HelpTab id="equip" label="Equipment Protection" icon={<Shield className="w-4 h-4" />} />
-                    </div>
-                    <div className="p-8 overflow-y-auto space-y-6 text-slate-600 dark:text-slate-300 text-sm leading-relaxed bg-white dark:bg-slate-900 flex-1">
-                        {tab === 'quick' && (
-                            <div className="space-y-6 animate-fade-in">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div>
-                                        <h3 className="font-bold text-slate-900 dark:text-white mb-4 text-lg">Graph Controls</h3>
-                                        <ul className="space-y-3">
-                                            <li className="flex gap-3"><span className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs shrink-0">1</span><span><strong>Select Curve:</strong> Click directly on any curve to select it. The settings panel on the right will activate.</span></li>
-                                            <li className="flex gap-3"><span className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs shrink-0">2</span><span><strong>Drag Handles:</strong> Selected curves show a <span className="font-bold text-blue-500">Square</span> handle for Pickup (Current) and a <span className="font-bold text-purple-500">Circle</span> handle for Time Dial (Vertical Shift).</span></li>
-                                            <li className="flex gap-3"><span className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs shrink-0">3</span><span><strong>Fault Slider:</strong> Drag the vertical <span className="font-bold text-red-500">Red Dashed Line</span> to simulate different fault levels. The analysis panel updates in real-time.</span></li>
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-900 dark:text-white mb-4 text-lg">Toolbar Functions</h3>
-                                        <ul className="space-y-3">
-                                            <li className="flex gap-3"><Layers className="w-5 h-5 text-blue-500 shrink-0" /> <span><strong>Scenarios:</strong> Load pre-configured industry examples (e.g., Transformer Damage, Motor Start).</span></li>
-                                            <li className="flex gap-3"><Plus className="w-5 h-5 text-blue-500 shrink-0" /> <span><strong>Add Device:</strong> Adds a new generic relay to the graph. Default is IEC Standard Inverse.</span></li>
-                                            <li className="flex gap-3"><Zap className="w-5 h-5 text-amber-500 shrink-0" /> <span><strong>Sim Fault:</strong> Numeric input for precise fault current simulation.</span></li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {tab === 'params' && (
-                            <div className="space-y-6 animate-fade-in">
-                                <p>Understanding the core parameters of Overcurrent Protection relays (50/51).</p>
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                                        <h4 className="font-bold text-blue-600 dark:text-blue-400 mb-2">Pickup / Plug Setting (Is)</h4>
-                                        <p>The minimum current required to initiate the timing mechanism. Below this value, the relay never trips. Usually set based on Full Load Amps (FLA).</p>
-                                    </div>
-                                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                                        <h4 className="font-bold text-purple-600 dark:text-purple-400 mb-2">Time Dial / TMS (Time Multiplier Setting)</h4>
-                                        <p>Shifts the curve vertically. A higher TMS means a longer trip time for the same fault current. Used to achieve selectivity between upstream and downstream devices.</p>
-                                    </div>
-                                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                                        <h4 className="font-bold text-slate-800 dark:text-white mb-2">Instantaneous (50)</h4>
-                                        <p>Defines a current threshold above which the relay trips immediately (typically &lt;0.05s) with no intentional delay. Used for high-current close-in faults.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {tab === 'coord' && (
-                            <div className="space-y-6 animate-fade-in">
-                                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800 mb-4">
-                                    <h3 className="font-bold text-green-800 dark:text-green-300 text-lg mb-2">Coordination Margin (CTI)</h3>
-                                    <p>The <strong>Coordination Time Interval (CTI)</strong> is the minimum time difference required between the primary (downstream) and backup (upstream) protective devices to ensure only the nearest breaker trips.</p>
-                                    <ul className="list-disc pl-5 mt-3 space-y-1">
-                                        <li><strong>IEEE 242 (Buff Book) Recommendation:</strong> 0.2s - 0.4s</li>
-                                        <li><strong>Components:</strong> Breaker operating time (0.08s) + Relay Overshoot (0.05s) + Safety Margin.</li>
-                                    </ul>
-                                </div>
-                                <h4 className="font-bold text-slate-900 dark:text-white">How to use the Coordinator Tool:</h4>
-                                <ol className="list-decimal pl-5 space-y-2">
-                                    <li>Open the <strong>Coordinator</strong> tab in the right panel.</li>
-                                    <li>Select an <strong>Upstream Device</strong> (e.g., Main Incomer).</li>
-                                    <li>Select a <strong>Downstream Device</strong> (e.g., Feeder).</li>
-                                    <li>Move the <strong>Fault Line</strong> to the maximum fault current.</li>
-                                    <li>Observe the calculated margin. If it is red (&lt;0.2s), increase the TMS of the upstream device using the quick-edit controls provided in the panel.</li>
-                                </ol>
-                            </div>
-                        )}
-                        {tab === 'equip' && (
-                            <div className="space-y-6 animate-fade-in">
-                                <h3 className="font-bold text-slate-900 dark:text-white text-lg">Equipment Limits</h3>
-                                <p>Protective devices must operate <em>before</em> equipment damage occurs but <em>after</em> normal transient events.</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                    <div className="border border-slate-200 dark:border-slate-700 p-4 rounded-xl">
-                                        <h4 className="font-bold flex items-center gap-2 mb-2"><Flame className="w-5 h-5 text-red-500" /> Transformer Damage</h4>
-                                        <p className="mb-2"><strong>ANSI C57.109:</strong> Defines thermal and mechanical withstand limits.</p>
-                                        <p>The relay curve must remain <strong>below</strong> and to the <strong>left</strong> of the damage curve for all fault currents.</p>
-                                    </div>
-                                    <div className="border border-slate-200 dark:border-slate-700 p-4 rounded-xl">
-                                        <h4 className="font-bold flex items-center gap-2 mb-2"><Factory className="w-5 h-5 text-amber-500" /> Motor Starting</h4>
-                                        <p className="mb-2"><strong>Inrush Current:</strong> Motors draw 6-10x FLA during start.</p>
-                                        <p>The relay curve must remain <strong>above</strong> and to the <strong>right</strong> of the motor starting curve to avoid nuisance tripping during startup.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex justify-end">
-                        <button onClick={onClose} className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95">
-                            Close Manual
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden select-none font-sans"
@@ -940,9 +1268,17 @@ const SimulatorView = ({ isActive }) => {
                     <div ref={graphRef} className="flex-1 relative m-2 bg-white dark:bg-black rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner overflow-hidden">
                         <svg width={dims.w} height={dims.h} className="absolute inset-0 block">
                             {GridLines}
-                            {snapshots.map(snap => snap.devices.map((dev: any) => <CurvePath key={`snap-${snap.id}-${dev.id}`} dev={{...dev, color: snap.color}} isSnapshot={true} />))}
-                            {devices.map(dev => <CurvePath key={dev.id} dev={dev} />)}
-                            <FaultLine />
+                            {snapshots.map(snap => snap.devices.map((dev: any) => (
+                                <g key={`snap-${snap.id}-${dev.id}`}>
+                                    {CurvePath({ dev: { ...dev, color: snap.color }, isSnapshot: true })}
+                                </g>
+                            )))}
+                            {devices.map(dev => (
+                                <g key={dev.id}>
+                                    {CurvePath({ dev })}
+                                </g>
+                            ))}
+                            {FaultLine()}
                         </svg>
                         {cursor && (
                             <div className="absolute top-4 right-4 bg-slate-900/90 text-white p-2 rounded-lg text-[10px] font-mono backdrop-blur-md pointer-events-none border border-slate-700 shadow-2xl z-30 flex flex-col gap-1 min-w-[120px]">
@@ -990,6 +1326,16 @@ const SimulatorView = ({ isActive }) => {
                                             </div>
                                             <hr className="border-slate-100 dark:border-slate-800" />
                                             <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Characteristic Curve</label><div className="relative"><select value={selectedDevice.curve} onChange={(e) => updateDevice(selectedDevice.id, { curve: e.target.value })} className="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 pr-8 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer truncate">{CURVE_LIB.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select><ChevronDown className="absolute right-2 top-3 w-3 h-3 text-slate-400 pointer-events-none" /></div></div>
+                                            {/* Manufacturer selector (ANSI curves only) */}
+                                            {selectedDevice.curve?.startsWith('ANSI') && (
+                                                <div className="bg-amber-50 dark:bg-amber-900/10 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                                                    <label className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-1.5 block">Relay Manufacturer</label>
+                                                    <select value={selectedDevice.manufacturer || 'generic'} onChange={(e) => updateDevice(selectedDevice.id, { manufacturer: e.target.value })} className="w-full appearance-none bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 rounded-lg p-2 text-xs font-bold outline-none">
+                                                        {Object.entries(MANUFACTURERS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                                                    </select>
+                                                    <p className="text-[9px] text-amber-600 dark:text-amber-400 mt-1.5 italic">SEL does not multiply additive constant B by TDS — affects trip times at low multiples.</p>
+                                                </div>
+                                            )}
                                             <div className="space-y-4">
                                                 <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
                                                     <div className="flex justify-between items-end mb-2"><label className="text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase">Pickup (Is)</label><div className="text-right"><div className="text-sm font-black text-blue-600 dark:text-blue-400 font-mono leading-none">{selectedDevice.pickup} A</div></div></div>
@@ -1143,35 +1489,67 @@ const SimulatorView = ({ isActive }) => {
                                     const downDev = devices.find(d => d.id === analysisPair.down);
                                     if (!upDev || !downDev) return null;
 
-                                    const tUp = calculateTripTime(faultAmps, upDev.pickup, upDev.tds, upDev.curve, upDev.instantaneous);
-                                    const tDown = calculateTripTime(faultAmps, downDev.pickup, downDev.tds, downDev.curve, downDev.instantaneous);
+                                    const tUp = calculateTripTime(faultAmps, upDev.pickup, upDev.tds, upDev.curve, upDev.instantaneous, upDev.manufacturer || 'generic');
+                                    const tDown = calculateTripTime(faultAmps, downDev.pickup, downDev.tds, downDev.curve, downDev.instantaneous, downDev.manufacturer || 'generic');
 
                                     if (tUp === null || tDown === null) return <div className="text-center text-xs text-slate-500 italic mt-4">One or both devices do not operate at {faultAmps}A. Adjust Fault current.</div>;
 
                                     const margin = tUp - tDown;
-                                    const isCoordinated = margin >= 0.2; // IEC/IEEE simplified standard
+                                    const isCoordinated = margin >= 0.2;
+
+                                    // Run full-range sweep analysis
+                                    const sweep = sweepCoordination(upDev, downDev);
+                                    const sweepOk = sweep.minMargin !== null && sweep.minMargin >= 0.2;
 
                                     return (
                                         <div className="space-y-4 animate-fade-in">
-                                            <div className={`p-4 rounded-xl border-l-4 shadow-sm ${isCoordinated ? 'bg-green-50 border-green-500 text-green-800' : 'bg-red-50 border-red-500 text-red-800'}`}>
+                                            {/* Point Analysis */}
+                                            <div className={`p-4 rounded-xl border-l-4 shadow-sm ${isCoordinated ? 'bg-green-50 dark:bg-green-900/10 border-green-500 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/10 border-red-500 text-red-800 dark:text-red-300'}`}>
                                                 <div className="flex items-center gap-2 mb-2 font-bold text-sm">
                                                     {isCoordinated ? <CheckCircle className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
                                                     {isCoordinated ? 'Coordinated' : 'Coordination Violation'}
                                                 </div>
                                                 <div className="text-3xl font-black mb-1">{margin.toFixed(3)}s</div>
-                                                <div className="text-xs opacity-75">Margin at {faultAmps}A</div>
+                                                <div className="text-xs opacity-75">Margin at {faultAmps.toFixed(0)}A (fault line)</div>
                                             </div>
+
+                                            {/* Sweep Analysis */}
+                                            {sweep.minMargin !== null && (
+                                                <div className={`p-3 rounded-xl border shadow-sm ${sweepOk ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'}`}>
+                                                    <div className="text-[10px] font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                        <Ruler className="w-3 h-3" /> Full-Range Sweep Analysis
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                                        <div>
+                                                            <span className="text-slate-400 font-bold block text-[9px] uppercase">Worst-Case Margin</span>
+                                                            <span className={`font-mono font-black text-lg ${sweepOk ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>{sweep.minMargin.toFixed(3)}s</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-slate-400 font-bold block text-[9px] uppercase">At Current</span>
+                                                            <span className="font-mono font-black text-lg text-slate-700 dark:text-slate-200">{sweep.worstCurrent.toFixed(0)}A</span>
+                                                        </div>
+                                                    </div>
+                                                    {sweep.crossings.length > 0 && (
+                                                        <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/20 rounded-lg border border-red-300">
+                                                            <span className="text-[10px] font-bold text-red-800 dark:text-red-300 flex items-center gap-1"><AlertOctagon className="w-3 h-3" /> CROSSOVER DETECTED: Curves cross at {sweep.crossings.map(c => `${c.current.toFixed(0)}A`).join(', ')}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="mt-2 text-[9px] text-slate-500 dark:text-slate-400">
+                                                        Evaluated {sweep.points.length} points across overlap range. {sweepOk ? '✅ All margins ≥ 0.2s' : '❌ Violations found — adjust TDS or pickup.'}
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
                                                 <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Recommendations</h4>
                                                 <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-2">
-                                                    {!isCoordinated && (
+                                                    {(!isCoordinated || !sweepOk) && (
                                                         <li className="flex gap-2">
                                                             <ArrowUpFromLine className="w-3 h-3 text-blue-500 shrink-0 mt-0.5" />
-                                                            <span>Increase <strong>{upDev.name}</strong> Time Dial (TDS) to at least <strong>{(upDev.tds * (1 + (0.2 - margin) / tUp)).toFixed(2)}</strong>.</span>
+                                                            <span>Increase <strong>{upDev.name}</strong> Time Dial (TDS) to at least <strong>{(upDev.tds * (1 + (0.2 - (sweep.minMargin ?? margin)) / tUp)).toFixed(2)}</strong>.</span>
                                                         </li>
                                                     )}
-                                                    {!isCoordinated && (
+                                                    {(!isCoordinated || !sweepOk) && (
                                                         <li className="flex gap-2">
                                                             <ArrowDownToLine className="w-3 h-3 text-blue-500 shrink-0 mt-0.5" />
                                                             <span>Decrease <strong>{downDev.name}</strong> Time Dial (TDS) if load permits.</span>
@@ -1219,6 +1597,8 @@ const TCCStudio = () => {
 
     return (
         <div className="h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans">
+<SEO title="T C C Studio" description="Interactive Power System simulation and engineering tool: T C C Studio." url="/tccstudio" />
+
             {/* Top Navigation Bar */}
             <div className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-between px-6 z-50">
                 <div className="flex items-center gap-2">

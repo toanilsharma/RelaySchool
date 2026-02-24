@@ -1,9 +1,12 @@
 import React from 'react';
 import { Mail, MapPin, Send } from 'lucide-react';
+import SEO from "../components/SEO";
 
 const Contact = () => {
   return (
     <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+<SEO title="Contact" description="Interactive Power System simulation and engineering tool: Contact." url="/contact" />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         
         {/* Contact Info */}

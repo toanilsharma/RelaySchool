@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import TheoryLibrary from '../components/TheoryLibrary';
 import { COMMS_HUB_THEORY_CONTENT } from '../data/learning-modules/comms-hub';
+import SEO from "../components/SEO";
 
 // --- TYPES ---
 type Protocol = 'GOOSE' | 'SV' | 'MMS' | 'PTP';
@@ -286,6 +287,8 @@ const CommsHub = () => {
 
     return (
         <div className="flex flex-col space-y-6 animate-fade-in max-w-7xl mx-auto pb-12 min-h-screen">
+<SEO title="Comms Hub" description="Interactive Power System simulation and engineering tool: Comms Hub." url="/commshub" />
+
             
             {/* HEADER */}
             <div className="pt-6 px-6">

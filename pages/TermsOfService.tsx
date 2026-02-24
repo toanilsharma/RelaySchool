@@ -1,10 +1,13 @@
 
 import React from 'react';
 import { FileText } from 'lucide-react';
+import SEO from "../components/SEO";
 
 const TermsOfService = () => {
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+<SEO title="Terms Of Service" description="Interactive Power System simulation and engineering tool: Terms Of Service." url="/termsofservice" />
+
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 md:p-12 shadow-sm">
         <div className="flex items-center gap-3 mb-8 border-b border-slate-200 dark:border-slate-800 pb-6">
             <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">

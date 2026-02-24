@@ -11,6 +11,7 @@ import {
 import { useThemeObserver } from '../hooks/useThemeObserver';
 import TheoryLibrary from '../components/TheoryLibrary';
 import { RELAY_TESTER_THEORY_CONTENT } from '../data/learning-modules/relay-tester';
+import SEO from "../components/SEO";
 
 // --- 1. MATH ENGINE (IEC 60255) ---
 const calculateTripTime = (current: number, pickup: number, tms: number, curveType: string) => {
@@ -725,6 +726,8 @@ export default function RelayTesterApp() {
 
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+<SEO title="Relay Tester" description="Interactive Power System simulation and engineering tool: Relay Tester." url="/relaytester" />
+
 
             {/* Header */}
             <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>

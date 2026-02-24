@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Network, Cpu, Play, CircleDot, GitMerge, Settings, Zap } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
+import SEO from "../components/SEO";
 
 // Simple boolean expression evaluator
 // Supports AND, OR, NOT, (, )
@@ -81,6 +82,8 @@ export default function LogicSandbox() {
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto pb-12 animate-fade-in">
+<SEO title="Logic Sandbox" description="Interactive Power System simulation and engineering tool: Logic Sandbox." url="/logicsandbox" />
+
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">

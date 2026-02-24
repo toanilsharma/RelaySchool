@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import TheoryLibrary from '../components/TheoryLibrary';
 import { FAILURE_THEORY_CONTENT } from '../data/learning-modules/failure';
+import SEO from "../components/SEO";
 
 // --- TYPES ---
 interface MathEngineParams {
@@ -292,6 +293,8 @@ const FailureLab = () => {
 
     return (
         <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+<SEO title="Failure Lab" description="Interactive Power System simulation and engineering tool: Failure Lab." url="/failurelab" />
+
 
             {/* HEADER */}
             <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>

@@ -8,6 +8,7 @@ import {
   Book, GraduationCap, MonitorPlay, Terminal, ArrowRight
 } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
+import SEO from "../components/SEO";
 
 // --- MATH HELPERS ---
 const toRad = (deg) => deg * (Math.PI / 180);
@@ -675,6 +676,8 @@ export default function VectorLab() {
 
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+<SEO title="Vector Lab" description="Interactive Power System simulation and engineering tool: Vector Lab." url="/vectorlab" />
+
             
             {/* Header */}
             <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>

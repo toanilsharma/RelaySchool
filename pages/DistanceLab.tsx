@@ -11,6 +11,7 @@ import {
 import TheoryLibrary from '../components/TheoryLibrary';
 import { DISTANCE_THEORY_CONTENT } from '../data/learning-modules/distance';
 import { motion, AnimatePresence } from 'framer-motion';
+import SEO from "../components/SEO";
 
 // --- Engineering Constants ---
 const SCALE = 12; // Pixels per Ohm
@@ -431,6 +432,8 @@ export default function RelaySimUltra() {
 
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans flex flex-col overflow-hidden">
+<SEO title="Distance Lab" description="Interactive Power System simulation and engineering tool: Distance Lab." url="/distancelab" />
+
 
             {/* --- Professional Header --- */}
             <header className="bg-white dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 px-6 py-4 flex items-center justify-between shadow-sm z-20 shrink-0">

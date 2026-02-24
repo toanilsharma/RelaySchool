@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, Zap, DollarSign, Timer, ArrowLeft, AlertCircle, XCircle, Flame, HelpCircle, CheckCircle, ChevronDown, ChevronUp, Play, RefreshCw, Eye, BookOpen, Skull, Search, Microscope, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import SEO from "../components/SEO";
 
 // --- VISUALIZATIONS ---
 
@@ -468,6 +469,8 @@ const MistakeLearning = () => {
 
     return (
         <div className="space-y-8 animate-fade-in max-w-7xl mx-auto pb-12">
+<SEO title="Mistake Learning" description="Interactive Power System simulation and engineering tool: Mistake Learning." url="/mistakelearning" />
+
             
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">

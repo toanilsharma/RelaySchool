@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import TheoryLibrary from '../components/TheoryLibrary';
 import { DIGITAL_TWIN_THEORY_CONTENT } from '../data/learning-modules/digital-twin';
+import SEO from "../components/SEO";
 
 // --- TYPES ---
 
@@ -556,6 +557,8 @@ const DigitalSubstationPro = () => {
 
   return (
     <div className="h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans flex flex-col overflow-hidden">
+<SEO title="Digital Twin" description="Interactive Power System simulation and engineering tool: Digital Twin." url="/digitaltwin" />
+
 
       {/* --- HEADER --- */}
       <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-20 shadow-sm">

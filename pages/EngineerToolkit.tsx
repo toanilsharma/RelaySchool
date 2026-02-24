@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Calculator, ArrowRight, Zap, Settings, Activity, Gauge, Cable, Scale, ArrowLeftRight, Search, Clock, Database, Lightbulb, PenTool, CheckCircle, AlertTriangle, Battery } from 'lucide-react';
+import SEO from "../components/SEO";
 
 // --- UTILITY 1: CURVE MATCHER ---
 const CurveMatcher = () => {
@@ -518,6 +519,8 @@ const BatterySizer = () => {
 const EngineerToolkit = () => {
     return (
         <div className="space-y-8 animate-fade-in max-w-7xl mx-auto pb-12">
+<SEO title="Engineer Toolkit" description="Interactive Power System simulation and engineering tool: Engineer Toolkit." url="/engineertoolkit" />
+
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">

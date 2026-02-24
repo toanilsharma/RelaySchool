@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Settings, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
+import SEO from "../components/SEO";
 
 const FLASHCARD_DECKS = [
     {
@@ -59,6 +60,8 @@ export default function Flashcards() {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans flex flex-col items-center">
+<SEO title="Flashcards" description="Interactive Power System simulation and engineering tool: Flashcards." url="/flashcards" />
+
             
             {/* Header */}
             <header className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center shadow-sm">

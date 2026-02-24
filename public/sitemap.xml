@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://relayschool.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://relayschool.com/academy</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://relayschool.com/flashcards</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/tcc</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://relayschool.com/fbts</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/symcomp</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/distance</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/builder</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/logic</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/cases</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/calculators</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/diffslope</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/twin</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/vectors</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/forensic</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/failure</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/events</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/tester</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/comms</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/digital-substation</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/knowledge</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/challenges</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/mistakes</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/trends</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/tools</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/about</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://relayschool.com/contact</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://relayschool.com/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://relayschool.com/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://relayschool.com/disclaimer</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://relayschool.com/cookies</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+</urlset>
