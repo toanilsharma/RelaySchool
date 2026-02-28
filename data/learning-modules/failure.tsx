@@ -16,7 +16,7 @@ export const FAILURE_THEORY_CONTENT = [
                 <div className="flex flex-col md:flex-row gap-6 my-6 items-center">
                     <div className="flex-1">
                         <p>
-                            A CT works by inducing a magnetic flux (<InlineMath math="\phi" />) in its iron core proportional to the primary current. This flux drives the secondary current.
+                            A CT works by inducing a magnetic flux (<InlineMath math="\\phi" />) in its iron core proportional to the primary current. This flux drives the secondary current.
                         </p>
                         <p className="mt-4">
                             Every magnetic material has a limit. As you increase the current (Force <InlineMath math="H" />), the flux density (<InlineMath math="B" />) increases linearly at first. Eventually, all magnetic domains align, and the core hits the <strong>Knee Point</strong>.
@@ -26,7 +26,7 @@ export const FAILURE_THEORY_CONTENT = [
 
                 <h4 className="font-bold text-lg mt-4 text-slate-800 dark:text-slate-200">The Saturation Phenomenon</h4>
                 <p>
-                    Beyond the knee point, the core behaves like air (<InlineMath math="\mu_r \approx 1" />). The inductance collapses. In this state, the transformer cannot transfer energy to the secondary side.
+                    Beyond the knee point, the core behaves like air (<InlineMath math="\\mu_r \\approx 1" />). The inductance collapses. In this state, the transformer cannot transfer energy to the secondary side.
                 </p>
                 <p>
                     The secondary current output drops to zero for the portion of the cycle where flux is above the limit. This creates "chopped" waveforms.
@@ -34,7 +34,7 @@ export const FAILURE_THEORY_CONTENT = [
 
                 <h4 className="font-bold text-lg mt-6 text-slate-800 dark:text-slate-200">Remanent Flux & Hysteresis</h4>
                 <p>
-                    When a fault clears, the flux doesn't always return to zero. If the breaker opens at a current zero (flux peak), the core acts like a permanent magnet, retaining <strong>Remanent Flux</strong> (<InlineMath math="\phi_r" />).
+                    When a fault clears, the flux doesn't always return to zero. If the breaker opens at a current zero (flux peak), the core acts like a permanent magnet, retaining <strong>Remanent Flux</strong> (<InlineMath math="\\phi_r" />).
                 </p>
                 <p>
                     If an Auto-Reclose occurs 500ms later into a fault of the same polarity, standard CTs may saturate instantly (in &lt; 2ms) because they started with the "tank half full" of flux.
@@ -167,22 +167,22 @@ export const FAILURE_THEORY_CONTENT = [
                     <div className="grid grid-cols-2 gap-y-2">
                         <span>Max Fault Current (<InlineMath math="I_f" />):</span> <span className="font-mono">25,000 A (Primary)</span>
                         <span>CT Ratio:</span> <span className="font-mono">1200 / 5</span>
-                        <span>CT Internal Resistance (<InlineMath math="R_{ct}" />):</span> <span className="font-mono">0.61 <InlineMath math="\Omega" /></span>
-                        <span>Lead Resistance (<InlineMath math="R_{lead}" />):</span> <span className="font-mono">0.80 <InlineMath math="\Omega" /> (200ft #10 AWG)</span>
-                        <span>Relay Burden (<InlineMath math="R_{relay}" />):</span> <span className="font-mono">0.10 <InlineMath math="\Omega" /></span>
+                        <span>CT Internal Resistance (<InlineMath math="R_{ct}" />):</span> <span className="font-mono">0.61 <InlineMath math="\\Omega" /></span>
+                        <span>Lead Resistance (<InlineMath math="R_{lead}" />):</span> <span className="font-mono">0.80 <InlineMath math="\\Omega" /> (200ft #10 AWG)</span>
+                        <span>Relay Burden (<InlineMath math="R_{relay}" />):</span> <span className="font-mono">0.10 <InlineMath math="\\Omega" /></span>
                         <span>X/R Ratio:</span> <span className="font-mono">15 (High DC Offset)</span>
                     </div>
                 </div>
 
                 <h4 className="font-bold text-lg mt-6 text-slate-800 dark:text-slate-200">Step 1: Calculate Secondary Fault Current</h4>
-                <MathBlock formula="I_{sec} = \frac{25000}{240} = 104.17 \text{ Amps}" />
+                <MathBlock formula="I_{sec} = \\frac{25000}{240} = 104.17 \\text{ Amps}" />
                 
                 <h4 className="font-bold text-lg mt-6 text-slate-800 dark:text-slate-200">Step 2: Calculate Total Burden</h4>
-                <p>The voltage the CT must push is <InlineMath math="V = I \times R_{total}" />.</p>
-                <MathBlock formula="R_{total} = R_{ct} + R_{lead} + R_{relay} = 0.61 + 0.80 + 0.10 = 1.51 \Omega" />
+                <p>The voltage the CT must push is <InlineMath math="V = I \\times R_{total}" />.</p>
+                <MathBlock formula="R_{total} = R_{ct} + R_{lead} + R_{relay} = 0.61 + 0.80 + 0.10 = 1.51 \\Omega" />
 
                 <h4 className="font-bold text-lg mt-6 text-slate-800 dark:text-slate-200">Step 3: Calculate Required Voltage (Steady State)</h4>
-                <MathBlock formula="V_{required} = I_{sec} \times R_{total} = 104.17 \times 1.51 = 157.3 \text{ Volts}" />
+                <MathBlock formula="V_{required} = I_{sec} \\times R_{total} = 104.17 \\times 1.51 = 157.3 \\text{ Volts}" />
                 <p>
                     Since <InlineMath math="157.3V < 400V" /> (Class C400), this CT is fine for AC symmetrical faults.
                 </p>
@@ -191,7 +191,7 @@ export const FAILURE_THEORY_CONTENT = [
                 <p>
                     With an X/R of 15, the DC offset can effectively multiply the flux requirement by <InlineMath math="(1 + X/R)" />.
                 </p>
-                <MathBlock formula="V_{transient} = V_{required} \times (1 + 15) = 157.3 \times 16 = 2516 \text{ Volts}" />
+                <MathBlock formula="V_{transient} = V_{required} \\times (1 + 15) = 157.3 \\times 16 = 2516 \\text{ Volts}" />
                 
                 <Hazard>
                     <strong>FAIL!</strong> The CT is rated for <strong>400V</strong>, but the transient requirement is <strong>2516V</strong>. This CT <em>will</em> saturate heavily during the first few cycles of an asymmetric fault.
@@ -219,7 +219,7 @@ export const FAILURE_THEORY_CONTENT = [
                         <strong className="text-red-600">Open CT Secondary</strong>
                         <div>
                             <p className="text-sm">
-                                <strong>Physics:</strong> A CT acts as a current source. If the path is open (<InlineMath math="R = \infty" />), it generates infinite voltage (<InlineMath math="V = I \times \infty" />) to try to push the current.
+                                <strong>Physics:</strong> A CT acts as a current source. If the path is open (<InlineMath math="R = \\infty" />), it generates infinite voltage (<InlineMath math="V = I \\times \\infty" />) to try to push the current.
                             </p>
                             <p className="text-sm mt-1">
                                 <strong>Result:</strong> Voltage spikes to kV levels. Insulation breaks down. Arcing. Fire. <strong>Life Safety Hazard.</strong>
@@ -254,12 +254,12 @@ export const FAILURE_THEORY_CONTENT = [
 
                 <h4 className="font-bold text-lg mt-4 mb-2">Trip Circuit Supervision (ANSI 74)</h4>
                 <p>
-                    A tiny current (<InlineMath math="\approx 1mA" />) is continuously passed through the Trip Coil to verify continuity.
+                    A tiny current (<InlineMath math="\\approx 1mA" />) is continuously passed through the Trip Coil to verify continuity.
                 </p>
                 <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm my-4">
                     <strong>Logic:</strong>
                     <ul className="list-disc pl-5 mt-2 space-y-1">
-                        <li><strong>While Breaker Closed:</strong> Monitor via 52a contact. If current stops <InlineMath math="\rightarrow" /> Alarm (Broken Wire/Coil).</li>
+                        <li><strong>While Breaker Closed:</strong> Monitor via 52a contact. If current stops <InlineMath math="\\rightarrow" /> Alarm (Broken Wire/Coil).</li>
                         <li><strong>While Breaker Open:</strong> Monitor via 52b contact. </li>
                     </ul>
                 </div>

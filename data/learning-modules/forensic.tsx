@@ -248,20 +248,20 @@ export const FORENSIC_THEORY_CONTENT = [
                 <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl text-sm mb-4">
                     <p className="mb-2"><strong>Given:</strong></p>
                     <ul className="list-disc pl-5 space-y-1">
-                        <li>Line Impedance: <InlineMath math="0.4 \Omega/km" /> (Reactance)</li>
-                        <li>Fault Report: <InlineMath math="V_{relay} = 4000V \angle 0^{\circ}" /></li>
-                        <li>Fault Report: <InlineMath math="I_{relay} = 2000A \angle -70^{\circ}" /></li>
+                        <li>Line Impedance: <InlineMath math="0.4 \\Omega/km" /> (Reactance)</li>
+                        <li>Fault Report: <InlineMath math="V_{relay} = 4000V \\angle 0^{\\circ}" /></li>
+                        <li>Fault Report: <InlineMath math="I_{relay} = 2000A \\angle -70^{\\circ}" /></li>
                     </ul>
                 </div>
 
                 <p>Step 1: Calculate Measured Impedance <InlineMath math="Z_{meas}" /></p>
-                <MathBlock formula="Z_{meas} = \frac{4000 \angle 0^{\circ}}{2000 \angle -70^{\circ}} = 2.0 \angle 70^{\circ} \Omega" />
+                <MathBlock formula="Z_{meas} = \\frac{4000 \\angle 0^{\\circ}}{2000 \\angle -70^{\\circ}} = 2.0 \\angle 70^{\\circ} \\Omega" />
                 
                 <p>Step 2: Convert to Rectangular Form (<InlineMath math="R + jX" />)</p>
-                <MathBlock formula="Z_{meas} = 2.0(\cos 70^{\circ} + j\sin 70^{\circ}) = 0.68 + j1.88 \Omega" />
+                <MathBlock formula="Z_{meas} = 2.0(\\cos 70^{\\circ} + j\\sin 70^{\\circ}) = 0.68 + j1.88 \\Omega" />
                 
                 <p>Step 3: Extract Reactance (<InlineMath math="X" />) and Divide by Line Reactance (<InlineMath math="X_{line}" /> per km)</p>
-                <MathBlock formula="Distance = \frac{X_{measured}}{X_{per\_km}} = \frac{1.88 \Omega}{0.4 \Omega/km} = 4.7 \text{ km}" />
+                <MathBlock formula="Distance = \\frac{X_{measured}}{X_{per\\_km}} = \\frac{1.88 \\Omega}{0.4 \\Omega/km} = 4.7 \\text{ km}" />
 
                 <Hazard>
                     This simple calculation ignores Infeed and Load Flow pre-fault, but it is accurate enough for a first-pass estimate. Modern relays use "Two-Ended" algorithms (using data from both ends) to cancel out these errors.
@@ -283,7 +283,7 @@ export const FORENSIC_THEORY_CONTENT = [
                     This <strong>DC Offset</strong> decays exponentially based on the system's <InlineMath math="X/R" /> ratio.
                 </p>
 
-                <MathBlock formula="i(t) = I_{peak} [\sin(\omega t + \alpha - \phi) + e^{-\frac{t}{\tau}} \sin(\phi - \alpha)]" />
+                <MathBlock formula="i(t) = I_{peak} [\\sin(\\omega t + \\alpha - \\phi) + e^{-\\frac{t}{\\tau}} \\sin(\\phi - \\alpha)]" />
 
                 <h4 className="font-bold text-lg mt-6 text-slate-800 dark:text-slate-200">The Danger: Current Zero Crossing</h4>
                 <p>

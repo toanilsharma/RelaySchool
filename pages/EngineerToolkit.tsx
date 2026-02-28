@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Calculator, ArrowRight, Zap, Settings, Activity, Gauge, Cable, Scale, ArrowLeftRight, Search, Clock, Database, Lightbulb, PenTool, CheckCircle, AlertTriangle, Battery } from 'lucide-react';
+import Slider from '../components/Slider';
 import SEO from "../components/SEO";
 
 // --- UTILITY 1: CURVE MATCHER ---
@@ -113,21 +114,27 @@ const CableCalc = () => {
                     </div>
                 </div>
 
-                <div>
-                    <div className="flex justify-between mb-1">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Size (CSA)</label>
-                        <span className="text-xs font-mono text-slate-700 dark:text-slate-200">{csa} mm²</span>
-                    </div>
-                    <input type="range" min="1.5" max="630" step="0.5" value={csa} onChange={(e) => setCsa(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"/>
-                </div>
+                <Slider 
+                    label="Size (CSA)" 
+                    unit=" mm²" 
+                    min={1.5} 
+                    max={630} 
+                    step={0.5} 
+                    value={csa} 
+                    onChange={e => setCsa(Number(e.target.value))} 
+                    color="amber" 
+                />
 
-                <div>
-                    <div className="flex justify-between mb-1">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Fault Current</label>
-                        <span className="text-xs font-mono text-slate-700 dark:text-slate-200">{fault} kA</span>
-                    </div>
-                    <input type="range" min="1" max="50" step="0.5" value={fault} onChange={(e) => setFault(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-red-500"/>
-                </div>
+                <Slider 
+                    label="Fault Current" 
+                    unit=" kA" 
+                    min={1} 
+                    max={50} 
+                    step={0.5} 
+                    value={fault} 
+                    onChange={e => setFault(Number(e.target.value))} 
+                    color="red" 
+                />
 
                 <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 text-center mt-auto">
                     <div className="text-xs text-slate-500 uppercase mb-1">Max Clearing Time</div>
@@ -335,13 +342,15 @@ const PowerCalc = () => {
                         <input type="number" min="0" value={amps} onChange={(e) => setAmps(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-white"/>
                     </div>
                 </div>
-                <div>
-                    <label className="flex justify-between text-[10px] font-bold text-slate-500 uppercase mb-1">
-                        <span>Power Factor</span>
-                        <span>{pf}</span>
-                    </label>
-                    <input type="range" min="0.1" max="1.0" step="0.01" value={pf} onChange={(e) => setPf(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"/>
-                </div>
+                <Slider 
+                    label="Power Factor" 
+                    min={0.1} 
+                    max={1.0} 
+                    step={0.01} 
+                    value={pf} 
+                    onChange={e => setPf(Number(e.target.value))} 
+                    color="indigo" 
+                />
 
                 <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800 grid grid-cols-3 gap-2 mt-auto">
                     <div className="text-center">
@@ -448,13 +457,15 @@ const TimeConverter = () => {
                     <button onClick={() => setFreq(60)} className={`flex-1 py-1 text-xs font-bold rounded ${freq === 60 ? 'bg-white dark:bg-slate-700 shadow text-cyan-600 dark:text-white' : 'text-slate-500'}`}>60 Hz</button>
                 </div>
 
-                <div>
-                    <label className="flex justify-between text-xs font-bold text-slate-500 uppercase mb-2">
-                        <span>Cycles</span>
-                        <span className="text-slate-900 dark:text-white">{cycles}</span>
-                    </label>
-                    <input type="range" min="0.5" max="60" step="0.5" value={cycles} onChange={(e) => setCycles(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"/>
-                </div>
+                <Slider 
+                    label="Cycles" 
+                    min={0.5} 
+                    max={60} 
+                    step={0.5} 
+                    value={cycles} 
+                    onChange={e => setCycles(Number(e.target.value))} 
+                    color="cyan" 
+                />
 
                 <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 text-center mt-auto">
                     <div className="text-xs text-slate-500 uppercase mb-1">Duration</div>

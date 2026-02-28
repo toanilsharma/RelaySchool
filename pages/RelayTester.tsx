@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
 import TheoryLibrary from '../components/TheoryLibrary';
+import Slider from '../components/Slider';
 import { RELAY_TESTER_THEORY_CONTENT } from '../data/learning-modules/relay-tester';
 import SEO from "../components/SEO";
 
@@ -437,23 +438,28 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                     <h3 className={`font-bold mb-4 flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         <Settings className="w-4 h-4" /> Relay Settings (51)
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
+                        <Slider 
+                            label="Pickup Current (Is)" 
+                            unit=" A" 
+                            min={1} 
+                            max={10} 
+                            step={0.5} 
+                            value={pickup} 
+                            onChange={(e) => setPickup(Number(e.target.value))} 
+                            color="blue" 
+                        />
+                        <Slider 
+                            label="Time Multiplier (TMS)" 
+                            min={0.05} 
+                            max={1.0} 
+                            step={0.05} 
+                            value={tms} 
+                            onChange={(e) => setTms(Number(e.target.value))} 
+                            color="blue" 
+                        />
                         <div>
-                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
-                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Pickup Current (Is)</span>
-                                <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{pickup} A</span>
-                            </div>
-                            <input type="range" min="1" max="10" step="0.5" value={pickup} onChange={(e) => setPickup(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-                        </div>
-                        <div>
-                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
-                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Time Multiplier (TMS)</span>
-                                <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{tms}</span>
-                            </div>
-                            <input type="range" min="0.05" max="1.0" step="0.05" value={tms} onChange={(e) => setTms(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-                        </div>
-                        <div>
-                            <label className={`text-[10px] font-bold uppercase mb-1.5 block ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Curve Type (IEC 60255)</label>
+                            <label className={`text-[10px] font-bold uppercase mb-2 block ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Curve Type (IEC 60255)</label>
                             <div className="grid grid-cols-2 gap-2">
                                 {['STANDARD', 'VERY', 'EXTREME', 'LONG'].map(c => (
                                     <button
@@ -461,7 +467,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                                         onClick={() => setCurve(c)}
                                         className={`py-2 px-1 rounded-lg text-[10px] font-bold border transition-all ${curve === c ? 'bg-indigo-600 text-white border-indigo-500' : isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
                                     >
-                                        {c.substring(0, 8)}
+                                        {c}
                                     </button>
                                 ))}
                             </div>
@@ -483,36 +489,38 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
 
                     <div className="space-y-6">
                         {mode === 'PULSE' ? (
-                            <div>
-                                <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
-                                    <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Inject Amps</span>
-                                    <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{injectCurrent} A</span>
-                                </div>
-                                <input type="range" min="1" max="50" step="0.5" value={injectCurrent} onChange={(e) => setInjectCurrent(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
-                                <div className="mt-2 text-xs text-center p-2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
-                                    Multiple of Pickup: <strong className={isDark ? 'text-white' : 'text-black'}>{(injectCurrent / pickup).toFixed(2)}x</strong>
-                                </div>
-                            </div>
+                            <Slider 
+                                label="Inject Amps" 
+                                unit=" A" 
+                                min={1} 
+                                max={50} 
+                                step={0.5} 
+                                value={injectCurrent} 
+                                onChange={(e) => setInjectCurrent(Number(e.target.value))} 
+                                color="indigo" 
+                            />
                         ) : (
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-500 uppercase">Start (A)</label>
-                                    <input type="number" min="0" value={rampStart} onChange={(e) => setRampStart(Number(e.target.value))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
+                                    <input type="number" min="0" max="100" value={rampStart} onChange={(e) => setRampStart(Math.min(100, Math.max(0, Number(e.target.value))))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-500 uppercase">Rate (A/s)</label>
-                                    <input type="number" min="0" step="0.1" value={rampRate} onChange={(e) => setRampRate(Number(e.target.value))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
+                                    <input type="number" min="0" max="100" step="0.1" value={rampRate} onChange={(e) => setRampRate(Math.min(100, Math.max(0, Number(e.target.value))))} className={`w-full mt-1 border rounded px-2 py-1 text-sm font-mono ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} />
                                 </div>
                             </div>
                         )}
 
-                        <div>
-                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
-                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>2nd Harmonic (Inrush)</span>
-                                <span className={`font-mono ${harmonicLevel > 15 ? 'text-amber-500' : isDark ? 'text-white' : 'text-black'}`}>{harmonicLevel}%</span>
-                            </div>
-                            <input type="range" min="0" max="40" value={harmonicLevel} onChange={(e) => setHarmonicLevel(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
-                        </div>
+                        <Slider 
+                            label="2nd Harmonic (Inrush)" 
+                            unit="%" 
+                            min={0} 
+                            max={40} 
+                            value={harmonicLevel} 
+                            onChange={(e) => setHarmonicLevel(Number(e.target.value))} 
+                            color="amber" 
+                        />
 
                         <div className="flex gap-3">
                             <button

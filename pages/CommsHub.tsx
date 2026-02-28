@@ -46,6 +46,8 @@ const GOOSE_ETHERTYPE = "0x88B8";
 // --- GENERATORS ---
 let globalSeq = 0;
 let globalStNum = 10;
+let currentJitter = 0;
+let queueDepth = 0;
 
 const generatePacket = (scenario: ScenarioType, time: number): Packet => {
     globalSeq++;
@@ -59,7 +61,18 @@ const generatePacket = (scenario: ScenarioType, time: number): Packet => {
     let src = IED_MAC;
     let dst = "01:0C:CD:01:00:01"; // Multicast
     let summary = "";
-    let latency = isStorm ? Math.random() * 15 + 2 : Math.random() * 2 + 0.5; // Normal < 3ms, Storm > 20ms
+    
+    // Realistic Network Latency & Jitter Model (Constraint 12)
+    // Auto-regressive jitter + network queue buildup
+    queueDepth = Math.max(0, queueDepth - (isStorm ? 0.05 : 0.5)); // Slower drain during storm
+    if (isStorm) queueDepth += Math.random() * 1.5; // Rapid queue buildup
+    
+    const jitterNoise = (Math.random() - 0.5) * 2; // -1 to 1
+    currentJitter = (currentJitter * 0.8) + (jitterNoise * (isStorm ? 2.0 : 0.5)); // Smoothed random walk
+    
+    const baseLatency = 0.8; // ms minimum propagation + processing
+    let latency = baseLatency + Math.abs(currentJitter) + queueDepth;
+    
     let isMalicious = false;
     let isDelayed = latency > 4.0;
     

@@ -10,8 +10,11 @@ import {
 } from 'lucide-react';
 import TheoryLibrary from '../components/TheoryLibrary';
 import { DISTANCE_THEORY_CONTENT } from '../data/learning-modules/distance';
+import { TheoryLineChart } from '../components/TheoryDiagrams';
+import Slider from '../components/Slider';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEO from "../components/SEO";
+import Odometer from '../components/Odometer';
 
 // --- Engineering Constants ---
 const SCALE = 12; // Pixels per Ohm
@@ -186,10 +189,15 @@ const checkMho = (reach, r, x, mta) => {
 
 // Check if point (r, x) is inside a Quad
 const checkQuad = (reachX, reachR, r, x, mta, tilt = 0) => {
-    const isForward = x > -0.2 * reachX; // Directional element
+    // Reverse elements
+    const revX = -0.2 * reachX;
+    const revR = -0.2 * reachR;
+    
+    const isForward = x >= revX; // Directional element
     const topBoundary = x <= (reachX + (r * Math.tan(toRad(tilt)))); // Reactance Line
     const rightBoundary = r <= reachR; // Resistive Blinder
-    const leftBoundary = r >= -0.3 * reachR; // Reverse Reach (Close-in faults)
+    const leftBoundary = r >= revR; // Reverse Reach (Close-in faults)
+    
     return isForward && topBoundary && rightBoundary && leftBoundary;
 };
 
@@ -220,22 +228,19 @@ const InfoPanel = ({ context }) => (
 
 const Knob = ({ value, onChange, min, max, label, unit, step = 0.1, onHover, onLeave }) => (
     <div
-        className="flex flex-col gap-2 p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors shadow-sm"
+        className="p-1"
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
     >
-        <div className="flex justify-between items-center">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</label>
-            <span className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">{value.toFixed(1)}{unit}</span>
-        </div>
-        <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            onChange={(e) => onChange(parseFloat(e.target.value))}
-            className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500"
+        <Slider 
+            label={label} 
+            unit={unit} 
+            min={min} 
+            max={max} 
+            step={step} 
+            value={value} 
+            onChange={e => onChange(parseFloat(e.target.value))} 
+            color="blue"
         />
     </div>
 );
@@ -292,6 +297,19 @@ export default function RelaySimUltra() {
             }
         }
     }, []);
+
+    // Dispatch live state for theory diagrams
+    useEffect(() => {
+        const event = new CustomEvent('live-state-distance', {
+            detail: { 
+                r: fault.r, 
+                x: fault.x, 
+                dist: Math.sqrt(fault.r ** 2 + fault.x ** 2),
+                time: status.time / 1000 // Convert ms to s
+            }
+        });
+        window.dispatchEvent(event);
+    }, [fault, status.time]);
 
     const copyShareLink = () => {
         const state = { settings, fault };
@@ -412,10 +430,12 @@ export default function RelaySimUltra() {
     };
 
     const getQuadPath = (reachX, reachR, mta, tilt) => {
-        const p1 = { r: -0.2 * reachR, x: -0.2 * reachX };
-        const p2 = { r: -0.2 * reachR, x: reachX - (0.2 * reachR * Math.tan(toRad(tilt))) };
+        const revX = -0.2 * reachX;
+        const revR = -0.2 * reachR;
+        const p1 = { r: revR, x: revX };
+        const p2 = { r: revR, x: reachX + (revR * Math.tan(toRad(tilt))) };
         const p3 = { r: reachR, x: reachX + (reachR * Math.tan(toRad(tilt))) };
-        const p4 = { r: reachR, x: -0.2 * reachX };
+        const p4 = { r: reachR, x: revX };
         const toSVG = (pt) => `${CENTER + pt.r * SCALE},${CENTER - pt.x * SCALE}`;
         return <polygon points={`${toSVG(p1)} ${toSVG(p2)} ${toSVG(p3)} ${toSVG(p4)}`} fill="currentColor" fillOpacity="0.1" stroke="currentColor" strokeWidth="2" />;
     };
@@ -547,10 +567,10 @@ export default function RelaySimUltra() {
 
                         {/* Live Measurements Overlay - Enhancement #5: Show R, jX, Z, angle */}
                         <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur border border-slate-200 dark:border-slate-600 p-3 rounded-lg text-xs font-mono shadow-sm pointer-events-none">
-                            <div className="flex justify-between gap-4"><span className="text-slate-500">R:</span> <span className="font-bold text-slate-900 dark:text-white">{fault.r.toFixed(2)} Ω</span></div>
-                            <div className="flex justify-between gap-4"><span className="text-slate-500">jX:</span> <span className="font-bold text-slate-900 dark:text-white">{fault.x.toFixed(2)} Ω</span></div>
-                            <div className="flex justify-between gap-4 border-t border-slate-200 dark:border-slate-600 pt-1 mt-1"><span className="text-slate-500">|Z|:</span> <span className="font-bold text-blue-600 dark:text-blue-400">{Math.sqrt(fault.r ** 2 + fault.x ** 2).toFixed(2)} Ω</span></div>
-                            <div className="flex justify-between gap-4"><span className="text-slate-500">∠Z:</span> <span className="font-bold text-blue-600 dark:text-blue-400">{(Math.atan2(fault.x, fault.r) * RAD_TO_DEG).toFixed(1)}°</span></div>
+                            <div className="flex justify-between gap-4"><span className="text-slate-500">R:</span> <Odometer value={fault.r} format={v => `${v.toFixed(2)} Ω`} className="font-bold text-slate-900 dark:text-white" /></div>
+                            <div className="flex justify-between gap-4"><span className="text-slate-500">jX:</span> <Odometer value={fault.x} format={v => `${v.toFixed(2)} Ω`} className="font-bold text-slate-900 dark:text-white" /></div>
+                            <div className="flex justify-between gap-4 border-t border-slate-200 dark:border-slate-600 pt-1 mt-1"><span className="text-slate-500">|Z|:</span> <Odometer value={Math.sqrt(fault.r ** 2 + fault.x ** 2)} format={v => `${v.toFixed(2)} Ω`} className="font-bold text-blue-600 dark:text-blue-400" /></div>
+                            <div className="flex justify-between gap-4"><span className="text-slate-500">∠Z:</span> <Odometer value={Math.atan2(fault.x, Math.max(0.001, fault.r)) * RAD_TO_DEG} format={v => `${v.toFixed(1)}°`} className="font-bold text-blue-600 dark:text-blue-400" /></div>
                         </div>
                     </div>
 
@@ -641,12 +661,12 @@ export default function RelaySimUltra() {
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="flex flex-col gap-1">
                                             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">R (Resistance)</label>
-                                            <input type="number" min="0" max="200" step="0.1" value={fault.r.toFixed(1)} onChange={e => setFault(f => ({ ...f, r: Math.max(0, parseFloat(e.target.value) || 0) }))}
+                                            <input type="number" min="0" max="200" step="0.1" value={fault.r.toFixed(1)} onChange={e => setFault(f => ({ ...f, r: Math.min(200, Math.max(0, parseFloat(e.target.value) || 0)) }))}
                                                 className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                                         </div>
                                         <div className="flex flex-col gap-1">
                                             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">jX (Reactance)</label>
-                                            <input type="number" min="0" max="200" step="0.1" value={fault.x.toFixed(1)} onChange={e => setFault(f => ({ ...f, x: Math.max(0, parseFloat(e.target.value) || 0) }))}
+                                            <input type="number" min="0" max="200" step="0.1" value={fault.x.toFixed(1)} onChange={e => setFault(f => ({ ...f, x: Math.min(200, Math.max(0, parseFloat(e.target.value) || 0)) }))}
                                                 className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                                         </div>
                                     </div>

@@ -7,9 +7,10 @@ import {
     ZoomOut, Compass, HelpCircle, X, BookOpen, Layers, Microscope,
     Sun, Moon, RotateCcw, MonitorPlay, Terminal, AlertOctagon,
     MousePointer2, Book, GraduationCap, Menu, CheckCircle2, ShieldCheck,
-    Settings, Grid, Share2
+    Settings, Grid, Share2, Network
 } from 'lucide-react';
 import TheoryLibrary from '../components/TheoryLibrary';
+import Slider from '../components/Slider';
 import { useThemeObserver } from '../hooks/useThemeObserver';
 import { FORENSIC_THEORY_CONTENT } from '../data/learning-modules/forensic';
 import Peer, { DataConnection } from 'peerjs';
@@ -461,18 +462,16 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
                             </div>
                         </div>
 
-                        <div>
-                            <div className="flex justify-between mb-1.5">
-                                <label className={`text-[10px] font-bold uppercase ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Inception Angle</label>
-                                <span className={`text-xs font-mono ${isDark ? 'text-white' : 'text-black'}`}>{simParams.inceptionAngle}°</span>
-                            </div>
-                            <input
-                                type="range" min="0" max="360" step="15"
-                                value={simParams.inceptionAngle}
-                                onChange={(e) => setSimParams({ ...simParams, inceptionAngle: Number(e.target.value) })}
-                                className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                            />
-                        </div>
+                        <Slider 
+                            label="Inception Angle" 
+                            unit="°" 
+                            min={0} 
+                            max={360} 
+                            step={15} 
+                            value={simParams.inceptionAngle} 
+                            onChange={e => setSimParams({ ...simParams, inceptionAngle: Number(e.target.value) })} 
+                            color="purple" 
+                        />
 
                         <div className="flex gap-4 pt-2">
                             <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">

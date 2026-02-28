@@ -5,7 +5,8 @@ import {
   Activity, Zap, Layers, BookOpen, LayoutDashboard, Sun, Moon, Target,
   ClipboardCheck, Network, AlertTriangle, Calculator, Server, PieChart,
   Radar, Smartphone, FileSearch, Globe, GraduationCap, GitMerge,
-  FastForward, Cpu, ChevronDown, Waves, Microscope, ShieldCheck, Wrench
+  FastForward, Cpu, ChevronDown, Waves, Microscope, ShieldCheck, Wrench,
+  RefreshCw, Gauge, Timer, TrendingUp, Settings
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -37,7 +38,19 @@ const tierGroups = [
       { name: 'Diff Slope', path: '/diffslope', icon: GitMerge },
       { name: 'SymComp Lab', path: '/symcomp', icon: PieChart },
       { name: 'Relay Tester', path: '/tester', icon: ClipboardCheck },
+      { name: 'Overcurrent (50/51)', path: '/overcurrent', icon: Activity },
+      { name: 'Line Diff (87L)', path: '/line-diff', icon: GitMerge },
+      { name: 'Impedance (21)', path: '/impedance-tester', icon: Radar },
       { name: 'Logic Sandbox', path: '/logic', icon: Cpu },
+      { name: 'Autorecloser (79)', path: '/autorecloser', icon: RefreshCw },
+      { name: 'Synchrocheck (25)', path: '/synchrocheck', icon: Gauge },
+      { name: 'Transformer (87T)', path: '/transformer-protection', icon: Zap },
+      { name: 'Frequency (81)', path: '/frequency-protection', icon: Activity },
+      { name: 'Power Swing (78)', path: '/power-swing', icon: Waves },
+      { name: 'Ground Fault', path: '/ground-fault', icon: AlertTriangle },
+      { name: 'Breaker Failure (50BF)', path: '/breaker-failure', icon: Timer },
+      { name: 'Busbar (87B)', path: '/busbar-protection', icon: Layers },
+      { name: 'Generator Suite', path: '/generator-protection', icon: Zap },
     ],
   },
   {
@@ -48,8 +61,13 @@ const tierGroups = [
     items: [
       { name: 'SLD Builder', path: '/builder', icon: Network },
       { name: 'Fast Bus (FBTS)', path: '/fbts', icon: FastForward },
-      { name: 'Power Calculators', path: '/calculators', icon: Calculator },
+      { name: 'SC Calculator', path: '/sc-calc', icon: Calculator },
+      { name: 'Standards Index', path: '/standards', icon: BookOpen },
       { name: 'Engineer Toolkit', path: '/tools', icon: Wrench },
+      { name: 'CT/VT Calculator', path: '/ct-vt', icon: Settings },
+      { name: 'Per-Unit Calculator', path: '/per-unit', icon: Calculator },
+      { name: 'Motor Protection', path: '/motor-protection', icon: Cpu },
+      { name: 'Voltage Regulator', path: '/voltage-regulator', icon: TrendingUp },
     ],
   },
   {
@@ -128,7 +146,7 @@ const Sidebar = ({ theme, toggleTheme, isOpen, closeMobileMenu }: SidebarProps) 
             }
           >
             <LayoutDashboard className="w-[18px] h-[18px]" />
-            <span className="font-semibold text-sm">Dashboard</span>
+            <span className="font-semibold text-[15px]">Dashboard</span>
           </NavLink>
         </div>
 
@@ -143,7 +161,7 @@ const Sidebar = ({ theme, toggleTheme, isOpen, closeMobileMenu }: SidebarProps) 
               >
                 <div className="flex items-center gap-2.5">
                   <div className={`w-1.5 h-1.5 rounded-full ${group.dotColor} shadow-sm`} style={{ boxShadow: `0 0 6px currentColor` }}></div>
-                  <span className={`text-[11px] font-bold uppercase tracking-wider ${group.color}`}>{group.label}</span>
+                  <span className={`text-[13px] font-bold uppercase tracking-wider ${group.color}`}>{group.label}</span>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-slate-600 transition-transform duration-200 ${openGroups[group.id] ? 'rotate-0' : '-rotate-90'}`} />
               </button>
@@ -157,10 +175,10 @@ const Sidebar = ({ theme, toggleTheme, isOpen, closeMobileMenu }: SidebarProps) 
                       to={item.path}
                       onClick={closeMobileMenu}
                       className={({ isActive }) =>
-                        `flex items-center gap-2.5 px-3 py-[7px] rounded-lg transition-all duration-150 text-[13px] ${
+                        `flex items-center gap-3 px-3 py-[9px] rounded-lg transition-all duration-150 text-[14px] ${
                           isActive
                             ? 'bg-slate-800/80 text-white font-semibold ring-1 ring-slate-700/60'
-                            : 'text-slate-500 hover:bg-slate-800/40 hover:text-slate-200'
+                            : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
                         }`
                       }
                     >

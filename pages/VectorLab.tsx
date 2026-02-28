@@ -8,6 +8,7 @@ import {
   Book, GraduationCap, MonitorPlay, Terminal, ArrowRight
 } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
+import Slider from '../components/Slider';
 import SEO from "../components/SEO";
 
 // --- MATH HELPERS ---
@@ -350,21 +351,21 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                 ]); break;
             case 'ag-fault':
                 setPhasors([
-                    { id: 'A', mag: base * 3, ang: -10, color: '#ef4444', label: 'Phase A' },
-                    { id: 'B', mag: base, ang: 240, color: '#eab308', label: 'Phase B' },
-                    { id: 'C', mag: base, ang: 120, color: '#3b82f6', label: 'Phase C' }
+                    { id: 'A', mag: base * 4, ang: 0, color: '#ef4444', label: 'Phase A' }, // High fault current
+                    { id: 'B', mag: 0, ang: 240, color: '#eab308', label: 'Phase B' },    // Disconnected/0 
+                    { id: 'C', mag: 0, ang: 120, color: '#3b82f6', label: 'Phase C' }     // Disconnected/0
                 ]); break;
             case 'bc-fault':
                 setPhasors([
-                    { id: 'A', mag: base, ang: 0, color: '#ef4444', label: 'Phase A' },
-                    { id: 'B', mag: base * 2.5, ang: 180, color: '#eab308', label: 'Phase B' },
-                    { id: 'C', mag: base * 2.5, ang: 0, color: '#3b82f6', label: 'Phase C' }
+                    { id: 'A', mag: 0, ang: 0, color: '#ef4444', label: 'Phase A' },      // No fault current
+                    { id: 'B', mag: base * 3, ang: 180, color: '#eab308', label: 'Phase B' }, 
+                    { id: 'C', mag: base * 3, ang: 0, color: '#3b82f6', label: 'Phase C' }    // 180 deg shifted
                 ]); break;
             case 'llg-fault':
                 setPhasors([
-                    { id: 'A', mag: base * 3, ang: -5, color: '#ef4444', label: 'Phase A' },
-                    { id: 'B', mag: base * 2, ang: 200, color: '#eab308', label: 'Phase B' },
-                    { id: 'C', mag: base * 2, ang: 100, color: '#3b82f6', label: 'Phase C' }
+                    { id: 'A', mag: 0, ang: 0, color: '#ef4444', label: 'Phase A' },      // No fault current on A
+                    { id: 'B', mag: base * 3, ang: 150, color: '#eab308', label: 'Phase B' }, 
+                    { id: 'C', mag: base * 3, ang: 30, color: '#3b82f6', label: 'Phase C' }   // Angled towards ground
                 ]); break;
             case 'open-c':
                 setPhasors([
@@ -411,21 +412,26 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                                     {i > 2 && <Trash2 className="w-3 h-3 text-slate-400 cursor-pointer hover:text-red-500" onClick={() => setPhasors(prev => prev.filter(x => x.id !== p.id))} />}
                                 </div>
                                 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Magnitude (A)</label>
-                                        <div className="flex items-center gap-2">
-                                            <input type="number" min="0" value={p.mag} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, mag: Number(e.target.value) } : x))} className={`w-16 text-sm font-mono border rounded px-1 py-0.5 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-black'}`} />
-                                            <input type="range" min="0" max="20" step="0.1" value={p.mag} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, mag: Number(e.target.value) } : x))} className="flex-1 h-1 bg-slate-200 rounded appearance-none cursor-pointer accent-blue-600" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Angle (°)</label>
-                                        <div className="flex items-center gap-2">
-                                            <input type="number" min="0" value={p.ang} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, ang: Number(e.target.value) } : x))} className={`w-16 text-sm font-mono border rounded px-1 py-0.5 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-black'}`} />
-                                            <input type="range" min="0" max="360" value={p.ang} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, ang: Number(e.target.value) } : x))} className="flex-1 h-1 bg-slate-200 rounded appearance-none cursor-pointer accent-blue-600" />
-                                        </div>
-                                    </div>
+                                <div className="space-y-4">
+                                    <Slider 
+                                        label="Magnitude" 
+                                        unit=" A" 
+                                        min={0} 
+                                        max={20} 
+                                        step={0.1} 
+                                        value={p.mag} 
+                                        onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, mag: Number(e.target.value) } : x))} 
+                                        color="blue" 
+                                    />
+                                    <Slider 
+                                        label="Angle" 
+                                        unit="°" 
+                                        min={0} 
+                                        max={360} 
+                                        value={p.ang} 
+                                        onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, ang: Number(e.target.value) } : x))} 
+                                        color="blue" 
+                                    />
                                 </div>
                             </div>
                         ))}

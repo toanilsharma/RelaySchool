@@ -3,6 +3,9 @@ import { InlineMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { Zap, Activity, Hexagon, ArrowRight, RefreshCw, Triangle, Download, CheckCircle2, AlertTriangle, BookOpen, Calculator, Beaker, Menu, Divide, Share2, PieChart, Settings, Info, MousePointer2, X, Sliders as SlidersIcon, RotateCw, HelpCircle, Book, GraduationCap, Layers, MoreVertical } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
+import { useSmoothedValues } from '../hooks/useSmoothedValues';
+import Slider from '../components/Slider';
+import { downloadTextFile } from '../utils/exportUtils';
 import SEO from "../components/SEO";
 
 // --- MATH KERNEL ---
@@ -336,9 +339,9 @@ const AnalyzerModule = ({ isDark }: { isDark: boolean }) => {
   const setPreset = (type: string) => {
     const presets: any = {
       balanced: [{m:100,a:0}, {m:100,a:240}, {m:100,a:120}],
-      lg: [{m:180,a:0}, {m:90,a:240}, {m:90,a:120}],
-      ll: [{m:50,a:0}, {m:150,a:180}, {m:150,a:120}],
-      llg: [{m:50,a:0}, {m:150,a:190}, {m:150,a:100}],
+      lg: [{m:200,a:0}, {m:0,a:240}, {m:0,a:120}], // IA high, IB/IC near 0
+      ll: [{m:0,a:0}, {m:150,a:180}, {m:150,a:0}], // IB = -IC, IA = 0 (180deg apart)
+      llg: [{m:0,a:0}, {m:150,a:150}, {m:150,a:30}], // DLG: IA=0, IB/IC angled towards ground
       open: [{m:0,a:0}, {m:100,a:240}, {m:100,a:120}]
     };
     if (presets[type]) {
@@ -417,9 +420,9 @@ const AnalyzerModule = ({ isDark }: { isDark: boolean }) => {
               <div className={`rounded-2xl p-4 border shadow-sm flex gap-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <button onClick={() => {
                     const txt = `Symmetrical Components Analysis\nI0 (Zero):     ${data.V0.toString()}\nI1 (Positive): ${data.V1.toString()}\nI2 (Negative): ${data.V2.toString()}\nUnbalance (I2/I1): ${data.unbalanceNeg.toFixed(1)}%\nGround (I0/I1): ${data.unbalanceZero.toFixed(1)}%`;
-                    navigator.clipboard.writeText(txt);
+                    downloadTextFile(txt, 'Symmetrical_Components_Report.txt');
                 }} className="flex-1 py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors">
-                  <Download className="w-4 h-4" /> Copy Report
+                  <Download className="w-4 h-4" /> Export Report
                 </button>
                 <button onClick={copyShareLink} className="flex-1 py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors">
                   <Share2 className="w-4 h-4" /> Share Link
@@ -726,33 +729,26 @@ const PhaseControl = ({ label, color, mag, ang, onChange, isDark }: any) => (
     </div>
 
     <div className="space-y-4">
-      {/* Magnitude Slider */}
-      <div className="space-y-1">
-        <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold tracking-wider">
-          <span>Magnitude</span>
-          <span>{mag.toFixed(0)}</span>
-        </div>
-        <input 
-          type="range" min="0" max="200" step="1"
-          value={mag}
-          onChange={(e) => onChange('mag', Number(e.target.value))}
-          className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-slate-900 dark:accent-slate-400"
-        />
-      </div>
-
-      {/* Angle Slider */}
-      <div className="space-y-1">
-        <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold tracking-wider">
-          <span>Angle</span>
-          <span>{ang.toFixed(0)}°</span>
-        </div>
-        <input 
-          type="range" min="0" max="360" step="1"
-          value={ang}
-          onChange={(e) => onChange('ang', Number(e.target.value))}
-          className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-slate-900 dark:accent-slate-400"
-        />
-      </div>
+      <Slider 
+        label="Magnitude" 
+        unit="A" 
+        min={0} 
+        max={200} 
+        step={1} 
+        value={mag} 
+        onChange={(e) => onChange('mag', Number(e.target.value))} 
+        color="blue"
+      />
+      <Slider 
+        label="Angle" 
+        unit="°" 
+        min={0} 
+        max={360} 
+        step={1} 
+        value={ang} 
+        onChange={(e) => onChange('ang', Number(e.target.value))} 
+        color="purple"
+      />
     </div>
   </div>
 );

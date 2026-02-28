@@ -6,6 +6,7 @@ import {
     BookOpen, HelpCircle, X, GraduationCap, Sliders, MonitorPlay,
     Book, Sun, Moon, Share2
 } from 'lucide-react';
+import Slider from '../components/Slider';
 import TheoryLibrary from '../components/TheoryLibrary';
 import { FAILURE_THEORY_CONTENT } from '../data/learning-modules/failure';
 import SEO from "../components/SEO";
@@ -181,14 +182,20 @@ const FailureLab = () => {
 
         const V_sat = kneePoint;
         const V_burden = magnitude * burden;
+        
+        // C37.110 Exact Transient Dimensioning Factor
+        // Assuming worst-case offset mapping to maximum possible (1 + X/R) multiplied by Remanence Factor
+        const Kr = remFlux >= 95 ? 20 : 1 / (1 - (remFlux / 100)); // Remanence Factor
+        const Ktd_base = 1 + xOverR;
+        const Ktd_total = Ktd_base * Kr;
+        
         const Ks = V_sat / V_burden;
-        const Ktd = 1 + (xOverR);
-        const isSaturated = Ks < Ktd;
-        const severity = Ktd / Ks;
+        const isSaturated = Ks < Ktd_total;
+        const severity = Ktd_total / Ks;
 
         setStats({
             ks: Ks.toFixed(1),
-            ktd: Ktd.toFixed(1),
+            ktd: Ktd_total.toFixed(1),
             severity: severity.toFixed(2),
             status: isSaturated ? 'FAIL' : 'PASS'
         });
@@ -369,43 +376,53 @@ const FailureLab = () => {
                                 </div>
 
                                 <div className="p-6 space-y-8">
-                                    {/* CT Capability */}
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <label className="text-xs font-bold text-blue-300 flex items-center gap-2">
-                                                <Sliders className="w-3 h-3" /> Knee Point (Vk)
-                                            </label>
-                                            <span className="font-mono text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">{kneePoint} V</span>
-                                        </div>
-                                        <input type="range" min="50" max="800" step="10" value={kneePoint} onChange={e => setKneePoint(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400" />
-                                    </div>
-
-                                    {/* Fault Magnitude */}
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <label className="text-xs font-bold text-slate-300">Fault Current (I_sec)</label>
-                                            <span className="font-mono text-xs bg-slate-700 text-white px-2 py-0.5 rounded">{magnitude} A</span>
-                                        </div>
-                                        <input type="range" min="5" max="150" value={magnitude} onChange={e => setMagnitude(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-white" />
-                                    </div>
-
-                                    {/* Burden */}
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <label className="text-xs font-bold text-amber-300">Total Burden (Rb)</label>
-                                            <span className="font-mono text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">{burden} Ω</span>
-                                        </div>
-                                        <input type="range" min="0.1" max="10" step="0.1" value={burden} onChange={e => setBurden(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400" />
-                                    </div>
-
-                                    {/* X/R Ratio */}
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <label className="text-xs font-bold text-purple-300">System X/R Ratio</label>
-                                            <span className="font-mono text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">{xOverR}</span>
-                                        </div>
-                                        <input type="range" min="1" max="100" value={xOverR} onChange={e => setXOverR(Number(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500 hover:accent-purple-400" />
-                                    </div>
+                                    <Slider 
+                                        label="Knee Point (Vk)" 
+                                        unit=" V" 
+                                        min={50} 
+                                        max={800} 
+                                        step={10} 
+                                        value={kneePoint} 
+                                        onChange={e => setKneePoint(Number(e.target.value))} 
+                                        color="blue" 
+                                    />
+                                    <Slider 
+                                        label="Fault Current (I_sec)" 
+                                        unit=" A" 
+                                        min={5} 
+                                        max={150} 
+                                        value={magnitude} 
+                                        onChange={e => setMagnitude(Number(e.target.value))} 
+                                        color="slate" 
+                                    />
+                                    <Slider 
+                                        label="Total Burden (Rb)" 
+                                        unit=" Ω" 
+                                        min={0.1} 
+                                        max={10} 
+                                        step={0.1} 
+                                        value={burden} 
+                                        onChange={e => setBurden(Number(e.target.value))} 
+                                        color="amber" 
+                                    />
+                                    <Slider 
+                                        label="System X/R Ratio" 
+                                        min={1} 
+                                        max={100} 
+                                        value={xOverR} 
+                                        onChange={e => setXOverR(Number(e.target.value))} 
+                                        color="purple" 
+                                    />
+                                    <Slider 
+                                        label="Remanence Flux" 
+                                        unit="%" 
+                                        min={0} 
+                                        max={95} 
+                                        step={5} 
+                                        value={remFlux} 
+                                        onChange={e => setRemFlux(Number(e.target.value))} 
+                                        color="pink" 
+                                    />
                                 </div>
                             </div>
 
@@ -418,7 +435,7 @@ const FailureLab = () => {
 
                                     <div className="grid grid-cols-2 gap-3 mb-4">
                                         {renderMetric("Capability (Ks)", stats.ks, "Vk / (I × Rb)", stats.status === 'FAIL' ? 'WARN' : 'PASS')}
-                                        {renderMetric("Requirement (Ktd)", stats.ktd, "1 + X/R", 'INFO')}
+                                        {renderMetric("Requirement (Ktd × Kr)", stats.ktd, "(1 + X/R) × Kr", 'INFO')}
                                     </div>
 
                                     <div className={`flex items-center gap-3 p-3 rounded-lg border ${stats.status === 'FAIL' ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
@@ -430,7 +447,7 @@ const FailureLab = () => {
                                                 RESULT: {stats.status}
                                             </div>
                                             <div className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                                                {stats.status === 'FAIL' ? 'CT cannot support transient flux. Deep saturation expected.' : 'CT has sufficient margin for transient DC offset.'}
+                                                {stats.status === 'FAIL' ? 'CT cannot support transient flux & remanence. Deep saturation expected.' : 'CT has sufficient margin for transient DC offset & remanence.'}
                                             </div>
                                         </div>
                                     </div>

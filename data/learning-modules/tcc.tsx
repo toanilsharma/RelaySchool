@@ -134,7 +134,7 @@ export const TCC_THEORY_CONTENT = [
                     <li><strong>Duration:</strong> 0.1 seconds.</li>
                 </ul>
                 <p className="mt-2">
-                    Your relay curve must pass to the <strong>right</strong> of this point (<InlineMath math="12 \times I_n, 0.1s" />). If it passes to the left, the breaker trips every time you energize.
+                    Your relay curve must pass to the <strong>right</strong> of this point (<InlineMath math="12 \\times I_n, 0.1s" />). If it passes to the left, the breaker trips every time you energize.
                 </p>
 
                 <h4 className="font-bold text-lg mt-6 text-slate-800 dark:text-slate-200">Damage Curves (ANSI C57.109)</h4>
@@ -189,7 +189,7 @@ export const TCC_THEORY_CONTENT = [
             <>
                 <h4 className="font-bold text-lg text-slate-800 dark:text-slate-200">Motor Starting</h4>
                 <p>
-                    Starting a large Induction Motor draws <strong>Locked Rotor Current (LRA)</strong>, typically <InlineMath math="6 \times FLA" />, for 5-10 seconds.
+                    Starting a large Induction Motor draws <strong>Locked Rotor Current (LRA)</strong>, typically <InlineMath math="6 \\times FLA" />, for 5-10 seconds.
                 </p>
                 <div className="my-4 p-4 border border-slate-200 dark:border-slate-800 rounded-lg">
                     <p className="text-sm">
@@ -204,7 +204,7 @@ export const TCC_THEORY_CONTENT = [
                 <p>
                     Cables heat up adiabatically during a short circuit. The insulation (XLPE/PVC) melts if limits are exceeded.
                 </p>
-                <MathBlock formula="t = \left( \frac{K \times A}{I} \right)^2" legend={[["t", "Max Time (s)"], ["A", "Area (mm²)"], ["K", "Constant (143 for XLPE)"], ["I", "Fault Current"]]} />
+                <MathBlock formula="t = \\left( \\frac{K \\times A}{I} \\right)^2" legend={[["t", "Max Time (s)"], ["A", "Area (mm²)"], ["K", "Constant (143 for XLPE)"], ["I", "Fault Current"]]} />
                 
                 <Hazard>
                     <strong>Copper Tape Shields:</strong> The thin copper tape shielding on MV cables is the weak link. It can melt in cycles during a ground fault. Always verify the shield's thermal limit against the <strong>Ground Overcurrent</strong> trip time.
@@ -229,7 +229,7 @@ export const TCC_THEORY_CONTENT = [
         content: (
             <>
                 <p>
-                    Phase coordination is easy (<InlineMath math="I > I_{load}" />). Ground coordination is harder but offers more sensitivity because <InlineMath math="I_{load\_ground} \approx 0" />.
+                    Phase coordination is easy (<InlineMath math="I > I_{load}" />). Ground coordination is harder but offers more sensitivity because <InlineMath math="I_{load\\_ground} \\approx 0" />.
                 </p>
                 
                 <h4 className="font-bold text-lg mt-6 text-slate-800 dark:text-slate-200">Residually Connected CTs</h4>

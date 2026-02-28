@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LineChart, Line, BarChart as ReBarChart, Bar, AreaChart as ReAreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot,
   Cell, Legend, PieChart, Pie
 } from 'recharts';
 
@@ -21,6 +21,8 @@ interface CommonChartProps {
     title?: string;
     height?: number;
     referenceLines?: { x?: number; y?: number; label?: string; color?: string }[];
+    liveTopic?: string;
+    liveDot?: { liveKeyX: string; liveKeyY: string; color?: string; label?: string };
 }
 
 // --- CHART WRAPPER ---
@@ -36,25 +38,39 @@ const AXIS_STYLE = { fill: '#64748b', fontSize: 12 };
 
 // --- 1. LINE CHART ---
 export const TheoryLineChart = ({
-    data, xKey = "x", yKeys = [], xAxisLabel, yAxisLabel, title, height = 300, referenceLines = []
-}: CommonChartProps) => (
-    <ChartWrapper title={title} height={height}>
-        <ResponsiveContainer>
-            <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
-                <XAxis dataKey={xKey} type="number" label={{ value: xAxisLabel, position: 'insideBottom', offset: -10, ...AXIS_STYLE }} stroke="#64748b" tick={AXIS_STYLE} domain={['auto', 'auto']} />
-                <YAxis label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', ...AXIS_STYLE }} stroke="#64748b" tick={AXIS_STYLE} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: '#e2e8f0' }} />
-                {referenceLines.map((line, i) => (
-                    <ReferenceLine key={i} x={line.x} y={line.y} stroke={line.color || "red"} strokeDasharray="3 3" label={{ position: 'top', value: line.label, fill: line.color || "red", fontSize: 12 }} />
-                ))}
-                {yKeys.map((item, i) => (
-                    <Line key={i} type="monotone" dataKey={item.key} name={item.name} stroke={item.color} strokeWidth={2} dot={false} activeDot={{ r: 6 }} />
-                ))}
-            </LineChart>
-        </ResponsiveContainer>
-    </ChartWrapper>
-);
+    data, xKey = "x", yKeys = [], xAxisLabel, yAxisLabel, title, height = 300, referenceLines = [], liveTopic, liveDot
+}: CommonChartProps) => {
+    const [liveData, setLiveData] = useState<any>(null);
+
+    useEffect(() => {
+        if (!liveTopic) return;
+        const handler = (e: any) => setLiveData(e.detail);
+        window.addEventListener(liveTopic, handler as any);
+        return () => window.removeEventListener(liveTopic, handler as any);
+    }, [liveTopic]);
+
+    return (
+        <ChartWrapper title={title} height={height}>
+            <ResponsiveContainer>
+                <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
+                    <XAxis dataKey={xKey} type="number" label={{ value: xAxisLabel, position: 'insideBottom', offset: -10, ...AXIS_STYLE }} stroke="#64748b" tick={AXIS_STYLE} domain={['auto', 'auto']} />
+                    <YAxis label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', ...AXIS_STYLE }} stroke="#64748b" tick={AXIS_STYLE} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: '#e2e8f0' }} />
+                    {referenceLines.map((line, i) => (
+                        <ReferenceLine key={i} x={line.x} y={line.y} stroke={line.color || "red"} strokeDasharray="3 3" label={{ position: 'top', value: line.label, fill: line.color || "red", fontSize: 12 }} />
+                    ))}
+                    {yKeys.map((item, i) => (
+                        <Line key={i} type="monotone" dataKey={item.key} name={item.name} stroke={item.color} strokeWidth={2} dot={false} activeDot={{ r: 6 }} />
+                    ))}
+                    {liveData && liveDot && liveData[liveDot.liveKeyX] !== undefined && liveData[liveDot.liveKeyY] !== undefined && (
+                        <ReferenceDot x={liveData[liveDot.liveKeyX]} y={liveData[liveDot.liveKeyY]} r={6} fill={liveDot.color || '#10b981'} stroke="#fff" strokeWidth={2} label={{ position: 'top', value: liveDot.label || 'Live', fill: liveDot.color || '#10b981', fontSize: 12, fontWeight: 'bold' }} />
+                    )}
+                </LineChart>
+            </ResponsiveContainer>
+        </ChartWrapper>
+    );
+};
 
 // --- 2. BAR CHART ---
 export const TheoryBarChart = ({
@@ -228,15 +244,25 @@ export const TheoryTimeline = ({ events, title }: { events: TimelineEvent[]; tit
 );
 
 // --- 8. WAVEFORM DIAGRAM (SVG) ---
-export const TheoryWaveform = ({ title, waves, duration = 1, samplesPerCycle = 100 }: {
+export const TheoryWaveform = ({ title, waves, duration = 1, samplesPerCycle = 100, liveTopic }: {
     title?: string;
-    waves: { label: string; color: string; amplitude: number; phase?: number; frequency?: number; dcOffset?: number; saturateAfter?: number; }[];
+    waves: { label: string; color: string; amplitude: number; phase?: number; frequency?: number; dcOffset?: number; saturateAfter?: number; liveKeyAmp?: string; liveKeyPhase?: string; liveKeyFreq?: string; }[];
     duration?: number;
     samplesPerCycle?: number;
+    liveTopic?: string;
 }) => {
     const w = 600, h = 200, pad = 40;
     const totalSamples = Math.floor(duration * samplesPerCycle * 50);
     const dt = duration / totalSamples;
+
+    const [liveData, setLiveData] = useState<any>(null);
+
+    useEffect(() => {
+        if (!liveTopic) return;
+        const handler = (e: any) => setLiveData(e.detail);
+        window.addEventListener(liveTopic, handler as any);
+        return () => window.removeEventListener(liveTopic, handler as any);
+    }, [liveTopic]);
 
     return (
         <ChartWrapper title={title} height={h + 20}>
@@ -247,14 +273,18 @@ export const TheoryWaveform = ({ title, waves, duration = 1, samplesPerCycle = 1
                 {/* Waveforms */}
                 {waves.map((wave, wi) => {
                     const mid = h / 2 + 10;
+                    
+                    // Live Overrides
+                    const amp = (liveData && wave.liveKeyAmp && liveData[wave.liveKeyAmp] !== undefined) ? liveData[wave.liveKeyAmp] : wave.amplitude;
+                    const phase = (liveData && wave.liveKeyPhase && liveData[wave.liveKeyPhase] !== undefined) ? liveData[wave.liveKeyPhase] : (wave.phase || 0);
+                    const freq = (liveData && wave.liveKeyFreq && liveData[wave.liveKeyFreq] !== undefined) ? liveData[wave.liveKeyFreq] : (wave.frequency || 50);
+                    
                     const scale = (h / 2 - 20) / Math.max(...waves.map(w => w.amplitude + (w.dcOffset || 0)));
                     let path = '';
                     for (let s = 0; s < totalSamples; s++) {
                         const t = s * dt;
-                        const freq = wave.frequency || 50;
-                        const phase = wave.phase || 0;
                         const dc = wave.dcOffset || 0;
-                        let val = wave.amplitude * Math.sin(2 * Math.PI * freq * t + phase * Math.PI / 180) + dc;
+                        let val = amp * Math.sin(2 * Math.PI * freq * t + phase * Math.PI / 180) + dc;
                         if (wave.saturateAfter && t > wave.saturateAfter) {
                             val = val * Math.max(0, 1 - (t - wave.saturateAfter) * 3);
                         }
@@ -262,7 +292,7 @@ export const TheoryWaveform = ({ title, waves, duration = 1, samplesPerCycle = 1
                         const y = mid - val * scale;
                         path += `${s === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)} `;
                     }
-                    return <path key={wi} d={path} fill="none" stroke={wave.color} strokeWidth={1.5} opacity={0.9} />;
+                    return <path key={wi} d={path} fill="none" stroke={wave.color} strokeWidth={1.5} opacity={amp === 0 ? 0.2 : 0.9} />;
                 })}
                 {/* Legend */}
                 {waves.map((wave, wi) => (

@@ -17,7 +17,7 @@ export const DISTANCE_THEORY_CONTENT = [
                     This distinction is critical because fault current magnitude depends heavily on the <strong>Source Impedance (<InlineMath math="Z_s" />)</strong>, which changes constantly as generators come online or lines trip. A weak source might produce a fault current lower than the full load current of a strong source, making simple overcurrent coordination impossible.
                 </p>
                 <p>
-                    By measuring impedance, distance protection becomes independent of source strength. Since the impedance of a transmission line is uniform (e.g., <InlineMath math="0.35 \Omega/km" />), the measured impedance is directly proportional to the physical distance to the fault.
+                    By measuring impedance, distance protection becomes independent of source strength. Since the impedance of a transmission line is uniform (e.g., <InlineMath math="0.35 \\Omega/km" />), the measured impedance is directly proportional to the physical distance to the fault.
                 </p>
                 
                 <h3 className="text-xl font-bold mt-8 mb-4">The Basic Algorithm</h3>
@@ -91,7 +91,7 @@ export const DISTANCE_THEORY_CONTENT = [
                             <h4 className="font-bold text-red-700 dark:text-red-400">Zone 1: Instantaneous Under-Reach</h4>
                             <p className="text-sm mt-1 mb-2">
                                 <strong>Setting:</strong> 80% to 85% of Line Length (<InlineMath math="Z_{line}" />)<br/>
-                                <strong>Time:</strong> Instantaneous (<InlineMath math="t = 0\text{s}" />)
+                                <strong>Time:</strong> Instantaneous (<InlineMath math="t = 0\\text{s}" />)
                             </p>
                             <p className="text-sm text-slate-600 dark:text-slate-400">
                                 This is the primary protection. It must <strong>never</strong> over-reach the remote terminal. We leave a 15-20% safety margin to account for instrument transformer errors (typically 5-10%) and line calculation errors.
@@ -104,7 +104,7 @@ export const DISTANCE_THEORY_CONTENT = [
                         <div>
                             <h4 className="font-bold text-amber-700 dark:text-amber-400">Zone 2: Time-Delayed Over-Reach</h4>
                             <p className="text-sm mt-1 mb-2">
-                                <strong>Setting:</strong> 120% of Line Length (<InlineMath math="1.2 \times Z_{line}" />)<br/>
+                                <strong>Setting:</strong> 120% of Line Length (<InlineMath math="1.2 \\times Z_{line}" />)<br/>
                                 <strong>Time:</strong> Cordination Time Interval (typically 0.3s - 0.4s)
                             </p>
                             <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -131,6 +131,8 @@ export const DISTANCE_THEORY_CONTENT = [
                 <div className="mt-8">
                     <TheoryLineChart 
                         title="Stepped Distance Zones (Time vs Distance)"
+                        liveTopic="live-state-distance"
+                        liveDot={{ liveKeyX: 'dist', liveKeyY: 'time', label: 'Measured Z', color: '#10b981' }}
                         data={[
                             { distance: 0, z1Time: 0.02, z2Time: 0.4, z3Time: 1.0 },
                             { distance: 80, z1Time: 0.02, z2Time: 0.4, z3Time: 1.0 },
@@ -201,7 +203,7 @@ export const DISTANCE_THEORY_CONTENT = [
                             </tr>
                             <tr>
                                 <td className="p-3 font-semibold text-blue-600 border-r dark:border-slate-700">DCB (Directional Comparison Blocking)</td>
-                                <td className="p-3 border-r dark:border-slate-700">Reverse Zone detects external fault <InlineMath math="\rightarrow" /> Send "BLOCK". Forward Zone detects fault <InlineMath math="\rightarrow" /> Wait (e.g., 20ms). If no "BLOCK" received, Trip.</td>
+                                <td className="p-3 border-r dark:border-slate-700">Reverse Zone detects external fault <InlineMath math="\\rightarrow" /> Send "BLOCK". Forward Zone detects fault <InlineMath math="\\rightarrow" /> Wait (e.g., 20ms). If no "BLOCK" received, Trip.</td>
                                 <td className="p-3 text-slate-600 dark:text-slate-400">Fastest for internal faults since no signal needs to arrive. Preferable for Power Line Carrier (PLC) since signal must travel <em>through</em> the fault.</td>
                             </tr>
                         </tbody>
@@ -262,7 +264,7 @@ export const DISTANCE_THEORY_CONTENT = [
                 <MathBlock 
                     formula="Ratio_Z = \frac{Ratio_{CT}}{Ratio_{VT}} = \frac{1200/5}{132000/110} = \frac{240}{1200} = 0.2"
                 />
-                <p className="mt-2">Thus, <InlineMath math="Z_{sec} = Z_{pri} \times 0.2" />.</p>
+                <p className="mt-2">Thus, <InlineMath math="Z_{sec} = Z_{pri} \\times 0.2" />.</p>
                 <MathBlock 
                     formula="Z_{line(sec)} = (4.95 + j18.0) \times 0.2 = 0.99 + j3.6 \Omega" 
                 />
@@ -295,7 +297,7 @@ export const DISTANCE_THEORY_CONTENT = [
                 <p>
                     The performance of a distance relay is heavily influenced by the <strong>Source Impedance Ratio (SIR)</strong>, defined as the ratio of the source impedance behind the relay (<InlineMath math="Z_S" />) to the line impedance setting (<InlineMath math="Z_L" />).
                 </p>
-                <MathBlock formula="SIR = \frac{Z_{Source}}{Z_{Line}}" />
+                <MathBlock formula="SIR = \\frac{Z_{Source}}{Z_{Line}}" />
                 
                 <h3 className="text-xl font-bold mt-6 mb-4">The Short Line Problem</h3>
                 <p>
@@ -344,8 +346,10 @@ export const DISTANCE_THEORY_CONTENT = [
                 </p>
 
                 <div className="mt-8 mb-8">
-                     <TheoryLineChart 
+                      <TheoryLineChart 
                         title="Impedance Plane: Load Encroachment vs Fault"
+                        liveTopic="live-state-distance"
+                        liveDot={{ liveKeyX: 'r', liveKeyY: 'x', label: 'Measured Z', color: '#10b981' }}
                         data={[
                             { r: 0, characteristic: 10,  },
                             { r: 2, characteristic: 9.8, fault: 5 },
@@ -379,7 +383,7 @@ export const DISTANCE_THEORY_CONTENT = [
                     A stable power swing (oscillation between generators) causes the impedance vector to move slowly across the R-X diagram. A fault causes it to jump instantly.
                 </p>
                 <p>
-                    <strong>Out-of-Step Blocking (68):</strong> The relay measures the rate of change of impedance (<InlineMath math="\Delta Z / \Delta t" />). If the timer expires between an outer and inner blinder before the impedance enters the trip zone, it declares a Swing and blocks tripping.
+                    <strong>Out-of-Step Blocking (68):</strong> The relay measures the rate of change of impedance (<InlineMath math="\\Delta Z / \\Delta t" />). If the timer expires between an outer and inner blinder before the impedance enters the trip zone, it declares a Swing and blocks tripping.
                 </p>
                 
                 <Hazard>

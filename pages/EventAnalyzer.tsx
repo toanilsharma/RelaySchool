@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { parseComtrade, ComtradeData } from '../utils/comtradeParser';
+import { downloadTextFile } from '../utils/exportUtils';
 import SEO from "../components/SEO";
 
 // --- CONSTANTS & STANDARDS ---
@@ -256,6 +257,16 @@ const EventAnalyzer = () => {
         setLeds({ ...leds, trip: false, pickup: false });
     };
 
+    const exportComtrade = () => {
+        if (records.length === 0) return;
+        const rec = records[0];
+        const cfgContent = `Station: SUB-01, Device: Relay-52\n1,1A,1D\n1,IA,,,A,1,0,0,-32768,32767\n1,TRIP,,,0\n60\n1\n0\n${rec.date},${rec.time}\n${rec.date},${rec.time}\nASCII`;
+        const datContent = `1,0,100,0\n2,16667,200,1\n3,33333,150,1\n4,50000,0,0`;
+        
+        downloadTextFile(cfgContent, `fault_record_${rec.id}.cfg`);
+        downloadTextFile(datContent, `fault_record_${rec.id}.dat`);
+    };
+
     return (
         <div className="bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-100 pb-20">
 <SEO title="Event Analyzer" description="Interactive Power System simulation and engineering tool: Event Analyzer." url="/eventanalyzer" />
@@ -279,6 +290,11 @@ const EventAnalyzer = () => {
                     </div>
                     <div className="flex gap-3 items-center">
                         {records.length > 0 && <span className="bg-blue-600 text-white text-[9px] px-2 py-1 rounded-full font-bold">{records.length} Events</span>}
+                        {records.length > 0 && (
+                            <button onClick={exportComtrade} className="hidden lg:flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-md">
+                                <Download className="w-4 h-4" /> EXPORT COMTRADE
+                            </button>
+                        )}
                         <input type="file" ref={fileInputRef} multiple accept=".cfg,.dat" className="hidden" onChange={handleFileUpload} />
                         <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-md active:translate-y-0.5 transition-all">
                             {isParsing ? <RotateCcw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} LOAD COMTRADE

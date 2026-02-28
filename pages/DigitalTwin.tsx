@@ -9,7 +9,10 @@ import {
 } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { useThemeObserver } from '../hooks/useThemeObserver';
+import { downloadTextFile } from '../utils/exportUtils';
 import TheoryLibrary from '../components/TheoryLibrary';
+import Slider from '../components/Slider';
 import { DIGITAL_TWIN_THEORY_CONTENT } from '../data/learning-modules/digital-twin';
 import SEO from "../components/SEO";
 
@@ -363,6 +366,7 @@ const NodeItem = ({ node, isSelected, isEnergized, onClick, currents }: { node: 
       className="cursor-pointer"
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.95 }}
+      style={{ filter: isFaulted ? 'url(#glow-trip)' : (isEnergized && current > 0) ? 'url(#glow-active)' : 'none' }}
     >
       <AnimatePresence>
         {isSelected && (
@@ -445,8 +449,8 @@ const LogPanel = ({ logs }: { logs: any[] }) => {
         </div>
         <button onClick={() => {
           const txt = logs.map(l => `${l.time} | ${l.device} | ${l.event} | ${l.details}`).join('\n');
-          navigator.clipboard.writeText(`SOE Export\n${txt}`);
-        }} className="text-[9px] font-bold text-blue-400 hover:text-blue-300 transition-colors">EXPORT</button>
+          downloadTextFile(`SOE Export\n${txt}`, 'SOE_Export.txt');
+        }} className="text-[9px] font-bold text-blue-400 hover:text-blue-300 transition-colors">EXPORT LOG</button>
       </div>
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-2 space-y-1">
         {logs.length === 0 && <div className="text-slate-600 italic px-2">System ready. Waiting for events...</div>}
@@ -503,37 +507,52 @@ const DigitalSubstationPro = () => {
 
   useEffect(() => {
     if (!isRunning) return;
-    const interval = setInterval(() => {
-      const nextPhysics = calculatePhysics(nodes, INITIAL_LINKS);
-      setPhysics(nextPhysics);
 
-      let stateChanged = false;
-      const newNodes = nodes.map(n => {
-        if (n.type === NODE_TYPES.BREAKER && n.status === 'CLOSED') {
-          const current = nextPhysics.currents[n.id];
-          const limit = n.ratingAmps || 1000;
+    let animationFrameId: number;
+    let lastTime = performance.now();
+    let accumulator = 0;
 
-          if (current > limit * 5) {
-            addLog(n.label, 'TRIP (ANSI 50)', `Detected ${current.toFixed(0)}A (>>${limit * 5}A)`, 'TRIP');
-            stateChanged = true;
-            return { ...n, status: 'TRIPPED' };
-          }
+    const tick = (currentTime: number) => {
+      const delta = currentTime - lastTime;
+      lastTime = currentTime;
+      accumulator += delta;
 
-          if (current > limit * 1.2) {
-            if (Math.random() > 0.8) {
-              addLog(n.label, 'TRIP (ANSI 51)', `Overload ${current.toFixed(0)}A (> ${limit}A)`, 'TRIP');
+      if (accumulator >= 1000) {
+        accumulator -= 1000;
+        
+        const nextPhysics = calculatePhysics(nodes, INITIAL_LINKS);
+        setPhysics(nextPhysics);
+
+        let stateChanged = false;
+        const newNodes = nodes.map(n => {
+          if (n.type === NODE_TYPES.BREAKER && n.status === 'CLOSED') {
+            const current = nextPhysics.currents[n.id];
+            const limit = n.ratingAmps || 1000;
+
+            if (current > limit * 5) {
+              addLog(n.label, 'TRIP (ANSI 50)', `Detected ${current.toFixed(0)}A (>>${limit * 5}A)`, 'TRIP');
               stateChanged = true;
               return { ...n, status: 'TRIPPED' };
             }
+
+            if (current > limit * 1.2) {
+              if (Math.random() > 0.8) {
+                addLog(n.label, 'TRIP (ANSI 51)', `Overload ${current.toFixed(0)}A (> ${limit}A)`, 'TRIP');
+                stateChanged = true;
+                return { ...n, status: 'TRIPPED' };
+              }
+            }
           }
-        }
-        return n;
-      });
+          return n;
+        });
 
-      if (stateChanged) setNodes(newNodes as Node[]);
+        if (stateChanged) setNodes(newNodes as Node[]);
+      }
+      animationFrameId = requestAnimationFrame(tick);
+    };
 
-    }, 1000);
-    return () => clearInterval(interval);
+    animationFrameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animationFrameId);
   }, [nodes, isRunning]);
 
   const addLog = (device: string, event: string, details: string, type = 'INFO') => {
@@ -670,6 +689,22 @@ const DigitalSubstationPro = () => {
               </div>
 
               <svg className="w-full h-full max-w-full max-h-full select-none" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <filter id="glow-trip" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="8" result="coloredBlur" />
+                    <feMerge>
+                      <feMergeNode in="coloredBlur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  <filter id="glow-active" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                    <feMerge>
+                      <feMergeNode in="coloredBlur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
                 {INITIAL_LINKS.map(link => (
                   <AnimatedLink key={link.id} link={link} nodes={nodes} physics={physics} />
                 ))}
@@ -779,18 +814,16 @@ const DigitalSubstationPro = () => {
 
                         {selectedNode.type === NODE_TYPES.LOAD && (
                           <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Demand Setpoint (MW)</label>
-                            <input
-                              type="range" min="0" max="40" step="1"
-                              value={selectedNode.loadMW}
-                              onChange={(e) => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, loadMW: parseInt(e.target.value) } : n))}
-                              className="w-full accent-blue-600"
+                            <Slider 
+                                label="Demand Setpoint" 
+                                unit=" MW" 
+                                min={0} 
+                                max={40} 
+                                step={1} 
+                                value={selectedNode.loadMW} 
+                                onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, loadMW: parseInt(e.target.value) } : n))} 
+                                color="blue" 
                             />
-                            <div className="flex justify-between text-xs mt-1 font-mono">
-                              <span>0 MW</span>
-                              <span>{selectedNode.loadMW} MW</span>
-                              <span>40 MW</span>
-                            </div>
                           </div>
                         )}
 

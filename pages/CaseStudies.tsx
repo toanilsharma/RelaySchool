@@ -24,7 +24,37 @@ const CASES = [
             'Transformers exploded due to overvoltage.'
         ],
         answer: 1,
-        explanation: 'Zone 3 distance relays have a large reach and long delay. When heavy load depressed voltages, the apparent impedance fell into Zone 3, causing relays to trip healthy lines and shifting even more load to remaining lines.'
+        explanation: 'Zone 3 distance relays have a large reach and long delay. When heavy load depressed voltages, the apparent impedance fell into Zone 3, causing relays to trip healthy lines and shifting even more load to remaining lines.',
+        simulatorLink: {
+            title: "Test Zone Reach in Distance Lab",
+            url: "/distance"
+        }
+    },
+    {
+        id: 'c2',
+        title: 'Transformer Inrush Trip',
+        date: 'October 12, 2018',
+        location: 'Industrial Plant Substation',
+        difficulty: 'Medium',
+        summary: 'A 132/33kV transformer tripped on differential protection immediately upon energization, despite no active fault on the system.',
+        evidence: [
+            { type: 'log', title: 'Relay Event Record', content: '08:00:01.012 - Phase A Differential Current: 4.8 pu\n08:00:01.013 - Phase B Differential Current: 0.2 pu\n08:00:01.014 - Phase C Differential Current: 0.1 pu\n08:00:01.030 - TRIP 87T' },
+            { type: 'diagram', title: 'Waveform Capture', content: 'Phase A current showed high peak value with significant DC offset and large 2nd harmonic content. Phases B and C were normal.' },
+            { type: 'relay', title: 'Relay Settings', content: '87T Pickup: 0.3 pu\nSlope 1: 25%\n2nd Harmonic Restraint: Disabled (Accidentally left off during commissioning)' }
+        ],
+        question: 'What caused the differential relay to trip upon energization?',
+        options: [
+            'CT Saturation on Phase B and C.',
+            'Magnetizing inrush current masquerading as a differential fault.',
+            'A turn-to-turn fault inside the transformer.',
+            'The transformer vector group was set incorrectly (e.g., Yd1 instead of Yd11).'
+        ],
+        answer: 1,
+        explanation: 'When a transformer is energized, it draws a large magnetizing inrush current on one or more phases. This current only flows into the primary side, appearing as a differential fault. To prevent tripping, the relay relies on 2nd Harmonic Restraint, which detects the unique shape of inrush waveforms. In this case, it was disabled.',
+        simulatorLink: {
+            title: "Simulate Inrush in Differential Lab",
+            url: "/diffslope"
+        }
     }
 ];
 
@@ -103,6 +133,18 @@ export default function CaseStudies() {
                         <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 font-mono text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap border border-slate-200 dark:border-slate-800 min-h-[150px]">
                             {activeCase.evidence[activeEvidence].content}
                         </div>
+
+                        {activeCase.simulatorLink && (
+                             <div className="mt-6">
+                                 <a 
+                                    href={activeCase.simulatorLink.url} 
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-md group/simBtn"
+                                 >
+                                    <Activity className="w-5 h-5 group-hover/simBtn:animate-pulse" />
+                                    {activeCase.simulatorLink.title}
+                                 </a>
+                             </div>
+                        )}
                     </div>
 
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">

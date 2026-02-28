@@ -8,8 +8,12 @@ import {
     AlertOctagon, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
     Maximize2, Minimize2, BrainCircuit, School, Calculator, ArrowRight,
     Trophy, XCircle, RefreshCw, Flame, Factory, Gauge, GitCompare,
-    ArrowUpFromLine, ArrowDownToLine, Ruler, Menu, Book, MousePointerClick, Share2
+    ArrowUpFromLine, ArrowDownToLine, Ruler, Menu, Book, MousePointerClick, Share2,
+    Sliders, Smartphone, Sparkles, Filter
 } from 'lucide-react';
+import Slider from '../components/Slider';
+import { useThemeObserver } from '../hooks/useThemeObserver';
+import { downloadTextFile } from '../utils/exportUtils';
 import TheoryLibrary from '../components/TheoryLibrary';
 import { TCC_THEORY_CONTENT } from '../data/learning-modules/tcc';
 import SEO from "../components/SEO";
@@ -778,11 +782,14 @@ const SimulatorView = ({ isActive }) => {
 
     // Coordination Analysis State
     const [analysisPair, setAnalysisPair] = useState({ up: null, down: null });
+    const [ctiParams, setCtiParams] = useState({ breakerTime: 0.08, relayOvershoot: 0.05, safetyMargin: 0.07 });
 
     // Viewport
     const [view, setView] = useState({ minX: 10, maxX: 100000, minY: 0.01, maxY: 1000 });
     const [dims, setDims] = useState({ w: 800, h: 600 });
     const [cursor, setCursor] = useState(null);
+
+    const reqMargin = Number((ctiParams.breakerTime + ctiParams.relayOvershoot + ctiParams.safetyMargin).toFixed(3));
 
     const graphRef = useRef(null);
     const [draggingId, setDraggingId] = useState(null);
@@ -1029,7 +1036,7 @@ const SimulatorView = ({ isActive }) => {
                     const yUp = toPxY(tUp);
                     const yDown = toPxY(tDown);
                     const margin = tUp - tDown;
-                    const isOk = margin >= 0.2;
+                    const isOk = margin >= reqMargin;
                     const midX = x + 20;
 
                     coordArrow = (
@@ -1124,7 +1131,7 @@ const SimulatorView = ({ isActive }) => {
             if (i < trips.length - 1) {
                 const nextTrip = trips[i + 1];
                 const margin = nextTrip.time - trip.time;
-                const isViolation = margin < 0.2;
+                const isViolation = margin < reqMargin;
                 report.push({ type: 'MARGIN', val: margin, violation: isViolation, msg: isViolation ? `Critical: Increase Time Dial on ${nextTrip.name}` : 'Coordinated' });
             }
         }
@@ -1201,7 +1208,7 @@ const SimulatorView = ({ isActive }) => {
                     {/* CTI Validation Banner */}
                     {coordinationReport.length > 0 && (
                         <div className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 border-b ${coordinationReport.some(r => r.violation) ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
-                            {coordinationReport.some(r => r.violation) ? <><AlertOctagon className="w-3 h-3" /> CTI Check: FAIL — Margins below 0.2s</> : <><CheckCircle2 className="w-3 h-3" /> CTI Check: PASS — All margins ≥ 0.2s</>}
+                            {coordinationReport.some(r => r.violation) ? <><AlertOctagon className="w-3 h-3" /> CTI Check: FAIL — Margins below {reqMargin}s</> : <><CheckCircle2 className="w-3 h-3" /> CTI Check: PASS — All margins ≥ {reqMargin}s</>}
                         </div>
                     )}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar relative">
@@ -1244,9 +1251,9 @@ const SimulatorView = ({ isActive }) => {
                         {coordinationReport.length > 0 && (
                             <button onClick={() => {
                                 const lines = coordinationReport.map(r => r.type === 'TRIP' ? `TRIP: ${r.name} at ${r.time.toFixed(3)}s` : r.type === 'VIOLATION' ? `!! ${r.msg}` : `   Margin: ${r.val.toFixed(3)}s ${r.violation ? '(FAIL)' : '(OK)'}`);
-                                navigator.clipboard.writeText(`TCC Coordination Report @ ${faultAmps}A\n${lines.join('\n')}`);
+                                downloadTextFile(`TCC Coordination Report @ ${faultAmps}A\n${lines.join('\n')}`, 'TCC_Coordination_Report.txt');
                             }} className="flex-1 py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors">
-                                <Download className="w-3 h-3" /> Report
+                                <Download className="w-3 h-3" /> Export Report
                             </button>
                         )}
                         <button onClick={copyShareLink} className="flex-1 py-1.5 px-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold flex items-center justify-center gap-1 transition-colors">
@@ -1320,7 +1327,15 @@ const SimulatorView = ({ isActive }) => {
                                             <div className="space-y-4">
                                                 <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Device Name</label><input type="text" value={selectedDevice.name} onChange={(e) => updateDevice(selectedDevice.id, { name: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
                                                 <div className="grid grid-cols-2 gap-4">
-                                                    <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">CT Ratio</label><div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2"><input type="number" min="0" value={selectedDevice.ctRatio} onChange={(e) => updateDevice(selectedDevice.id, { ctRatio: Number(e.target.value) })} className="w-full bg-transparent border-none py-1.5 text-xs font-mono font-bold outline-none" /><span className="text-[10px] text-slate-400 font-bold">:1</span></div></div>
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">CT Ratio</label>
+                                                        <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2">
+                                                            <select value={selectedDevice.ctRatio} onChange={(e) => updateDevice(selectedDevice.id, { ctRatio: Number(e.target.value) })} className="w-full bg-transparent border-none py-1.5 text-xs font-mono font-bold outline-none appearance-none">
+                                                                {[50,100,150,200,250,300,400,500,600,800,900,1000,1200,1500,2000,2500,3000,4000,5000].map(r => <option key={r} value={r}>{r}</option>)}
+                                                            </select>
+                                                            <span className="text-[10px] text-slate-400 font-bold ml-1">:1</span>
+                                                        </div>
+                                                    </div>
                                                     <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Color</label><div className="flex gap-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">{COLORS.slice(0, 4).map(c => (<button key={c} onClick={() => updateDevice(selectedDevice.id, { color: c })} className={`w-4 h-4 rounded-full border-2 transition-transform ${selectedDevice.color === c ? 'border-slate-900 scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />))}</div></div>
                                                 </div>
                                             </div>
@@ -1336,15 +1351,26 @@ const SimulatorView = ({ isActive }) => {
                                                     <p className="text-[9px] text-amber-600 dark:text-amber-400 mt-1.5 italic">SEL does not multiply additive constant B by TDS — affects trip times at low multiples.</p>
                                                 </div>
                                             )}
-                                            <div className="space-y-4">
-                                                <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
-                                                    <div className="flex justify-between items-end mb-2"><label className="text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase">Pickup (Is)</label><div className="text-right"><div className="text-sm font-black text-blue-600 dark:text-blue-400 font-mono leading-none">{selectedDevice.pickup} A</div></div></div>
-                                                    <input type="range" min="10" max="2000" step="10" value={selectedDevice.pickup} onChange={(e) => updateDevice(selectedDevice.id, { pickup: Number(e.target.value) })} className="w-full h-1.5 bg-blue-200 dark:bg-blue-900 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-                                                </div>
-                                                <div className="bg-purple-50 dark:bg-purple-900/10 p-3 rounded-xl border border-purple-100 dark:border-purple-900/30">
-                                                    <div className="flex justify-between items-end mb-2"><label className="text-[10px] font-bold text-purple-800 dark:text-purple-300 uppercase">Time Dial (TMS)</label><div className="text-sm font-black text-purple-600 dark:text-purple-400 font-mono leading-none">{selectedDevice.tds}</div></div>
-                                                    <input type="range" min="0.01" max="1.5" step="0.01" value={selectedDevice.tds} onChange={(e) => updateDevice(selectedDevice.id, { tds: Number(e.target.value) })} className="w-full h-1.5 bg-purple-200 dark:bg-purple-900 rounded-lg appearance-none cursor-pointer accent-purple-600" />
-                                                </div>
+                                            <div className="space-y-6">
+                                                <Slider 
+                                                    label="Pickup (Is)" 
+                                                    unit=" A" 
+                                                    min={10} 
+                                                    max={2000} 
+                                                    step={10} 
+                                                    value={selectedDevice.pickup} 
+                                                    onChange={e => updateDevice(selectedDevice.id, { pickup: Number(e.target.value) })} 
+                                                    color="blue" 
+                                                />
+                                                <Slider 
+                                                    label="Time Dial (TMS)" 
+                                                    min={0.01} 
+                                                    max={1.5} 
+                                                    step={0.01} 
+                                                    value={selectedDevice.tds} 
+                                                    onChange={e => updateDevice(selectedDevice.id, { tds: Number(e.target.value) })} 
+                                                    color="purple" 
+                                                />
                                             </div>
                                             <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"><div><div className="text-xs font-bold text-slate-700 dark:text-slate-200">Instantaneous (50)</div></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" className="sr-only peer" checked={!!selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: e.target.checked ? selectedDevice.pickup * 10 : undefined })} /><div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div></label></div>
                                             {selectedDevice.instantaneous && (<div className="animate-fade-in -mt-4 p-3 pt-0 bg-slate-50 dark:bg-slate-800 rounded-b-xl border-x border-b border-slate-200 dark:border-slate-700"><input type="number" min="0" value={selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: Number(e.target.value) })} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-1.5 text-xs font-mono font-bold" /></div>)}
@@ -1480,6 +1506,39 @@ const SimulatorView = ({ isActive }) => {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* CTI CALCULATION PARAMETERS */}
+                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden mt-4">
+                                        <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase">CTI Parameters (IEEE 242)</label>
+                                            <div className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
+                                                Req: {reqMargin.toFixed(3)}s
+                                            </div>
+                                        </div>
+                                        <div className="p-3 grid grid-cols-3 gap-2">
+                                            <div>
+                                                <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Breaker (s)</label>
+                                                <input type="number" min="0" step="0.01" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                    value={ctiParams.breakerTime}
+                                                    onChange={(e) => setCtiParams(prev => ({ ...prev, breakerTime: Number(e.target.value) }))}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Overshoot (s)</label>
+                                                <input type="number" min="0" step="0.01" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                    value={ctiParams.relayOvershoot}
+                                                    onChange={(e) => setCtiParams(prev => ({ ...prev, relayOvershoot: Number(e.target.value) }))}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Safety (s)</label>
+                                                <input type="number" min="0" step="0.01" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                    value={ctiParams.safetyMargin}
+                                                    onChange={(e) => setCtiParams(prev => ({ ...prev, safetyMargin: Number(e.target.value) }))}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1495,11 +1554,11 @@ const SimulatorView = ({ isActive }) => {
                                     if (tUp === null || tDown === null) return <div className="text-center text-xs text-slate-500 italic mt-4">One or both devices do not operate at {faultAmps}A. Adjust Fault current.</div>;
 
                                     const margin = tUp - tDown;
-                                    const isCoordinated = margin >= 0.2;
+                                    const isCoordinated = margin >= reqMargin;
 
                                     // Run full-range sweep analysis
                                     const sweep = sweepCoordination(upDev, downDev);
-                                    const sweepOk = sweep.minMargin !== null && sweep.minMargin >= 0.2;
+                                    const sweepOk = sweep.minMargin !== null && sweep.minMargin >= reqMargin;
 
                                     return (
                                         <div className="space-y-4 animate-fade-in">
@@ -1535,7 +1594,7 @@ const SimulatorView = ({ isActive }) => {
                                                         </div>
                                                     )}
                                                     <div className="mt-2 text-[9px] text-slate-500 dark:text-slate-400">
-                                                        Evaluated {sweep.points.length} points across overlap range. {sweepOk ? '✅ All margins ≥ 0.2s' : '❌ Violations found — adjust TDS or pickup.'}
+                                                        Evaluated {sweep.points.length} points across overlap range. {sweepOk ? `✅ All margins ≥ ${reqMargin}s` : '❌ Violations found — adjust TDS or pickup.'}
                                                     </div>
                                                 </div>
                                             )}
@@ -1546,7 +1605,7 @@ const SimulatorView = ({ isActive }) => {
                                                     {(!isCoordinated || !sweepOk) && (
                                                         <li className="flex gap-2">
                                                             <ArrowUpFromLine className="w-3 h-3 text-blue-500 shrink-0 mt-0.5" />
-                                                            <span>Increase <strong>{upDev.name}</strong> Time Dial (TDS) to at least <strong>{(upDev.tds * (1 + (0.2 - (sweep.minMargin ?? margin)) / tUp)).toFixed(2)}</strong>.</span>
+                                                            <span>Increase <strong>{upDev.name}</strong> Time Dial (TDS) to at least <strong>{(upDev.tds * (1 + (reqMargin - (sweep.minMargin ?? margin)) / tUp)).toFixed(2)}</strong>.</span>
                                                         </li>
                                                     )}
                                                     {(!isCoordinated || !sweepOk) && (

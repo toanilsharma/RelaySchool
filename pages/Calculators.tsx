@@ -59,25 +59,25 @@ const SymmetricalComponents = () => {
                     
                     <div className="flex gap-4 items-center">
                         <span className="w-8 font-bold text-slate-900 dark:text-white">Va = </span>
-                        <input type="number" step="0.1" value={vaMag} onChange={e => setVaMag(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
+                        <input type="number" min="0" step="0.1" value={vaMag} onChange={e => setVaMag(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
                         <span className="text-slate-500">&ang;</span>
-                        <input type="number" step="1" value={vaAng} onChange={e => setVaAng(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
+                        <input type="number" min="0" step="1" value={vaAng} onChange={e => setVaAng(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
                         <span className="text-slate-500">&deg;</span>
                     </div>
 
                     <div className="flex gap-4 items-center">
                         <span className="w-8 font-bold text-slate-900 dark:text-white">Vb = </span>
-                        <input type="number" step="0.1" value={vbMag} onChange={e => setVbMag(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
+                        <input type="number" min="0" step="0.1" value={vbMag} onChange={e => setVbMag(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
                         <span className="text-slate-500">&ang;</span>
-                        <input type="number" step="1" value={vbAng} onChange={e => setVbAng(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
+                        <input type="number" min="0" step="1" value={vbAng} onChange={e => setVbAng(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
                         <span className="text-slate-500">&deg;</span>
                     </div>
 
                     <div className="flex gap-4 items-center">
                         <span className="w-8 font-bold text-slate-900 dark:text-white">Vc = </span>
-                        <input type="number" step="0.1" value={vcMag} onChange={e => setVcMag(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
+                        <input type="number" min="0" step="0.1" value={vcMag} onChange={e => setVcMag(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
                         <span className="text-slate-500">&ang;</span>
-                        <input type="number" step="1" value={vcAng} onChange={e => setVcAng(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
+                        <input type="number" min="0" step="1" value={vcAng} onChange={e => setVcAng(parseFloat(e.target.value) || 0)} className="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-1 text-slate-900 dark:text-white" />
                         <span className="text-slate-500">&deg;</span>
                     </div>
                 </div>
@@ -143,15 +143,15 @@ const ImpedanceBaseConversion = () => {
                     <h4 className="font-bold text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800 pb-2">Old Base</h4>
                     <div className="flex gap-4 items-center">
                         <span className="w-16 font-bold text-slate-900 dark:text-white">Z (p.u.)</span>
-                        <input type="number" step="0.01" value={zOldPu} onChange={e => setZOldPu(parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-slate-900 dark:text-white" />
+                        <input type="number" min="0" step="0.01" value={zOldPu} onChange={e => setZOldPu(parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-slate-900 dark:text-white" />
                     </div>
                     <div className="flex gap-4 items-center">
                         <span className="w-16 font-bold text-slate-900 dark:text-white">kV </span>
-                        <input type="number" step="1" value={kvOld} onChange={e => setKvOld(parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-slate-900 dark:text-white" />
+                        <input type="number" min="0" step="1" value={kvOld} onChange={e => setKvOld(parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-slate-900 dark:text-white" />
                     </div>
                     <div className="flex gap-4 items-center">
                         <span className="w-16 font-bold text-slate-900 dark:text-white">MVA </span>
-                        <input type="number" step="1" value={mvaOld} onChange={e => setMvaOld(parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-slate-900 dark:text-white" />
+                        <input type="number" min="0" step="1" value={mvaOld} onChange={e => setMvaOld(parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-slate-900 dark:text-white" />
                     </div>
                 </div>
 
@@ -159,11 +159,11 @@ const ImpedanceBaseConversion = () => {
                     <h4 className="font-bold text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800 pb-2">New Base</h4>
                     <div className="flex gap-4 items-center">
                         <span className="w-16 font-bold text-slate-900 dark:text-white">kV </span>
-                        <input type="number" step="1" value={kvNew} onChange={e => setKvNew(parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-slate-900 dark:text-white" />
+                        <input type="number" min="0" step="1" value={kvNew} onChange={e => setKvNew(parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-slate-900 dark:text-white" />
                     </div>
                     <div className="flex gap-4 items-center">
                         <span className="w-16 font-bold text-slate-900 dark:text-white">MVA </span>
-                        <input type="number" step="1" value={mvaNew} onChange={e => setMvaNew(parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-slate-900 dark:text-white" />
+                        <input type="number" min="0" step="1" value={mvaNew} onChange={e => setMvaNew(parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-3 py-2 text-slate-900 dark:text-white" />
                     </div>
 
                     <div className="mt-6 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center">

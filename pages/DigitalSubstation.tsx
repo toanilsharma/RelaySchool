@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Network, Activity, Clock, Server, AlertTriangle, ShieldAlert, Zap, Settings, Play, RotateCcw, AlertOctagon, Info, CheckCircle, XCircle, Share2, Layers, Cpu, HelpCircle } from 'lucide-react';
+import Slider from '../components/Slider';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEO from "../components/SEO";
 
@@ -586,35 +587,28 @@ const DigitalSubstation = () => {
                         </h3>
 
                         {/* Network Load */}
-                        <div>
-                            <div className="flex justify-between text-xs mb-2">
-                                <span className="text-slate-500 dark:text-slate-400">Network Congestion</span>
-                                <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">{simState.congestion}%</span>
-                            </div>
-                            <input 
-                                type="range" min="0" max="100" 
-                                value={simState.congestion} 
-                                onChange={(e) => setSimState(s => ({ ...s, congestion: Number(e.target.value) }))}
-                                className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                            />
-                        </div>
+                        <Slider 
+                            label="Network Congestion" 
+                            unit="%" 
+                            min={0} 
+                            max={100} 
+                            step={1} 
+                            value={simState.congestion} 
+                            onChange={e => setSimState(s => ({ ...s, congestion: Number(e.target.value) }))} 
+                            color="blue" 
+                        />
 
                         {/* PTP Drift */}
-                        <div>
-                            <div className="flex justify-between text-xs mb-2">
-                                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                    PTP Time Drift
-                                    <Tooltip text="Precision Time Protocol error. Should be <1ms." />
-                                </span>
-                                <span className="font-mono text-purple-600 dark:text-purple-400 font-bold">{simState.ptpDrift}ms</span>
-                            </div>
-                            <input 
-                                type="range" min="0" max="5" step="0.1"
-                                value={simState.ptpDrift} 
-                                onChange={(e) => setSimState(s => ({ ...s, ptpDrift: Number(e.target.value) }))}
-                                className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                            />
-                        </div>
+                        <Slider 
+                            label="PTP Time Drift" 
+                            unit="ms" 
+                            min={0} 
+                            max={5} 
+                            step={0.1} 
+                            value={simState.ptpDrift} 
+                            onChange={e => setSimState(s => ({ ...s, ptpDrift: Number(e.target.value) }))} 
+                            color="purple" 
+                        />
 
                         {/* Toggles */}
                         <div className="space-y-2">

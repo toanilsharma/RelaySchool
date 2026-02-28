@@ -804,12 +804,18 @@ const SimulatorView = ({ isActive, isDark }) => {
           <div className={`rounded-xl border p-5 flex flex-col ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
             <h4 className={`text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}><FileText className="w-3 h-3" /> Event Log (SOE)</h4>
             <div className="flex-1 overflow-y-auto font-mono text-[10px] space-y-2 custom-scrollbar pr-2 bg-slate-50 dark:bg-black/20 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-              {events.map((e, i) => (
-                <div key={i} className="flex gap-2 border-b border-dashed border-slate-200 dark:border-slate-800 pb-1 last:border-0">
+              <AnimatePresence>
+                            {events.map((e, i) => (
+                <motion.div 
+                                key={e.msg + i}
+                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                animate={{ opacity: 1, height: 'auto', marginBottom: 6 }}
+                                className="flex gap-2 border-b border-dashed border-slate-200 dark:border-slate-800 pb-1 last:border-0">
                   <span className={`select-none ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{e.time}</span>
                   <span className={e.msg.includes('TRIP') ? 'text-red-600 font-bold' : e.msg.includes('SUCCESS') ? 'text-emerald-600 font-bold' : isDark ? 'text-slate-300' : 'text-slate-700'}>{e.msg}</span>
-                </div>
+                </motion.div>
               ))}
+                        </AnimatePresence>
             </div>
           </div>
         </div>

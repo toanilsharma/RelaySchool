@@ -31,4 +31,17 @@
   <url><loc>https://relayschool.com/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://relayschool.com/disclaimer</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://relayschool.com/cookies</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://relayschool.com/autorecloser</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/synchrocheck</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/transformer-protection</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/frequency-protection</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/power-swing</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/ct-vt</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/ground-fault</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/motor-protection</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/per-unit</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/breaker-failure</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/voltage-regulator</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/busbar-protection</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://relayschool.com/generator-protection</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>

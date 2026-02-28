@@ -47,8 +47,11 @@ import {
   FastForward,
   Settings,
   Search,
+  Timer,
+  TrendingUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Slider from "../components/Slider";
 import SEO from "../components/SEO";
 
 // --- CONSTANTS ---
@@ -218,19 +221,16 @@ const MiniTCCWidget = () => {
           }}
         ></div>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold text-slate-500">Inject:</span>
-        <input
-          type="range"
-          min="150"
-          max="1000"
-          step="10"
-          value={amps}
-          onChange={(e) => setAmps(Number(e.target.value))}
-          className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-        />
-        <span className="text-[10px] font-mono w-10 text-right">{amps}A</span>
-      </div>
+      <Slider 
+        label="Inject Current" 
+        unit="A" 
+        min={150} 
+        max={1000} 
+        step={10} 
+        value={amps} 
+        onChange={e => setAmps(Number(e.target.value))} 
+        color="blue" 
+      />
     </div>
   );
 };
@@ -368,17 +368,16 @@ const MiniVectorWidget = () => {
         <div className="absolute w-1 h-1 bg-slate-900 dark:bg-white rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       </div>
 
-      <div className="flex items-center gap-2 mt-3">
-        <span className="text-[10px] font-bold text-slate-500">Unbalance:</span>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={unbalance}
-          onChange={(e) => setUnbalance(Number(e.target.value))}
-          className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-        />
-      </div>
+      <Slider 
+        label="Unbalance" 
+        unit="%" 
+        min={0} 
+        max={100} 
+        step={1} 
+        value={unbalance} 
+        onChange={e => setUnbalance(Number(e.target.value))} 
+        color="purple" 
+      />
 
       <div className="mt-1 flex justify-between text-[8px] font-mono text-slate-400">
         <span>IA: 100%</span>
@@ -488,17 +487,16 @@ const MiniHarmonicWidget = () => {
           />
         </svg>
       </div>
-      <div className="flex items-center gap-2 mt-3">
-        <span className="text-[10px] font-bold text-slate-500">Noise:</span>
-        <input
-          type="range"
-          min="0"
-          max="50"
-          value={distortion}
-          onChange={(e) => setDistortion(Number(e.target.value))}
-          className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
-        />
-      </div>
+      <Slider 
+        label="Noise Level" 
+        unit="%" 
+        min={0} 
+        max={50} 
+        step={1} 
+        value={distortion} 
+        onChange={e => setDistortion(Number(e.target.value))} 
+        color="amber" 
+      />
     </div>
   );
 };
@@ -532,19 +530,16 @@ const MiniDistanceWidget = () => {
           ></div>
         </div>
       </div>
-      <div className="flex items-center gap-2 mt-3">
-        <span className="text-[10px] font-bold text-slate-500">
-          Fault Dist:
-        </span>
-        <input
-          type="range"
-          min="20"
-          max="100"
-          value={dist}
-          onChange={(e) => setDist(Number(e.target.value))}
-          className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-        />
-      </div>
+      <Slider 
+        label="Fault Distance" 
+        unit="%" 
+        min={20} 
+        max={100} 
+        step={1} 
+        value={dist} 
+        onChange={e => setDist(Number(e.target.value))} 
+        color="purple" 
+      />
     </div>
   );
 };
@@ -983,6 +978,18 @@ const ToolWidget = ({
   isHighlighted = true,
 }: any) => {
   const t = TOOL_THEMES[theme] || TOOL_THEMES.blue;
+
+  const [isCompleted, setIsCompleted] = useState(false);
+  useEffect(() => {
+     const check = () => {
+         const stored = JSON.parse(localStorage.getItem('relayschool_progress') || '[]');
+         setIsCompleted(stored.includes(link));
+     };
+     check();
+     window.addEventListener('progress_updated', check);
+     return () => window.removeEventListener('progress_updated', check);
+  }, [link]);
+
   return (
     <Link to={link} className={`block group h-full focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-2xl transition-opacity duration-300 ${isHighlighted ? 'opacity-100 grayscale-0' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0'}`}>
       <div
@@ -1020,8 +1027,9 @@ const ToolWidget = ({
         
         {/* Content container that slides up on hover */}
         <div className="flex-1 flex flex-col relative z-10">
-           <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+           <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-center justify-between">
              {title}
+             {isCompleted && <CheckCircle2 className="w-5 h-5 text-emerald-500 bg-white/50 dark:bg-slate-900/50 rounded-full" />}
            </h3>
            {useCase && (
                <div className="text-[11px] text-slate-500 font-bold mb-3 pb-2 border-b border-slate-200/50 dark:border-slate-700/50 tracking-wider uppercase">
@@ -1125,6 +1133,19 @@ const EmbeddableWidget = ({ children }: { children: React.ReactNode }) => {
 const Dashboard = () => {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [completedRoutes, setCompletedRoutes] = useState<string[]>([]);
+  
+  useEffect(() => {
+     const parseProgress = () => {
+         const stored = JSON.parse(localStorage.getItem('relayschool_progress') || '[]');
+         setCompletedRoutes(stored);
+     };
+     parseProgress();
+     window.addEventListener('progress_updated', parseProgress);
+     return () => window.removeEventListener('progress_updated', parseProgress);
+  }, []);
+  
+  const progressPct = Math.min(100, Math.round((completedRoutes.length / 30) * 100));
 
   const matchesSearch = (title: string, desc: string, useCase?: string, standard?: string) => {
     if (!searchQuery.trim()) return true;
@@ -1192,15 +1213,15 @@ const Dashboard = () => {
                   <span className="font-bold text-xs uppercase tracking-widest text-slate-300">Your Progress</span>
                </div>
                <div className="text-2xl font-black text-white mb-2 leading-tight">Protection Fundamentals</div>
-               <p className="text-sm text-slate-400 mb-6">You've mastered 3 of 9 simulation modules. Keep going to earn your verified badge!</p>
+               <p className="text-sm text-slate-400 mb-6">You've explored {completedRoutes.length} of 30 simulation modules. Keep going to earn your verified badge!</p>
                
                <div className="space-y-2 mb-6">
                   <div className="flex justify-between text-xs text-slate-300 font-bold">
                      <span>Progress</span>
-                     <span className="text-emerald-400">33%</span>
+                     <span className="text-emerald-400">{progressPct}%</span>
                   </div>
                   <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                     <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-1/3 rounded-full relative">
+                     <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full relative transition-all duration-1000" style={{ width: `${progressPct}%` }}>
                         <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
                      </div>
                   </div>
@@ -1402,6 +1423,9 @@ const Dashboard = () => {
              <ToolWidget title="Differential Slope" icon={Waves} link="/diffslope" desc="Analyze dual-slope percentage differential characteristics and harmonic restraint." status="Differential" theme="purple" difficulty="Expert" useCase="Transformer and generator protection configuration" standard="IEEE C37.91" isHighlighted={(!selectedPath || ['working', 'cases'].includes(selectedPath)) && matchesSearch('Differential Slope', 'differential harmonic restraint transformer', 'Transformer generator protection', 'IEEE C37.91')} />
              <ToolWidget title="Symmetrical Components" icon={RefreshCw} link="/symcomp" desc="Calculate positive, negative, and zero sequence networks for unbalanced faults." status="Sequence Networks" theme="indigo" difficulty="Design" useCase="Fault current calculation and directional relaying" standard="IEC 60909" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Symmetrical Components', 'sequence networks unbalanced faults', 'Fault current directional relaying', 'IEC 60909')} />
              <ToolWidget title="Relay Tester" icon={ClipboardCheck} link="/tester" desc="Perform simulated secondary injection tests. Generate ramp and pulse signals." status="Injection" theme="cyan" difficulty="Design" useCase="Commissioning and routine relay maintenance testing" standard="IEC 60255" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Relay Tester', 'secondary injection ramp pulse', 'Commissioning relay maintenance', 'IEC 60255')} />
+             <ToolWidget title="Overcurrent (50/51)" icon={Activity} link="/overcurrent" desc="Explore time-overcurrent and instantaneous protection principles with interactive TCC graphs." status="50/51" theme="red" difficulty="Basic" useCase="Feeder and transformer overcurrent protection" standard="IEEE C37.112" isHighlighted={(!selectedPath || ['working', 'grad'].includes(selectedPath)) && matchesSearch('Overcurrent', 'overcurrent instantaneous fault', 'Feeder protection', 'IEEE C37.112')} />
+             <ToolWidget title="Line Diff (87L)" icon={GitMerge} link="/line-diff" desc="Analyze dual-slope percentage differential characteristics for transmission lines." status="87L" theme="purple" difficulty="Expert" useCase="Transmission line unit protection" standard="IEEE C37.113" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Line Differential', 'line differential dual slope', 'Transmission protection', 'IEEE C37.113')} />
+             <ToolWidget title="Impedance (21)" icon={Radar} link="/impedance-tester" desc="Test mho circles and understand impedance reach for line protection relays." status="21" theme="emerald" difficulty="Expert" useCase="Distance relay testing and reach visualization" standard="IEEE C37.113" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Impedance Tester', 'mho circle distance relay reach', 'Distance testing', 'IEEE C37.113')} />
              <ToolWidget title="Logic Sandbox" icon={Cpu} link="/logic" desc="Build boolean protection logic with AND/OR/NOT gates and visualize live state changes." status="Boolean Logic" theme="amber" difficulty="Basic" useCase="Custom protection schemes and interlocking" standard="IEC 61131-3" isHighlighted={(!selectedPath || ['working', 'grad'].includes(selectedPath)) && matchesSearch('Logic Sandbox', 'boolean protection logic AND OR NOT gates', 'Custom protection interlocking', 'IEC 61131-3')} />
           </div>
         </div>
@@ -1416,6 +1440,8 @@ const Dashboard = () => {
              <ToolWidget title="Substation Builder" icon={Layers} link="/builder" desc="Drag-and-drop SLD editor with live breadth-first search load flow simulation." status="SLD Design" theme="blue" difficulty="Design" useCase="Substation layout planning and contingency analysis" standard="IEC 61936" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Substation Builder', 'SLD drag-and-drop load flow', 'Substation layout contingency', 'IEC 61936')} />
              <ToolWidget title="Fast Bus Transfer" icon={FastForward} link="/fbts" desc="Analyze phase-angle drift, residual voltage decay, and torque transients." status="Motor Transfer" theme="indigo" difficulty="Expert" useCase="Industrial continuous process plant reliability" standard="IEEE C37.96" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Fast Bus Transfer', 'phase-angle drift residual voltage motor', 'Industrial process plant', 'IEEE C37.96')} />
              <ToolWidget title="Power Calculators" icon={Calculator} link="/calculators" desc="Step-by-step impedance base conversions and per-unit math solvers." status="Calculators" theme="slate" difficulty="Basic" useCase="Daily engineering math and per-unit conversions" standard="IEEE 399 / 141" isHighlighted={(!selectedPath || ['working', 'grad'].includes(selectedPath)) && matchesSearch('Power Calculators', 'impedance base conversion per-unit math', 'Daily engineering math', 'IEEE 399 141')} />
+             <ToolWidget title="SC Calculator" icon={Calculator} link="/sc-calc" desc="Perform standardized IEC 60909 fault calculations." status="Short-Circuit" theme="blue" difficulty="Expert" useCase="System level fault current calculations" standard="IEC 60909" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('SC Calculator', 'short circuit fault current', 'Network fault levels', 'IEC 60909')} />
+             <ToolWidget title="Standards Index" icon={BookOpen} link="/standards" desc="Comprehensive search through key IEEE and IEC protection standards." status="References" theme="slate" difficulty="Basic" useCase="Literature review and compliance checks" standard="" isHighlighted={(!selectedPath || ['working', 'grad'].includes(selectedPath)) && matchesSearch('Standards Index', 'standards IEEE IEC compliance', 'Literature review', '')} />
              <ToolWidget title="Engineer Toolkit" icon={Calculator} link="/tools" desc="Quick engineering calculators for battery sizing, cable limits, and CT burden." status="Toolkit" theme="slate" difficulty="Design" useCase="Equipment sizing and specification checks" standard="IEEE 485 / IEC 60949" isHighlighted={(!selectedPath || selectedPath === 'working') && matchesSearch('Engineer Toolkit', 'battery sizing cable CT burden', 'Equipment sizing specification', 'IEEE 485 IEC 60949')} />
           </div>
         </div>
@@ -1466,27 +1492,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 5. INTERACTIVE WORKBENCH */}
-      <div className="space-y-4 pt-8">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <MousePointer2 className="w-5 h-5 text-blue-600" /> Interactive
-            Workbench
-          </h2>
-          <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800">
-            Live Preview
-          </span>
-        </div>
-        {/* Grid of Mini Widgets */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <EmbeddableWidget><MiniTCCWidget /></EmbeddableWidget>
-          <EmbeddableWidget><MiniTwinWidget /></EmbeddableWidget>
-          <EmbeddableWidget><MiniVectorWidget /></EmbeddableWidget>
-          <EmbeddableWidget><MiniLogicWidget /></EmbeddableWidget>
-          <EmbeddableWidget><MiniHarmonicWidget /></EmbeddableWidget>
-          <EmbeddableWidget><MiniDistanceWidget /></EmbeddableWidget>
-        </div>
-      </div>
+
 
       {/* 5. ENGINEERING FUNDAMENTALS */}
       <div className="space-y-8 pt-12 border-t border-slate-200 dark:border-slate-800">
@@ -1600,6 +1606,29 @@ const Dashboard = () => {
                  <p className="text-slate-300 text-sm leading-relaxed">Focus on practical simulations, not just theory</p>
               </div>
            </div>
+        </div>
+
+        {/* ADVANCED PROTECTION SIMULATORS */}
+        <div>
+          <div className="mb-6 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-3">
+             <Zap className="w-6 h-6 text-rose-500" />
+             <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-wider">Advanced Protection Simulators</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <ToolWidget title="Autorecloser (79)" icon={RefreshCw} link="/autorecloser" desc="Simulate multi-shot autoreclosing logic with dead time, lockout, and fuse coordination." status="Reclosing" theme="emerald" difficulty="Design" useCase="Feeder restoration and transient fault clearing" standard="IEEE C37.104" isHighlighted={matchesSearch('Autorecloser', 'reclosing dead time lockout', 'Feeder restoration', 'IEEE C37.104')} />
+             <ToolWidget title="Synchrocheck (25)" icon={Gauge} link="/synchrocheck" desc="Visualize voltage, phase angle, and frequency slip for breaker closing." status="Synchronizing" theme="blue" difficulty="Expert" useCase="Generator and tie-line paralleling" standard="IEEE C37.118" isHighlighted={matchesSearch('Synchrocheck', 'voltage phase angle frequency slip', 'Generator paralleling', 'IEEE C37.118')} />
+             <ToolWidget title="Transformer (87T)" icon={Zap} link="/transformer-protection" desc="Differential protection with inrush restraint, through-fault, and tap mismatch." status="87T" theme="amber" difficulty="Expert" useCase="Transformer commissioning and relay settings" standard="IEEE C37.91" isHighlighted={matchesSearch('Transformer Protection', 'differential inrush restraint', 'Transformer commissioning', 'IEEE C37.91')} />
+             <ToolWidget title="Frequency (81)" icon={Activity} link="/frequency-protection" desc="UFLS schemes with multi-stage tripping, ROCOF, and frequency decay." status="UFLS" theme="red" difficulty="Expert" useCase="Load shedding and frequency stability" standard="IEEE C37.117" isHighlighted={matchesSearch('Frequency Protection', 'UFLS ROCOF frequency decay', 'Frequency stability', 'IEEE C37.117')} />
+             <ToolWidget title="Power Swing (78)" icon={Waves} link="/power-swing" desc="R-X impedance trajectory with inner/outer blinders for PSB and OOS." status="PSB/OOS" theme="purple" difficulty="Expert" useCase="Stability protection and power swing blocking" standard="IEEE PSRC WG D6" isHighlighted={matchesSearch('Power Swing', 'impedance blinder PSB OOS', 'Power swing blocking', 'IEEE PSRC')} />
+             <ToolWidget title="CT/VT Calculator" icon={Settings} link="/ct-vt" desc="CT burden, knee-point voltage, accuracy class, and VT ratio sizing." status="CT/VT" theme="teal" difficulty="Design" useCase="Instrument transformer specification" standard="IEEE C57.13 / IEC 61869" isHighlighted={matchesSearch('CT VT Calculator', 'burden knee-point accuracy', 'Instrument transformer', 'IEEE C57.13')} />
+             <ToolWidget title="Ground Fault" icon={AlertTriangle} link="/ground-fault" desc="Phase fault injection, residual current analysis, and directional ground elements." status="50N/67N" theme="amber" difficulty="Design" useCase="Ground protection settings" standard="IEEE C37.112" isHighlighted={matchesSearch('Ground Fault', 'residual current directional ground', 'Ground protection', 'IEEE C37.112')} />
+             <ToolWidget title="Motor Protection" icon={Cpu} link="/motor-protection" desc="Thermal replica model, locked rotor detection, and starts-per-hour limiting." status="49/66" theme="orange" difficulty="Design" useCase="Motor protection relay coordination" standard="IEEE C37.96" isHighlighted={matchesSearch('Motor Protection', 'thermal locked rotor starts', 'Motor protection', 'IEEE C37.96')} />
+             <ToolWidget title="Per-Unit Calculator" icon={Calculator} link="/per-unit" desc="Convert impedance, voltage, current to per-unit with base change." status="Per-Unit" theme="indigo" difficulty="Basic" useCase="Short-circuit studies" standard="IEEE 141 / IEC 60909" isHighlighted={matchesSearch('Per-Unit', 'impedance base conversion', 'Short-circuit', 'IEEE 141')} />
+             <ToolWidget title="Breaker Failure (50BF)" icon={Timer} link="/breaker-failure" desc="BF timer sequence with current detection and backup trip logic." status="50BF" theme="red" difficulty="Expert" useCase="Breaker failure scheme design" standard="IEEE C37.119" isHighlighted={matchesSearch('Breaker Failure', 'BF timer current detection', 'Breaker failure', 'IEEE C37.119')} />
+             <ToolWidget title="Voltage Regulator" icon={TrendingUp} link="/voltage-regulator" desc="OLTC tap changer sequencing with deadband and voltage recovery." status="OLTC" theme="emerald" difficulty="Design" useCase="Voltage regulation and OLTC coordination" standard="ANSI C84.1" isHighlighted={matchesSearch('Voltage Regulator', 'OLTC tap changer deadband', 'Voltage regulation', 'ANSI C84.1')} />
+             <ToolWidget title="Busbar Protection (87B)" icon={Layers} link="/busbar-protection" desc="Multi-circuit differential with bus fault vs external fault discrimination." status="87B" theme="amber" difficulty="Expert" useCase="Bus differential relay settings" standard="IEEE C37.234" isHighlighted={matchesSearch('Busbar Protection', 'bus differential fault', 'Bus relay settings', 'IEEE C37.234')} />
+             <ToolWidget title="Generator Protection" icon={Zap} link="/generator-protection" desc="LOF (40), reverse power (32), negative sequence (46), and stator ground (64)." status="Gen Suite" theme="blue" difficulty="Expert" useCase="Generator protection commissioning" standard="IEEE C37.102" isHighlighted={matchesSearch('Generator Protection', 'LOF reverse power negative sequence', 'Generator commissioning', 'IEEE C37.102')} />
+          </div>
         </div>
       </div>
 

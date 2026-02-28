@@ -9,6 +9,8 @@ import {
     ArrowRight, FileText, Menu, RefreshCw, Share2
 } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
+import { useSmoothedValues } from '../hooks/useSmoothedValues';
+import Slider from '../components/Slider';
 import SEO from "../components/SEO";
 
 // --- 1. ENGINEERING CONSTANTS ---
@@ -382,26 +384,29 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
     const [angleDiff, setAngleDiff] = useState(180);
     const [injectedHarmonic, setInjectedHarmonic] = useState(0);
 
-    // Math
-    const angRad = angleDiff * (Math.PI / 180);
-    const diffReal = i1Mag + (i2Mag * Math.cos(angRad));
-    const diffImag = i2Mag * Math.sin(angRad);
-    const idiff = Math.sqrt(diffReal * diffReal + diffImag * diffImag);
-    const ibias = (i1Mag + i2Mag) / 2;
+    // Smooth values for Canvas tweening and odometers
+    const smoothed = useSmoothedValues({ pickup, slope1, slope2, breakPoint, harmonicBlock, i1Mag, i2Mag, angleDiff, injectedHarmonic });
 
-    const s1 = slope1 / 100;
-    const s2 = slope2 / 100;
+    // Math
+    const angRad = smoothed.angleDiff * (Math.PI / 180);
+    const diffReal = smoothed.i1Mag + (smoothed.i2Mag * Math.cos(angRad));
+    const diffImag = smoothed.i2Mag * Math.sin(angRad);
+    const idiff = Math.sqrt(diffReal * diffReal + diffImag * diffImag);
+    const ibias = (smoothed.i1Mag + smoothed.i2Mag) / 2;
+
+    const s1 = smoothed.slope1 / 100;
+    const s2 = smoothed.slope2 / 100;
 
     let currentTripThreshold = 0;
-    if (ibias < breakPoint) {
-        currentTripThreshold = Math.max(pickup, s1 * ibias);
+    if (ibias < smoothed.breakPoint) {
+        currentTripThreshold = Math.max(smoothed.pickup, s1 * ibias);
     } else {
-        const yAtBreak = Math.max(pickup, s1 * breakPoint);
-        currentTripThreshold = yAtBreak + s2 * (ibias - breakPoint);
+        const yAtBreak = Math.max(smoothed.pickup, s1 * smoothed.breakPoint);
+        currentTripThreshold = yAtBreak + s2 * (ibias - smoothed.breakPoint);
     }
 
     const isAboveCurve = idiff > currentTripThreshold;
-    const isHarmonicBlocked = injectedHarmonic > harmonicBlock;
+    const isHarmonicBlocked = smoothed.injectedHarmonic > smoothed.harmonicBlock;
     const isTrip = isAboveCurve && !isHarmonicBlocked;
 
     // Presets
@@ -489,11 +494,11 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
         const maxX_pu = (w - ox) / scale;
         for (let xb = 0; xb <= maxX_pu; xb += 0.1) {
             let y_val = 0;
-            if (xb < breakPoint) {
-                y_val = Math.max(pickup, s1 * xb);
+            if (xb < smoothed.breakPoint) {
+                y_val = Math.max(smoothed.pickup, s1 * xb);
             } else {
-                const yAtBreak = Math.max(pickup, s1 * breakPoint);
-                y_val = yAtBreak + s2 * (xb - breakPoint);
+                const yAtBreak = Math.max(smoothed.pickup, s1 * smoothed.breakPoint);
+                y_val = yAtBreak + s2 * (xb - smoothed.breakPoint);
             }
             ctx.lineTo(ox + xb * scale, oy - y_val * scale);
         }
@@ -537,14 +542,14 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
         ctx.strokeStyle = curveColor;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(ox, oy - (pickup * scale));
+        ctx.moveTo(ox, oy - (smoothed.pickup * scale));
         for (let xb = 0; xb <= maxX_pu; xb += 0.1) {
             let y_val = 0;
-            if (xb < breakPoint) {
-                y_val = Math.max(pickup, s1 * xb);
+            if (xb < smoothed.breakPoint) {
+                y_val = Math.max(smoothed.pickup, s1 * xb);
             } else {
-                const yAtBreak = Math.max(pickup, s1 * breakPoint);
-                y_val = yAtBreak + s2 * (xb - breakPoint);
+                const yAtBreak = Math.max(smoothed.pickup, s1 * smoothed.breakPoint);
+                y_val = yAtBreak + s2 * (xb - smoothed.breakPoint);
             }
             ctx.lineTo(ox + xb * scale, oy - y_val * scale);
         }
@@ -573,16 +578,16 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
         // Annotations
         ctx.fillStyle = curveColor;
         ctx.font = '12px sans-serif';
-        const s1X = ox + (breakPoint / 2) * scale;
-        const s1Y = oy - (Math.max(pickup, s1 * (breakPoint / 2)) * scale) - 10;
+        const s1X = ox + (smoothed.breakPoint / 2) * scale;
+        const s1Y = oy - (Math.max(smoothed.pickup, s1 * (smoothed.breakPoint / 2)) * scale) - 10;
         // Only draw text if it fits
-        if (s1X < w) ctx.fillText(`K1: ${slope1}%`, s1X, s1Y);
+        if (s1X < w) ctx.fillText(`K1: ${Math.round(smoothed.slope1)}%`, s1X, s1Y);
 
-        const s2X = ox + (breakPoint + 1) * scale;
-        const s2Y = oy - ((Math.max(pickup, s1 * breakPoint) + s2) * scale) - 10;
-        if (s2X < w && s2Y > 0) ctx.fillText(`K2: ${slope2}%`, s2X, s2Y);
+        const s2X = ox + (smoothed.breakPoint + 1) * scale;
+        const s2Y = oy - ((Math.max(smoothed.pickup, s1 * smoothed.breakPoint) + s2) * scale) - 10;
+        if (s2X < w && s2Y > 0) ctx.fillText(`K2: ${Math.round(smoothed.slope2)}%`, s2X, s2Y);
 
-    }, [pickup, slope1, slope2, breakPoint, ibias, idiff, isTrip, s1, s2, isHarmonicBlocked, isDark]);
+    }, [smoothed, ibias, idiff, isTrip, s1, s2, isHarmonicBlocked, isDark]);
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1600px] mx-auto p-4 md:p-6 pb-20">
@@ -604,45 +609,61 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                     </div>
 
                     <div className="space-y-5">
-                        {/* Setting Item */}
-                        <div>
-                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
-                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Pickup (Is1)</span>
-                                <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{pickup} pu</span>
-                            </div>
-                            <input type="range" min="0.1" max="1.0" step="0.05" value={pickup} onChange={(e) => setPickup(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-                        </div>
+                        <Slider 
+                            label="Pickup (Is1)" 
+                            unit="pu" 
+                            min={0.1} 
+                            max={1.0} 
+                            step={0.05} 
+                            value={pickup} 
+                            onChange={(e) => setPickup(Number(e.target.value))} 
+                            color="blue"
+                        />
 
-                        <div>
-                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
-                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Slope 1 (K1)</span>
-                                <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{slope1} %</span>
-                            </div>
-                            <input type="range" min="10" max="60" step="5" value={slope1} onChange={(e) => setSlope1(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-                        </div>
+                        <Slider 
+                            label="Slope 1 (K1)" 
+                            unit="%" 
+                            min={10} 
+                            max={60} 
+                            step={5} 
+                            value={slope1} 
+                            onChange={(e) => setSlope1(Number(e.target.value))} 
+                            color="blue"
+                        />
 
-                        <div>
-                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
-                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Slope 2 (K2)</span>
-                                <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{slope2} %</span>
-                            </div>
-                            <input type="range" min="50" max="150" step="5" value={slope2} onChange={(e) => setSlope2(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-                        </div>
+                        <Slider 
+                            label="Slope 2 (K2)" 
+                            unit="%" 
+                            min={50} 
+                            max={150} 
+                            step={5} 
+                            value={slope2} 
+                            onChange={(e) => setSlope2(Number(e.target.value))} 
+                            color="blue"
+                        />
 
-                        <div>
-                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
-                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Break Point (Is2)</span>
-                                <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{breakPoint} pu</span>
-                            </div>
-                            <input type="range" min="1.0" max="5.0" step="0.5" value={breakPoint} onChange={(e) => setBreakPoint(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-                        </div>
+                        <Slider 
+                            label="Break Point (Is2)" 
+                            unit="pu" 
+                            min={1.0} 
+                            max={5.0} 
+                            step={0.5} 
+                            value={breakPoint} 
+                            onChange={(e) => setBreakPoint(Number(e.target.value))} 
+                            color="blue"
+                        />
 
                         <div className={`pt-4 border-t ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
-                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
-                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>2nd Harmonic Block</span>
-                                <span className="font-mono text-amber-500">{harmonicBlock} %</span>
-                            </div>
-                            <input type="range" min="5" max="30" step="1" value={harmonicBlock} onChange={(e) => setHarmonicBlock(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                            <Slider 
+                                label="2nd Harmonic Block" 
+                                unit="%" 
+                                min={5} 
+                                max={30} 
+                                step={1} 
+                                value={harmonicBlock} 
+                                onChange={(e) => setHarmonicBlock(Number(e.target.value))} 
+                                color="amber"
+                            />
                         </div>
                     </div>
                 </div>
@@ -722,27 +743,33 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className={`text-[10px] font-bold opacity-60 uppercase ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>I1 Mag (pu)</label>
-                                <input type="number" min="0" max="100" step="0.1" value={i1Mag} onChange={(e) => setI1Mag(Math.max(0, Number(e.target.value)))} className={`w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono font-bold ${isDark ? 'bg-slate-950 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-200 focus:border-blue-500 text-black'}`} />
+                                <input type="number" min="0" max="100" step="0.1" value={i1Mag} onChange={(e) => setI1Mag(Math.min(100, Math.max(0, Number(e.target.value))))} className={`w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono font-bold ${isDark ? 'bg-slate-950 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-200 focus:border-blue-500 text-black'}`} />
                             </div>
                             <div>
                                 <label className={`text-[10px] font-bold opacity-60 uppercase ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>I2 Mag (pu)</label>
-                                <input type="number" min="0" max="100" step="0.1" value={i2Mag} onChange={(e) => setI2Mag(Math.max(0, Number(e.target.value)))} className={`w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono font-bold ${isDark ? 'bg-slate-950 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-200 focus:border-blue-500 text-black'}`} />
+                                <input type="number" min="0" max="100" step="0.1" value={i2Mag} onChange={(e) => setI2Mag(Math.min(100, Math.max(0, Number(e.target.value))))} className={`w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono font-bold ${isDark ? 'bg-slate-950 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-200 focus:border-blue-500 text-black'}`} />
                             </div>
                         </div>
-                        <div>
-                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
-                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Phase Angle</span>
-                                <span className={`font-mono ${isDark ? 'text-white' : 'text-black'}`}>{angleDiff}°</span>
-                            </div>
-                            <input type="range" min="0" max="360" value={angleDiff} onChange={(e) => setAngleDiff(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-600" />
-                        </div>
-                        <div>
-                            <div className="flex justify-between text-xs font-bold mb-1.5 opacity-80">
-                                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Injected Harmonic</span>
-                                <span className="font-mono text-amber-500">{injectedHarmonic}%</span>
-                            </div>
-                            <input type="range" min="0" max="50" value={injectedHarmonic} onChange={(e) => setInjectedHarmonic(Number(e.target.value))} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
-                        </div>
+                        <Slider 
+                            label="Phase Angle" 
+                            unit="°" 
+                            min={0} 
+                            max={360} 
+                            step={1} 
+                            value={angleDiff} 
+                            onChange={(e) => setAngleDiff(Number(e.target.value))} 
+                            color="purple"
+                        />
+                        <Slider 
+                            label="Injected Harmonic" 
+                            unit="%" 
+                            min={0} 
+                            max={50} 
+                            step={1} 
+                            value={injectedHarmonic} 
+                            onChange={(e) => setInjectedHarmonic(Number(e.target.value))} 
+                            color="amber"
+                        />
                     </div>
 
                     <div className={`mt-4 pt-4 border-t grid grid-cols-2 gap-3 text-xs ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>

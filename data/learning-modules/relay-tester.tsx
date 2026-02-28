@@ -40,7 +40,7 @@ export const RELAY_TESTER_THEORY_CONTENT = [
                         <ul className="text-xs list-disc pl-4 space-y-1 text-slate-500">
                             <li>Clears close-in, high-energy faults immediately.</li>
                             <li>No coordination with downstream (usually).</li>
-                            <li>Setting: High Set (<InlineMath math="I \gg" />).</li>
+                            <li>Setting: High Set (<InlineMath math="I \\gg" />).</li>
                         </ul>
                     </div>
                 </div>
@@ -91,7 +91,7 @@ export const RELAY_TESTER_THEORY_CONTENT = [
                         <thead className="bg-slate-100 dark:bg-slate-800 font-bold">
                             <tr>
                                 <th className="p-3 text-left">Curve Type</th>
-                                <th className="p-3">Alpha (<InlineMath math="\alpha" />)</th>
+                                <th className="p-3">Alpha (<InlineMath math="\\alpha" />)</th>
                                 <th className="p-3">Constant (<InlineMath math="k" />)</th>
                                 <th className="p-3 text-left">Application</th>
                             </tr>
@@ -171,17 +171,17 @@ export const RELAY_TESTER_THEORY_CONTENT = [
 
                 <h4 className="font-bold text-lg mt-6 text-slate-800 dark:text-slate-200">Step 1: Calculate Relay B Trip Time</h4>
                 <p>First, find the Multiple of Pickup Setting (PSM) for Relay B.</p>
-                <MathBlock formula="\text{PSM}_B = \frac{5000}{400} = 12.5" />
-                <p>Now calculate time using SI formula (<InlineMath math="k=0.14, \alpha=0.02" />):</p>
-                <MathBlock formula="t_B = 0.1 \times \frac{0.14}{12.5^{0.02} - 1} = 0.27 \text{ seconds}" />
+                <MathBlock formula="\\text{PSM}_B = \\frac{5000}{400} = 12.5" />
+                <p>Now calculate time using SI formula (<InlineMath math="k=0.14, \\alpha=0.02" />):</p>
+                <MathBlock formula="t_B = 0.1 \\times \\frac{0.14}{12.5^{0.02} - 1} = 0.27 \\text{ seconds}" />
 
                 <h4 className="font-bold text-lg mt-6 text-slate-800 dark:text-slate-200">Step 2: Determine Required Time for Relay A</h4>
                 <p>Relay A must wait for Relay B + Grading Margin.</p>
-                <MathBlock formula="t_{A\_req} = t_B + 0.3s = 0.27 + 0.3 = 0.57 \text{ seconds}" />
+                <MathBlock formula="t_{A\\_req} = t_B + 0.3s = 0.27 + 0.3 = 0.57 \\text{ seconds}" />
 
                 <h4 className="font-bold text-lg mt-6 text-slate-800 dark:text-slate-200">Step 3: Calculate Relay A TMS</h4>
                 <p>Find PSM for Relay A:</p>
-                <MathBlock formula="\text{PSM}_A = \frac{5000}{600} = 8.33" />
+                <MathBlock formula="\\text{PSM}_A = \\frac{5000}{600} = 8.33" />
                 <p>Rearrange the formula to solve for TMS:</p>
                 <MathBlock 
                     formula="\text{TMS}_A = t_{A\_req} \times \frac{\text{PSM}^{\alpha} - 1}{k} = 0.57 \times \frac{8.33^{0.02} - 1}{0.14} \approx 0.176" 
@@ -273,14 +273,14 @@ export const RELAY_TESTER_THEORY_CONTENT = [
                 <ul className="list-disc pl-5 space-y-3 text-sm text-slate-700 dark:text-slate-300">
                     <li>
                         <strong>Pickup Test:</strong> Slowly increase current injection until the relay creates a "Start" event. 
-                        <br/><span className="text-xs text-slate-500">Pass Criteria: <InlineMath math="\pm 5\%" /> of Setting.</span>
+                        <br/><span className="text-xs text-slate-500">Pass Criteria: <InlineMath math="\\pm 5\\%" /> of Setting.</span>
                     </li>
                     <li>
-                        <strong>Timing Test (2x):</strong> Inject <InlineMath math="2 \times I_s" />. Measure trip time.
-                        <br/><span className="text-xs text-slate-500">Pass Criteria: <InlineMath math="\pm 5\%" /> or <InlineMath math="\pm 30ms" /> (whichever is greater).</span>
+                        <strong>Timing Test (2x):</strong> Inject <InlineMath math="2 \\times I_s" />. Measure trip time.
+                        <br/><span className="text-xs text-slate-500">Pass Criteria: <InlineMath math="\\pm 5\\%" /> or <InlineMath math="\\pm 30ms" /> (whichever is greater).</span>
                     </li>
                     <li>
-                        <strong>Timing Test (5x):</strong> Inject <InlineMath math="5 \times I_s" />. Verification of the inverse curve steepness.
+                        <strong>Timing Test (5x):</strong> Inject <InlineMath math="5 \\times I_s" />. Verification of the inverse curve steepness.
                     </li>
                     <li>
                         <strong>Harmonic Restraint Test:</strong> Inject current with 20% 2nd Harmonic ($100Hz$). The relay should <strong>BLOCK</strong> (Restrain) to simulate transformer inrush.

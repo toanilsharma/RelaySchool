@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Trophy, ArrowRight, RefreshCcw, Check, XCircle, AlertTriangle, Target, Star, ChevronRight, Zap, ShieldAlert, Timer, HelpCircle, BookOpen, X, CheckCircle, Scale, PenTool } from 'lucide-react';
+import Slider from '../components/Slider';
 import { calculateTripTime } from '../services/mathEngine';
 import { CurveType } from '../types';
 import SEO from "../components/SEO";
@@ -343,31 +344,26 @@ const Challenges = () => {
                     </h3>
 
                     <div className="space-y-6">
-                        <div>
-                            <label className="flex justify-between text-sm font-medium text-slate-500 mb-2">
-                                <span>Pickup Current (51)</span>
-                                <span className="text-slate-900 dark:text-white">{pickup} A</span>
-                            </label>
-                            <input 
-                                type="range" min="50" max="800" step="5"
-                                value={pickup}
-                                onChange={(e) => setPickup(Number(e.target.value))}
-                                className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                            />
-                        </div>
+                        <Slider 
+                            label="Pickup Current (51)" 
+                            unit=" A" 
+                            min={50} 
+                            max={800} 
+                            step={5} 
+                            value={pickup} 
+                            onChange={e => setPickup(Number(e.target.value))} 
+                            color="blue" 
+                        />
 
-                        <div>
-                            <label className="flex justify-between text-sm font-medium text-slate-500 mb-2">
-                                <span>Time Multiplier (TMS)</span>
-                                <span className="text-slate-900 dark:text-white">{tms}</span>
-                            </label>
-                            <input 
-                                type="range" min="0.05" max="1.0" step="0.05"
-                                value={tms}
-                                onChange={(e) => setTms(Number(e.target.value))}
-                                className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                            />
-                        </div>
+                        <Slider 
+                            label="Time Multiplier (TMS)" 
+                            min={0.05} 
+                            max={1.0} 
+                            step={0.05} 
+                            value={tms} 
+                            onChange={e => setTms(Number(e.target.value))} 
+                            color="blue" 
+                        />
 
                         <div>
                             <label className="block text-sm font-medium text-slate-500 mb-2">Curve Characteristic</label>

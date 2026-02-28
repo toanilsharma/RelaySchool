@@ -1,5 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Toaster } from './components/Toast';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import CookieConsent from './components/CookieConsent';
@@ -38,10 +40,47 @@ const DiffSlope = lazy(() => import('./pages/DiffSlope'));
 const Disclaimer = lazy(() => import('./pages/Disclaimer'));
 const CookiePolicy = lazy(() => import('./pages/CookiePolicy'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
+const AutorecloserSim = lazy(() => import('./pages/AutorecloserSim'));
+const SynchrocheckSim = lazy(() => import('./pages/SynchrocheckSim'));
+const TransformerProtection = lazy(() => import('./pages/TransformerProtection'));
+const FrequencyProtection = lazy(() => import('./pages/FrequencyProtection'));
+const PowerSwingSim = lazy(() => import('./pages/PowerSwingSim'));
+const CTVTCalculator = lazy(() => import('./pages/CTVTCalculator'));
+const GroundFaultSim = lazy(() => import('./pages/GroundFaultSim'));
+const MotorProtection = lazy(() => import('./pages/MotorProtection'));
+const PerUnitCalc = lazy(() => import('./pages/PerUnitCalc'));
+const BreakerFailure = lazy(() => import('./pages/BreakerFailure'));
+const VoltageRegulator = lazy(() => import('./pages/VoltageRegulator'));
+const BusbarProtection = lazy(() => import('./pages/BusbarProtection'));
+const GeneratorProtection = lazy(() => import('./pages/GeneratorProtection'));
+
+// Newly Added Simulators and Pages
+const OvercurrentSim = lazy(() => import('./pages/OvercurrentSim'));
+const LineDiffSim = lazy(() => import('./pages/LineDiffSim'));
+const ImpedanceTester = lazy(() => import('./pages/ImpedanceTester'));
+const StandardsRef = lazy(() => import('./pages/StandardsRef'));
+const SCCalculator = lazy(() => import('./pages/SCCalculator'));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+};
+
+const RouteTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    // Ignore non-simulator routes for progress tracking
+    const ignoredPaths = ['/', '/dashboard', '/academy', '/privacy', '/terms', '/contact', '/disclaimer', '/cookies', '/about'];
+    if (!ignoredPaths.includes(location.pathname)) {
+        const stored = JSON.parse(localStorage.getItem('relayschool_progress') || '[]');
+        if (!stored.includes(location.pathname)) {
+            const next = [...stored, location.pathname];
+            localStorage.setItem('relayschool_progress', JSON.stringify(next));
+            window.dispatchEvent(new Event('progress_updated'));
+        }
+    }
+  }, [location.pathname]);
   return null;
 };
 
@@ -72,19 +111,20 @@ const App = () => {
   }, [theme]);
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-  return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans antialiased selection:bg-blue-50 selection:text-white transition-colors duration-300">
-        <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white sticky top-0 z-30 shadow-md">
-             <div className="font-bold text-lg flex items-center gap-2">RelaySchool</div>
-             <button onClick={() => setMobileMenuOpen(true)} className="p-2 hover:bg-slate-800 rounded-lg transition-colors"><Menu className="w-6 h-6" /></button>
-        </div>
-        <Sidebar theme={theme} toggleTheme={toggleTheme} isOpen={mobileMenuOpen} closeMobileMenu={() => setMobileMenuOpen(false)} />
-        <main className="md:ml-64 p-4 md:p-8 lg:p-10 animate-fade-in min-h-screen flex flex-col">
-          <div className="flex-1">
-            <Suspense fallback={<LoadingSpinner />}>
-              <Routes>
+  const AnimatedPages = () => {
+    const location = useLocation();
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="flex-1"
+        >
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes location={location} key={location.pathname}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/academy" element={<Academy />} />
                 <Route path="/flashcards" element={<Flashcards />} />
@@ -116,14 +156,49 @@ const App = () => {
                 <Route path="/disclaimer" element={<Disclaimer />} />
                 <Route path="/cookies" element={<CookiePolicy />} />
                 <Route path="/about" element={<AboutUs />} />
+                <Route path="/autorecloser" element={<AutorecloserSim />} />
+                <Route path="/synchrocheck" element={<SynchrocheckSim />} />
+                <Route path="/transformer-protection" element={<TransformerProtection />} />
+                <Route path="/frequency-protection" element={<FrequencyProtection />} />
+                <Route path="/power-swing" element={<PowerSwingSim />} />
+                <Route path="/ct-vt" element={<CTVTCalculator />} />
+                <Route path="/ground-fault" element={<GroundFaultSim />} />
+                <Route path="/motor-protection" element={<MotorProtection />} />
+                <Route path="/per-unit" element={<PerUnitCalc />} />
+                <Route path="/breaker-failure" element={<BreakerFailure />} />
+                <Route path="/voltage-regulator" element={<VoltageRegulator />} />
+                <Route path="/busbar-protection" element={<BusbarProtection />} />
+                <Route path="/generator-protection" element={<GeneratorProtection />} />
+                <Route path="/overcurrent" element={<OvercurrentSim />} />
+                <Route path="/line-diff" element={<LineDiffSim />} />
+                <Route path="/impedance-tester" element={<ImpedanceTester />} />
+                <Route path="/standards" element={<StandardsRef />} />
+                <Route path="/sc-calc" element={<SCCalculator />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Suspense>
-          </div>
+            </Routes>
+          </Suspense>
+        </motion.div>
+      </AnimatePresence>
+    );
+  };
+
+  return (
+    <BrowserRouter>
+      <ScrollToTop />
+      <RouteTracker />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans antialiased selection:bg-blue-50 selection:text-white transition-colors duration-300">
+        <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+             <div className="font-bold text-lg flex items-center gap-2">RelaySchool</div>
+             <button onClick={() => setMobileMenuOpen(true)} className="p-2 hover:bg-slate-800 rounded-lg transition-colors"><Menu className="w-6 h-6" /></button>
+        </div>
+        <Sidebar theme={theme} toggleTheme={toggleTheme} isOpen={mobileMenuOpen} closeMobileMenu={() => setMobileMenuOpen(false)} />
+        <main className="md:ml-64 p-4 md:p-8 lg:p-10 animate-fade-in min-h-screen flex flex-col">
+          <AnimatedPages />
           <Footer />
         </main>
         <AICoach />
         <CookieConsent />
+        <Toaster />
       </div>
     </BrowserRouter>
   );
