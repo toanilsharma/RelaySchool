@@ -79,15 +79,149 @@
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50">
   <!-- Skip to main content — accessibility -->
   <a href="#main-content" class="skip-to-content">Skip to main content</a>
-  <!-- No-JS fallback -->
+  <!-- No-JS fallback / Primitive Crawler Content -->
   <noscript>
     <div
       style="font-family:sans-serif;text-align:center;padding:4rem;background:#0f172a;color:#f8fafc;min-height:100vh">
-      <h1 style="font-size:1.5rem;margin-bottom:1rem">⚡ RelaySchool requires JavaScript</h1>
-      <p>Please enable JavaScript in your browser to use the Power System Protection Simulator.</p>
+      <h1 style="font-size:2rem;margin-bottom:1rem">⚡ RelaySchool | Power System Protection Simulator</h1>
+      <p style="font-size:1.1rem; line-height: 1.6; max-width: 800px; margin: 0 auto; margin-bottom: 2rem;">
+        RelaySchool is an advanced, browser-based digital twin and protection engineering simulator. Our interactive
+        tools include Time-Current Curve (TCC) Coordination Studios, IEC 61850 GOOSE Sniffers, CT Saturation Forensic
+        Labs, and Short Circuit Calculators.
+      </p>
+      <p style="font-size:1.1rem; max-width: 800px; margin: 0 auto; margin-bottom: 2rem;">
+        <strong>JavaScript is required</strong> to run these interactive electrical engineering simulators. Please
+        enable JavaScript in your browser settings to access the full suite of tools.
+      </p>
+      <div style="text-align: left; max-width: 800px; margin: 0 auto;">
+        <h2 style="font-size:1.5rem; margin-bottom: 1rem;">Core Features & Simulators:</h2>
+        <ul>
+          <li><strong>TCC Studio:</strong> Coordinate overcurrent relays (50/51) with interactive Time-Current Curves.
+          </li>
+          <li><strong>Digital Substation:</strong> Simulate and analyze IEC 61850 network traffic and GOOSE messaging.
+          </li>
+          <li><strong>Distance Protection (21):</strong> Visualize mho circles and impedance trajectories on R-X
+            diagrams.</li>
+          <li><strong>Forensic Labs:</strong> Investigate breaker failures, power swings, and transformer differential
+            (87T) operations.</li>
+        </ul>
+      </div>
     </div>
   </noscript>
-  <div id="root"></div>
+  <div id="root">
+    <!-- FCP Loading Skeleton: Ensures Googlebot and users see immediate structure before React Hydration -->
+    <style>
+      .initial-loader {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        background-color: #0f172a;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+
+      .loader-nav {
+        height: 64px;
+        border-bottom: 1px solid #1e293b;
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        gap: 16px;
+      }
+
+      .loader-logo {
+        width: 32px;
+        height: 32px;
+        background-color: #1e293b;
+        border-radius: 8px;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      .loader-title {
+        width: 140px;
+        height: 20px;
+        background-color: #1e293b;
+        border-radius: 4px;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      .loader-body {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      .loader-sidebar {
+        width: 256px;
+        border-right: 1px solid #1e293b;
+        padding: 24px;
+        display: none;
+      }
+
+      @media (min-width: 768px) {
+        .loader-sidebar {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+      }
+
+      .loader-menu-item {
+        height: 24px;
+        background-color: #1e293b;
+        border-radius: 4px;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      .loader-main {
+        flex: 1;
+        padding: 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .loader-card {
+        height: 200px;
+        background-color: #1e293b;
+        border-radius: 12px;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      @keyframes pulse {
+
+        0%,
+        100% {
+          opacity: 1;
+        }
+
+        50% {
+          opacity: .5;
+        }
+      }
+    </style>
+    <div class="initial-loader">
+      <div class="loader-nav">
+        <div class="loader-logo"></div>
+        <div class="loader-title"></div>
+      </div>
+      <div class="loader-body">
+        <div class="loader-sidebar">
+          <div class="loader-menu-item" style="width: 80%;"></div>
+          <div class="loader-menu-item" style="width: 60%;"></div>
+          <div class="loader-menu-item" style="width: 70%;"></div>
+          <div class="loader-menu-item" style="width: 50%;"></div>
+        </div>
+        <div class="loader-main">
+          <div class="loader-menu-item" style="width: 40%; height: 32px; margin-bottom: 16px;"></div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+            <div class="loader-card"></div>
+            <div class="loader-card"></div>
+            <div class="loader-card"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <script type="module" src="/index.tsx"></script>
 </body>
 

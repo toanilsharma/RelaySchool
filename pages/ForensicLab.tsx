@@ -7,14 +7,14 @@ import {
     ZoomOut, Compass, HelpCircle, X, BookOpen, Layers, Microscope,
     Sun, Moon, RotateCcw, MonitorPlay, Terminal, AlertOctagon,
     MousePointer2, Book, GraduationCap, Menu, CheckCircle2, ShieldCheck,
-    Settings, Grid, Share2, Network
+    Settings, Grid, Share2, Network, BrainCircuit
 } from 'lucide-react';
 import TheoryLibrary from '../components/TheoryLibrary';
 import Slider from '../components/Slider';
 import { useThemeObserver } from '../hooks/useThemeObserver';
 import { FORENSIC_THEORY_CONTENT } from '../data/learning-modules/forensic';
 import Peer, { DataConnection } from 'peerjs';
-import SEO from "../components/SEO";
+import { PageSEO } from "../components/SEO/PageSEO";
 
 // --- TYPES & MATH UTILS ---
 interface DataPoint {
@@ -293,6 +293,30 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
         alert("Simulation link copied! You can share this URL to load the exact state.");
     };
 
+    const copyContextForLLM = () => {
+        let md = `# RelaySchool ForensicLab Context\n\n`;
+        md += `**Simulation Parameters:**\n`;
+        md += `- **Fault Type:** ${simParams.type}\n`;
+        md += `- **Inception Angle:** ${simParams.inceptionAngle}°\n`;
+        md += `- **DC Offset:** ${simParams.dcOffset ? 'Enabled' : 'Disabled'}\n`;
+        md += `- **Random Noise:** ${simParams.noise ? 'Enabled' : 'Disabled'}\n\n`;
+
+        md += `**Analysis at Cursor (${cursor.toFixed(1)} ms):**\n`;
+        md += `### Phasor Magnitudes & Angles\n`;
+        const labels = ['Ia', 'Ib', 'Ic', 'Va', 'Vb', 'Vc'];
+        phasors.mag.forEach((m, i) => {
+            md += `- **${labels[i]}:** ${m.toFixed(2)} units at ${phasors.ang[i].toFixed(1)}°\n`;
+        });
+
+        md += `\n### Sequence Components (Current)\n`;
+        md += `- **Positive Sequence (I1):** ${seq.i1.toFixed(2)} units\n`;
+        md += `- **Negative Sequence (I2):** ${seq.i2.toFixed(2)} units\n`;
+        md += `- **Zero Sequence (I0):** ${seq.i0.toFixed(2)} units\n`;
+
+        navigator.clipboard.writeText(md);
+        alert("Context copied to clipboard! You can paste this directly into ChatGPT, Claude, etc.");
+    };
+
     // Regenerate data when params change
     useEffect(() => {
         setRecord(generateScenario(simParams));
@@ -404,7 +428,7 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
                     <h3 className={`font-bold mb-3 flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
                         <Network className="w-4 h-4" /> Live Co-op Session
                     </h3>
-                    
+
                     {!peerConnection ? (
                         <div className="space-y-3">
                             <div>
@@ -462,15 +486,15 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
                             </div>
                         </div>
 
-                        <Slider 
-                            label="Inception Angle" 
-                            unit="°" 
-                            min={0} 
-                            max={360} 
-                            step={15} 
-                            value={simParams.inceptionAngle} 
-                            onChange={e => setSimParams({ ...simParams, inceptionAngle: Number(e.target.value) })} 
-                            color="purple" 
+                        <Slider
+                            label="Inception Angle"
+                            unit="°"
+                            min={0}
+                            max={360}
+                            step={15}
+                            value={simParams.inceptionAngle}
+                            onChange={e => setSimParams({ ...simParams, inceptionAngle: Number(e.target.value) })}
+                            color="purple"
                         />
 
                         <div className="flex gap-4 pt-2">
@@ -524,6 +548,9 @@ const LaboratoryModule = ({ isDark }: { isDark: boolean }) => {
                         </button>
                         <button onClick={copyShareLink} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg transition-colors">
                             <Share2 className="w-3 h-3" /> Share
+                        </button>
+                        <button onClick={copyContextForLLM} className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg transition-colors">
+                            <BrainCircuit className="w-3 h-3" /> Export to AI
                         </button>
                     </div>
                 </div>
@@ -653,7 +680,7 @@ export default function ForensicLabApp() {
 
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
-<SEO title="Forensic Lab" description="Interactive Power System simulation and engineering tool: Forensic Lab." url="/forensiclab" />
+            <PageSEO title="Forensic Lab" description="Interactive Power System simulation and engineering tool: Forensic Lab." url="/forensiclab" />
 
 
             {/* Header */}

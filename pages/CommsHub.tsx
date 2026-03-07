@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { 
-    Network, Play, Pause, RefreshCw, ShieldAlert, Layers, Activity, 
-    AlertTriangle, FileCode, ChevronRight, Info, Zap, ShieldCheck, 
+import {
+    Network, Play, Pause, RefreshCw, ShieldAlert, Layers, Activity,
+    AlertTriangle, FileCode, ChevronRight, Info, Zap, ShieldCheck,
     Filter, Eye, Globe, Lock, ShieldX, Terminal, Cpu, Share2,
     HelpCircle, X, BookOpen, Database, Search, ArrowDown, Download,
-    Server, Wifi, AlertOctagon, Monitor
+    Server, Wifi, AlertOctagon, Monitor, BrainCircuit
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TheoryLibrary from '../components/TheoryLibrary';
 import { COMMS_HUB_THEORY_CONTENT } from '../data/learning-modules/comms-hub';
-import SEO from "../components/SEO";
+import { PageSEO } from "../components/SEO/PageSEO";
 
 // --- TYPES ---
 type Protocol = 'GOOSE' | 'SV' | 'MMS' | 'PTP';
@@ -61,21 +61,21 @@ const generatePacket = (scenario: ScenarioType, time: number): Packet => {
     let src = IED_MAC;
     let dst = "01:0C:CD:01:00:01"; // Multicast
     let summary = "";
-    
+
     // Realistic Network Latency & Jitter Model (Constraint 12)
     // Auto-regressive jitter + network queue buildup
     queueDepth = Math.max(0, queueDepth - (isStorm ? 0.05 : 0.5)); // Slower drain during storm
     if (isStorm) queueDepth += Math.random() * 1.5; // Rapid queue buildup
-    
+
     const jitterNoise = (Math.random() - 0.5) * 2; // -1 to 1
     currentJitter = (currentJitter * 0.8) + (jitterNoise * (isStorm ? 2.0 : 0.5)); // Smoothed random walk
-    
+
     const baseLatency = 0.8; // ms minimum propagation + processing
     let latency = baseLatency + Math.abs(currentJitter) + queueDepth;
-    
+
     let isMalicious = false;
     let isDelayed = latency > 4.0;
-    
+
     // Attack Injection
     if (isReplay && rand > 0.8) {
         // Inject Replay Packet
@@ -141,7 +141,7 @@ const generatePacket = (scenario: ScenarioType, time: number): Packet => {
         latency,
         isMalicious,
         isDelayed,
-        rawHex: Array.from({length: 16}, () => Math.floor(Math.random()*255).toString(16).padStart(2,'0').toUpperCase()),
+        rawHex: Array.from({ length: 16 }, () => Math.floor(Math.random() * 255).toString(16).padStart(2, '0').toUpperCase()),
         decoded
     };
 };
@@ -175,19 +175,19 @@ const TopologyView = ({ scenario, packetCount }: { scenario: ScenarioType, packe
                 {scenario === 'REPLAY' && (
                     <line x1="50%" y1="50%" x2="50%" y2="20%" className="stroke-red-500" strokeWidth="2" strokeDasharray="5 5" />
                 )}
-                
+
                 {/* Traffic Particles */}
                 <circle r="4" fill={isStorm ? "#ef4444" : "#3b82f6"}>
-                    <animateMotion 
-                        dur={isStorm ? "0.2s" : "1s"} 
+                    <animateMotion
+                        dur={isStorm ? "0.2s" : "1s"}
                         repeatCount="indefinite"
-                        path="M 100 200 L 250 150" 
+                        path="M 100 200 L 250 150"
                     />
                 </circle>
             </svg>
 
             {/* Devices */}
-            
+
             {/* Switch (Center) */}
             <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-3 bg-slate-800 rounded-lg border-2 ${isStorm ? 'border-red-500 shadow-[0_0_20px_red]' : 'border-blue-500'} flex flex-col items-center z-10`}>
                 <Network className={`w-6 h-6 ${isStorm ? 'text-red-500 animate-pulse' : 'text-blue-500'}`} />
@@ -222,7 +222,7 @@ const TopologyView = ({ scenario, packetCount }: { scenario: ScenarioType, packe
 
             {/* Stats Overlay */}
             <div className="absolute top-2 left-2 text-[10px] font-mono text-slate-500 bg-slate-900/80 p-2 rounded">
-                <div>PPS: {isStorm ? (2000 + Math.random()*500).toFixed(0) : (5 + Math.random()*2).toFixed(0)}</div>
+                <div>PPS: {isStorm ? (2000 + Math.random() * 500).toFixed(0) : (5 + Math.random() * 2).toFixed(0)}</div>
                 <div>BW: {isStorm ? '98%' : '2%'}</div>
             </div>
         </div>
@@ -263,6 +263,28 @@ const CommsHub = () => {
         alert("Simulation link copied! You can share this URL to load the exact state.");
     };
 
+    const copyContextForLLM = () => {
+        let md = `# RelaySchool CommsHub Context\n\n`;
+        md += `**Current Network State:**\n`;
+        md += `- **Scenario:** ${scenario}\n`;
+        md += `- **Avg Latency:** ${latencyAvg.toFixed(2)} ms\n`;
+        md += `- **Simulation Running:** ${isRunning ? 'Yes' : 'No'}\n\n`;
+
+        md += `## Recent Traffic (Last 10 Packets)\n`;
+        packets.slice(0, 10).forEach(p => {
+            md += `### Frame #${p.id} [${p.protocol}]\n`;
+            md += `- **Summary:** ${p.summary}\n`;
+            md += `- **Latency:** ${p.latency.toFixed(2)} ms\n`;
+            md += `- **Source:** ${p.src}\n`;
+            md += `- **Destination:** ${p.dst}\n`;
+            if (p.isMalicious) md += `- **Security Alert:** Malicious activity detected!\n`;
+            md += `\n`;
+        });
+
+        navigator.clipboard.writeText(md);
+        alert("Context copied to clipboard! You can paste this directly into ChatGPT, Claude, etc.");
+    };
+
     // Simulation Loop
     useEffect(() => {
         let interval: any;
@@ -300,48 +322,46 @@ const CommsHub = () => {
 
     return (
         <div className="flex flex-col space-y-6 animate-fade-in max-w-7xl mx-auto pb-12 min-h-screen">
-<SEO title="Comms Hub" description="Interactive Power System simulation and engineering tool: Comms Hub." url="/commshub" />
+            <PageSEO title="Comms Hub" description="Interactive Power System simulation and engineering tool: Comms Hub." url="/commshub" />
 
-            
+
             {/* HEADER */}
             <div className="pt-6 px-6">
-                 <div className="flex items-center gap-3">
-                     <div className="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-600/20">
-                         <Network className="w-6 h-6" />
-                     </div>
-                     <div>
-                         <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">CommsHub <span className="text-blue-600">PRO</span></h1>
-                         <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-3">
+                    <div className="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-600/20">
+                        <Network className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">CommsHub <span className="text-blue-600">PRO</span></h1>
+                        <div className="flex items-center gap-2 mt-1">
                             <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Digital Substation Network</span>
                             <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
                             <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">✅ IEC 61850 Compliant</span>
-                         </div>
-                     </div>
-                 </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* TABS */}
             <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 pt-4 sticky top-0 z-30">
                 <div className="flex space-x-6">
-                    <button 
+                    <button
                         onClick={() => setActiveTab('sim')}
-                        className={`pb-4 text-sm font-bold border-b-2 transition-all ${
-                            activeTab === 'sim' 
-                            ? 'text-blue-600 border-blue-600' 
-                            : 'text-slate-500 border-transparent hover:text-slate-700'
-                        }`}
+                        className={`pb-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'sim'
+                                ? 'text-blue-600 border-blue-600'
+                                : 'text-slate-500 border-transparent hover:text-slate-700'
+                            }`}
                     >
                         <div className="flex items-center gap-2">
                             <Monitor className="w-4 h-4" /> Network Simulator
                         </div>
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('theory')}
-                        className={`pb-4 text-sm font-bold border-b-2 transition-all ${
-                            activeTab === 'theory' 
-                            ? 'text-blue-600 border-blue-600' 
-                            : 'text-slate-500 border-transparent hover:text-slate-700'
-                        }`}
+                        className={`pb-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'theory'
+                                ? 'text-blue-600 border-blue-600'
+                                : 'text-slate-500 border-transparent hover:text-slate-700'
+                            }`}
                     >
                         <div className="flex items-center gap-2">
                             <BookOpen className="w-4 h-4" /> Validated Theory
@@ -355,7 +375,7 @@ const CommsHub = () => {
                     <div className="space-y-8 animate-fade-in">
                         {/* TOP BAR: Controls & Metrics */}
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                            
+
                             {/* 1. Master Control */}
                             <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
                                 <div>
@@ -363,40 +383,39 @@ const CommsHub = () => {
                                         <Monitor className="w-4 h-4 text-blue-500" /> Controls
                                     </h2>
                                     <div className="flex gap-2">
-                                        <button 
-                                            onClick={() => setIsRunning(!isRunning)} 
-                                            className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                                                isRunning 
-                                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
-                                                : 'bg-green-600 text-white hover:bg-green-500 shadow-lg shadow-green-500/20'
-                                            }`}
+                                        <button
+                                            onClick={() => setIsRunning(!isRunning)}
+                                            className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all ${isRunning
+                                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                                    : 'bg-green-600 text-white hover:bg-green-500 shadow-lg shadow-green-500/20'
+                                                }`}
                                         >
-                                            {isRunning ? <><Pause className="w-3 h-3"/> PAUSE</> : <><Play className="w-3 h-3"/> START LIVE</>}
+                                            {isRunning ? <><Pause className="w-3 h-3" /> PAUSE</> : <><Play className="w-3 h-3" /> START LIVE</>}
                                         </button>
                                         <button onClick={() => setPackets([])} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white">
                                             <RefreshCw className="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>
-                                
+
                                 <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                                     <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Inject Scenario</div>
                                     <div className="grid grid-cols-3 gap-2">
-                                        <button 
+                                        <button
                                             onClick={() => toggleScenario('STORM')}
-                                            className={`p-2 rounded border text-[10px] font-bold flex flex-col items-center gap-1 transition-all ${scenario==='STORM' ? 'bg-red-500 text-white border-red-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500'}`}
+                                            className={`p-2 rounded border text-[10px] font-bold flex flex-col items-center gap-1 transition-all ${scenario === 'STORM' ? 'bg-red-500 text-white border-red-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500'}`}
                                         >
                                             <Activity className="w-3 h-3" /> STORM
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => toggleScenario('REPLAY')}
-                                            className={`p-2 rounded border text-[10px] font-bold flex flex-col items-center gap-1 transition-all ${scenario==='REPLAY' ? 'bg-purple-500 text-white border-purple-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500'}`}
+                                            className={`p-2 rounded border text-[10px] font-bold flex flex-col items-center gap-1 transition-all ${scenario === 'REPLAY' ? 'bg-purple-500 text-white border-purple-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500'}`}
                                         >
                                             <ShieldAlert className="w-3 h-3" /> REPLAY
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => toggleScenario('VLAN_ERR')}
-                                            className={`p-2 rounded border text-[10px] font-bold flex flex-col items-center gap-1 transition-all ${scenario==='VLAN_ERR' ? 'bg-orange-500 text-white border-orange-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500'}`}
+                                            className={`p-2 rounded border text-[10px] font-bold flex flex-col items-center gap-1 transition-all ${scenario === 'VLAN_ERR' ? 'bg-orange-500 text-white border-orange-600' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500'}`}
                                         >
                                             <Layers className="w-3 h-3" /> VLAN
                                         </button>
@@ -417,7 +436,7 @@ const CommsHub = () => {
                                         {latencyAvg.toFixed(2)} ms
                                     </div>
                                     <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                                        <div className={`h-full transition-all duration-300 ${latencyAvg > 4 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{width: `${Math.min(100, (latencyAvg/10)*100)}%`}}></div>
+                                        <div className={`h-full transition-all duration-300 ${latencyAvg > 4 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, (latencyAvg / 10) * 100)}%` }}></div>
                                     </div>
                                     <div className="text-[8px] text-slate-400 mt-1 flex justify-between">
                                         <span>Target: &lt;4ms</span>
@@ -448,7 +467,7 @@ const CommsHub = () => {
 
                         {/* BOTTOM AREA: Sniffer & Inspector */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[600px]">
-                            
+
                             {/* IDS Alert Banner */}
                             {packets.some(p => p.isMalicious) && (
                                 <div className="lg:col-span-3 bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center gap-3">
@@ -471,8 +490,11 @@ const CommsHub = () => {
                                         <button onClick={copyShareLink} className="text-[9px] font-bold text-blue-500 hover:text-blue-400 flex items-center gap-1">
                                             <Share2 className="w-3 h-3" /> SHARE
                                         </button>
-                                        <input 
-                                            placeholder="Filter (e.g. GOOSE)" 
+                                        <button onClick={copyContextForLLM} className="text-[9px] font-bold text-indigo-500 hover:text-indigo-400 flex items-center gap-1">
+                                            <BrainCircuit className="w-3 h-3" /> EXPORT TO AI
+                                        </button>
+                                        <input
+                                            placeholder="Filter (e.g. GOOSE)"
                                             className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs outline-none focus:border-blue-500"
                                             value={filter}
                                             onChange={e => setFilter(e.target.value)}
@@ -480,7 +502,7 @@ const CommsHub = () => {
                                         <div className="text-[10px] font-mono text-slate-400 self-center">{packets.length} Pkts</div>
                                     </div>
                                 </div>
-                                
+
                                 {/* List Header */}
                                 <div className="grid grid-cols-[60px_80px_60px_1fr_60px] px-4 py-2 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-500 uppercase">
                                     <div>Time</div>
@@ -493,18 +515,17 @@ const CommsHub = () => {
                                 {/* Virtual List */}
                                 <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-[11px]" ref={scrollRef}>
                                     {packets.filter(p => p.protocol.includes(filter.toUpperCase()) || p.summary.includes(filter)).map((p) => (
-                                        <div 
+                                        <div
                                             key={p.id}
                                             onClick={() => setSelectedId(p.id)}
-                                            className={`grid grid-cols-[60px_80px_60px_1fr_60px] px-4 py-1.5 border-b border-slate-100 dark:border-slate-800/50 cursor-pointer transition-colors ${
-                                                selectedId === p.id 
-                                                ? 'bg-blue-600 text-white' 
-                                                : p.isMalicious 
-                                                    ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40' 
-                                                    : p.isDelayed
-                                                        ? 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-300 hover:bg-amber-100'
-                                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                            }`}
+                                            className={`grid grid-cols-[60px_80px_60px_1fr_60px] px-4 py-1.5 border-b border-slate-100 dark:border-slate-800/50 cursor-pointer transition-colors ${selectedId === p.id
+                                                    ? 'bg-blue-600 text-white'
+                                                    : p.isMalicious
+                                                        ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40'
+                                                        : p.isDelayed
+                                                            ? 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-300 hover:bg-amber-100'
+                                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                                }`}
                                         >
                                             <div className="opacity-70">{(p.timestamp % 10000).toString()}</div>
                                             <div className="truncate">{p.src === ATTACKER_MAC ? '⚠️ ATTACKER' : 'IED_01'}</div>

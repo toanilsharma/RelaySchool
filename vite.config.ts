@@ -23,6 +23,18 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       }
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'framer-vendor': ['framer-motion'],
+            'chart-vendor': ['recharts'],
+            'math-vendor': ['katex', 'react-katex']
+          }
+        }
+      }
     }
   };
 });

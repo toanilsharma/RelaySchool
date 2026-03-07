@@ -13,7 +13,7 @@ import { DISTANCE_THEORY_CONTENT } from '../data/learning-modules/distance';
 import { TheoryLineChart } from '../components/TheoryDiagrams';
 import Slider from '../components/Slider';
 import { motion, AnimatePresence } from 'framer-motion';
-import SEO from "../components/SEO";
+import { PageSEO } from "../components/SEO/PageSEO";
 import Odometer from '../components/Odometer';
 
 // --- Engineering Constants ---
@@ -192,12 +192,12 @@ const checkQuad = (reachX, reachR, r, x, mta, tilt = 0) => {
     // Reverse elements
     const revX = -0.2 * reachX;
     const revR = -0.2 * reachR;
-    
+
     const isForward = x >= revX; // Directional element
     const topBoundary = x <= (reachX + (r * Math.tan(toRad(tilt)))); // Reactance Line
     const rightBoundary = r <= reachR; // Resistive Blinder
     const leftBoundary = r >= revR; // Reverse Reach (Close-in faults)
-    
+
     return isForward && topBoundary && rightBoundary && leftBoundary;
 };
 
@@ -232,14 +232,14 @@ const Knob = ({ value, onChange, min, max, label, unit, step = 0.1, onHover, onL
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
     >
-        <Slider 
-            label={label} 
-            unit={unit} 
-            min={min} 
-            max={max} 
-            step={step} 
-            value={value} 
-            onChange={e => onChange(parseFloat(e.target.value))} 
+        <Slider
+            label={label}
+            unit={unit}
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={e => onChange(parseFloat(e.target.value))}
             color="blue"
         />
     </div>
@@ -301,9 +301,9 @@ export default function RelaySimUltra() {
     // Dispatch live state for theory diagrams
     useEffect(() => {
         const event = new CustomEvent('live-state-distance', {
-            detail: { 
-                r: fault.r, 
-                x: fault.x, 
+            detail: {
+                r: fault.r,
+                x: fault.x,
                 dist: Math.sqrt(fault.r ** 2 + fault.x ** 2),
                 time: status.time / 1000 // Convert ms to s
             }
@@ -316,6 +316,28 @@ export default function RelaySimUltra() {
         const str = btoa(JSON.stringify(state));
         navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
         alert("Simulation link copied! You can share this URL to load the exact state.");
+    };
+
+    const copyContextForLLM = () => {
+        let md = `# RelaySchool DistanceLab Context\n\n`;
+        md += `**Current Simulation State:**\n`;
+        md += `- **Characteristic Type:** ${settings.charType}\n`;
+        md += `- **Fault Location:** R=${fault.r.toFixed(2)}Ω, X=${fault.x.toFixed(2)}Ω\n`;
+        md += `- **Measured Impedance |Z|:** ${Math.sqrt(fault.r ** 2 + fault.x ** 2).toFixed(2)}Ω at ${(Math.atan2(fault.x, Math.max(0.001, fault.r)) * RAD_TO_DEG).toFixed(1)}°\n`;
+        md += `- **Relay Status:** ${status.trip ? `TRIPPED (Zone: ${status.zone}, Time: ${status.time}ms)` : 'Monitoring (No Trip)'}\n\n`;
+
+        md += `## Relay Settings\n`;
+        md += `- **Max Torque Angle (MTA):** ${settings.mta}°\n`;
+        md += `- **Zone 1 Reach:** ${settings.z1Reach}Ω (Time: ${settings.z1Time}ms)\n`;
+        md += `- **Zone 2 Reach:** ${settings.z2Reach}Ω (Time: ${settings.z2Time}ms)\n`;
+        md += `- **Zone 3 Reach:** ${settings.z3Reach}Ω (Time: ${settings.z3Time}ms)\n`;
+        if (settings.charType === 'QUAD') {
+            md += `- **Quadrilateral Resistive Reach:** ${settings.quadResReach}Ω\n`;
+            md += `- **Quadrilateral Tilt Angle:** ${settings.tilt}°\n`;
+        }
+
+        navigator.clipboard.writeText(md);
+        alert("Context copied to clipboard! You can paste this directly into ChatGPT, Claude, etc.");
     };
 
     // Quiz State
@@ -452,7 +474,7 @@ export default function RelaySimUltra() {
 
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans flex flex-col overflow-hidden">
-<SEO title="Distance Lab" description="Interactive Power System simulation and engineering tool: Distance Lab." url="/distancelab" />
+            <PageSEO title="Distance Lab" description="Interactive Power System simulation and engineering tool: Distance Lab." url="/distancelab" />
 
 
             {/* --- Professional Header --- */}
@@ -486,6 +508,9 @@ export default function RelaySimUltra() {
                     </button>
                     <button onClick={copyShareLink} className="hidden md:flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
                         <Share2 className="w-4 h-4" /> SHARE SIMULATION
+                    </button>
+                    <button onClick={copyContextForLLM} className="hidden md:flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-md text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors shadow-sm">
+                        <BrainCircuit className="w-4 h-4" /> EXPORT TO AI
                     </button>
                     <div className="h-8 w-px bg-slate-300 dark:bg-slate-700 mx-2 hidden md:block" />
                     <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">

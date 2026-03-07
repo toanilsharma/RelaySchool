@@ -16,7 +16,20 @@ import { useThemeObserver } from '../hooks/useThemeObserver';
 import { downloadTextFile } from '../utils/exportUtils';
 import TheoryLibrary from '../components/TheoryLibrary';
 import { TCC_THEORY_CONTENT } from '../data/learning-modules/tcc';
-import SEO from "../components/SEO";
+import { PageSEO } from "../components/SEO/PageSEO";
+
+const tccSchema = {
+    "@type": "WebApplication",
+    "name": "Time-Current Coordination (TCC) Studio",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "WebBrowser",
+    "description": "Coordinate overcurrent relays (50/51) with interactive Time-Current Curves. Includes IEC and ANSI standard curves.",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+    }
+};
 
 // --- 1. CONSTANTS & DATA BANKS ---
 
@@ -45,21 +58,27 @@ const COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'
 
 // Real fuse I-t data: [current_multiple, mmt_seconds, tct_seconds]
 const FUSE_DATA = {
-    [CurveType.FUSE_K_FAST]: { name: 'K-Link (Fast)', data: [
-        [1.3, 1000, 1200], [1.5, 300, 400], [2, 40, 60], [3, 4.5, 7],
-        [4, 1.2, 2.0], [5, 0.5, 0.9], [6, 0.25, 0.5], [8, 0.08, 0.18],
-        [10, 0.035, 0.08], [15, 0.012, 0.03], [20, 0.006, 0.015],
-    ]},
-    [CurveType.FUSE_T_SLOW]: { name: 'T-Link (Slow)', data: [
-        [1.3, 1500, 1800], [1.5, 600, 800], [2, 100, 140], [3, 12, 18],
-        [4, 3.5, 5.5], [5, 1.5, 2.5], [6, 0.7, 1.3], [8, 0.2, 0.45],
-        [10, 0.08, 0.2], [15, 0.025, 0.06], [20, 0.01, 0.025],
-    ]},
-    [CurveType.FUSE_NH_GG]: { name: 'NH gG (IEC)', data: [
-        [1.25, 3600, 4000], [1.5, 500, 700], [2, 50, 80], [3, 6, 10],
-        [4, 1.5, 3.0], [5, 0.6, 1.2], [6, 0.3, 0.6], [8, 0.1, 0.25],
-        [10, 0.04, 0.12], [15, 0.015, 0.04], [20, 0.007, 0.02],
-    ]},
+    [CurveType.FUSE_K_FAST]: {
+        name: 'K-Link (Fast)', data: [
+            [1.3, 1000, 1200], [1.5, 300, 400], [2, 40, 60], [3, 4.5, 7],
+            [4, 1.2, 2.0], [5, 0.5, 0.9], [6, 0.25, 0.5], [8, 0.08, 0.18],
+            [10, 0.035, 0.08], [15, 0.012, 0.03], [20, 0.006, 0.015],
+        ]
+    },
+    [CurveType.FUSE_T_SLOW]: {
+        name: 'T-Link (Slow)', data: [
+            [1.3, 1500, 1800], [1.5, 600, 800], [2, 100, 140], [3, 12, 18],
+            [4, 3.5, 5.5], [5, 1.5, 2.5], [6, 0.7, 1.3], [8, 0.2, 0.45],
+            [10, 0.08, 0.2], [15, 0.025, 0.06], [20, 0.01, 0.025],
+        ]
+    },
+    [CurveType.FUSE_NH_GG]: {
+        name: 'NH gG (IEC)', data: [
+            [1.25, 3600, 4000], [1.5, 500, 700], [2, 50, 80], [3, 6, 10],
+            [4, 1.5, 3.0], [5, 0.6, 1.2], [6, 0.3, 0.6], [8, 0.1, 0.25],
+            [10, 0.04, 0.12], [15, 0.015, 0.04], [20, 0.007, 0.02],
+        ]
+    },
 };
 
 // Cable K-factors per IEC 60364-5-54 Table 54C
@@ -73,10 +92,10 @@ const CABLE_K_FACTORS = {
 
 // IEEE C57.109 Transformer damage curve data: Category -> [current_mult, time_s] (mechanical + thermal)
 const TX_DAMAGE_CURVES = {
-    'I': { label: 'Cat I (5-500kVA 1Ø)', points: [[2,1800],[3,300],[4,60],[5,15],[6,5],[8,2],[10,1.2],[12,0.7],[16,0.4],[20,0.25],[25,0.17]] },
-    'II': { label: 'Cat II (501-1667kVA 1Ø)', points: [[2,600],[3,100],[4,30],[5,10],[6,4],[8,1.5],[10,0.8],[12,0.5],[16,0.25],[20,0.15],[25,0.1]] },
-    'III': { label: 'Cat III (1668-10000kVA)', points: [[2,300],[3,60],[4,15],[5,5],[6,2],[8,0.8],[10,0.5],[12,0.3],[16,0.15],[20,0.08],[25,0.05]] },
-    'IV': { label: 'Cat IV (>10000kVA)', points: [[2,120],[3,30],[4,8],[5,3],[6,1.2],[8,0.5],[10,0.25],[12,0.15],[16,0.07],[20,0.04],[25,0.03]] },
+    'I': { label: 'Cat I (5-500kVA 1Ø)', points: [[2, 1800], [3, 300], [4, 60], [5, 15], [6, 5], [8, 2], [10, 1.2], [12, 0.7], [16, 0.4], [20, 0.25], [25, 0.17]] },
+    'II': { label: 'Cat II (501-1667kVA 1Ø)', points: [[2, 600], [3, 100], [4, 30], [5, 10], [6, 4], [8, 1.5], [10, 0.8], [12, 0.5], [16, 0.25], [20, 0.15], [25, 0.1]] },
+    'III': { label: 'Cat III (1668-10000kVA)', points: [[2, 300], [3, 60], [4, 15], [5, 5], [6, 2], [8, 0.8], [10, 0.5], [12, 0.3], [16, 0.15], [20, 0.08], [25, 0.05]] },
+    'IV': { label: 'Cat IV (>10000kVA)', points: [[2, 120], [3, 30], [4, 8], [5, 3], [6, 1.2], [8, 0.5], [10, 0.25], [12, 0.15], [16, 0.07], [20, 0.04], [25, 0.03]] },
 };
 
 // Manufacturer formula variations
@@ -521,8 +540,8 @@ const sweepCoordination = (upDev, downDev, manufacturer = 'generic') => {
 
 const TheoryModule = () => {
     return (
-        <TheoryLibrary 
-            title="Time-Current Coordination" 
+        <TheoryLibrary
+            title="Time-Current Coordination"
             description="Master the art of protection grading. Learn how to achieve selectivity, protect transformers from damage, and ensure grid stability using IEC/IEEE standard curves."
             sections={TCC_THEORY_CONTENT}
         />
@@ -561,7 +580,7 @@ const QuizModule = () => {
 
     if (!level) {
         return (
-            <div className="flex flex-col items-center justify-center h-full p-6 animate-fade-in-up bg-slate-50 dark:bg-slate-950">
+            <article className="flex flex-col items-center justify-center h-full p-6 animate-fade-in-up bg-slate-50 dark:bg-slate-950">
                 <div className="text-center max-w-lg mb-12">
                     <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-4">Competency Assessment</h2>
                     <p className="text-slate-500">Test your knowledge against industry-standard protection scenarios. Questions derived from IEEE and IEC standards.</p>
@@ -586,7 +605,7 @@ const QuizModule = () => {
                         </button>
                     ))}
                 </div>
-            </div>
+            </article>
         );
     }
 
@@ -594,7 +613,7 @@ const QuizModule = () => {
     const passed = score >= 4; // Higher standard for pro tool
 
     return (
-        <div className="max-w-3xl mx-auto p-6 pb-20 animate-fade-in-up">
+        <article className="max-w-3xl mx-auto p-6 pb-20 animate-fade-in-up">
             <div className="flex items-center justify-between mb-8">
                 <button onClick={reset} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors">
                     <ArrowRight className="w-4 h-4 rotate-180" /> Exit Assessment
@@ -649,7 +668,7 @@ const QuizModule = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </article>
     );
 };
 
@@ -672,7 +691,6 @@ const HelpModal = ({ onClose }) => {
                 <div className="flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto">
                     <HelpTab id="quick" label="Quick Start" icon={<MousePointerClick className="w-4 h-4" />} />
                     <HelpTab id="params" label="Device Parameters" icon={<Settings className="w-4 h-4" />} />
-                    <HelpTab id="coord" label="Coordination Guide" icon={<GitCompare className="w-4 h-4" />} />
                     <HelpTab id="equip" label="Equipment Protection" icon={<Shield className="w-4 h-4" />} />
                 </div>
                 <div className="p-8 overflow-y-auto space-y-6 text-slate-600 dark:text-slate-300 text-sm leading-relaxed bg-white dark:bg-slate-900 flex-1">
@@ -814,6 +832,41 @@ const SimulatorView = ({ isActive }) => {
         const str = btoa(JSON.stringify(state));
         navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
         alert("Simulation link copied! You can share this URL to load the exact state.");
+    };
+
+    const copyContextForLLM = () => {
+        const activeDevices = devices.filter(d => d.visible);
+
+        // Generate Markdown Context
+        let md = `# RelaySchool TCC Studio Context\n\n`;
+        md += `**Current Simulation State:**\n`;
+        md += `- **Simulated Fault Current:** ${faultAmps}A\n`;
+        md += `- **Active Devices:** ${activeDevices.length}\n\n`;
+
+        md += `## Device List\n`;
+        activeDevices.forEach(d => {
+            md += `### ${d.name} (${d.type})\n`;
+            md += `- **Curve Profile:** ${d.curve}\n`;
+            if (d.type !== 'Limit') {
+                md += `- **Pickup Current:** ${d.pickup}A\n`;
+                md += `- **Time Dial (TMS):** ${d.tds}\n`;
+                if (d.instantaneous) md += `- **Instantaneous Trip:** 50 Element set to ${d.instantaneous}A\n`;
+                if (d.manufacturer) md += `- **Manufacturer Formula:** ${d.manufacturer}\n`;
+
+                const currentTrip = calculateTripTime(faultAmps, d.pickup, d.tds, d.curve, d.instantaneous, d.manufacturer || 'generic');
+                if (currentTrip) {
+                    md += `- **Trips at Simulated Fault (${faultAmps}A):** ${currentTrip.toFixed(3)} seconds\n`;
+                } else {
+                    md += `- **Trips at Simulated Fault (${faultAmps}A):** Does NOT trip.\n`;
+                }
+            } else {
+                md += `- **Equipment Protection Limit:** Must clear before this curve.\n`;
+            }
+            md += `\n`;
+        });
+
+        navigator.clipboard.writeText(md);
+        alert("Context copied to clipboard! You can paste this directly into ChatGPT, Claude, etc.");
     };
 
     // Resize Observer
@@ -992,7 +1045,7 @@ const SimulatorView = ({ isActive }) => {
                 {dev.showBand && !isEquipment && !isFuse && !isSnapshot && dMin && <path d={`${dMin} ${dMax} Z`} fill={dev.color} fillOpacity="0.1" stroke="none" />}
                 <path d={d} fill="none" stroke={dev.color} strokeWidth={strokeWidth} strokeDasharray={strokeDash}
                     className={`transition-all duration-200 ${isSnapshot ? '' : 'cursor-pointer hover:stroke-[4px] hover:opacity-100 shadow-xl'} ${isSelected ? 'opacity-100' : 'opacity-80'}`}
-                    onClick={(e) => { if(!isSnapshot) { e.stopPropagation(); setSelectedId(dev.id); if (!rightPanelOpen) setRightPanelOpen(true); } }}
+                    onClick={(e) => { if (!isSnapshot) { e.stopPropagation(); setSelectedId(dev.id); if (!rightPanelOpen) setRightPanelOpen(true); } }}
                 />
                 {!isEquipment && !isSnapshot && (
                     <text x={handlePickX + 5} y={dims.h - 20} fill={dev.color} fontSize="10" fontWeight="bold" className="pointer-events-none select-none shadow-sm">{dev.name}{fuseLabel}</text>
@@ -1141,7 +1194,7 @@ const SimulatorView = ({ isActive }) => {
     const selectedDevice = devices.find(d => d.id === selectedId);
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden select-none font-sans"
+        <section className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden select-none font-sans"
             style={{ display: isActive ? 'flex' : 'none' }}
             onMouseMove={handleMouseMove} onMouseUp={() => setDraggingId(null)} onMouseLeave={() => { setDraggingId(null); setCursor(null); }}>
 
@@ -1191,6 +1244,12 @@ const SimulatorView = ({ isActive }) => {
                         <Save className="w-3 h-3" /> Snapshot
                     </button>
                     {snapshots.length > 0 && <button onClick={clearSnapshots} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Clear Snapshots"><Trash2 className="w-4 h-4" /></button>}
+
+                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                    <button onClick={copyContextForLLM} className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-lg text-xs font-bold transition-colors">
+                        <BrainCircuit className="w-3 h-3" /> Export to AI
+                    </button>
+
                     <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
                     <button onClick={() => setRightPanelOpen(!rightPanelOpen)} className={`p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
                         {rightPanelOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
@@ -1331,7 +1390,7 @@ const SimulatorView = ({ isActive }) => {
                                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">CT Ratio</label>
                                                         <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2">
                                                             <select value={selectedDevice.ctRatio} onChange={(e) => updateDevice(selectedDevice.id, { ctRatio: Number(e.target.value) })} className="w-full bg-transparent border-none py-1.5 text-xs font-mono font-bold outline-none appearance-none">
-                                                                {[50,100,150,200,250,300,400,500,600,800,900,1000,1200,1500,2000,2500,3000,4000,5000].map(r => <option key={r} value={r}>{r}</option>)}
+                                                                {[50, 100, 150, 200, 250, 300, 400, 500, 600, 800, 900, 1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000].map(r => <option key={r} value={r}>{r}</option>)}
                                                             </select>
                                                             <span className="text-[10px] text-slate-400 font-bold ml-1">:1</span>
                                                         </div>
@@ -1352,24 +1411,24 @@ const SimulatorView = ({ isActive }) => {
                                                 </div>
                                             )}
                                             <div className="space-y-6">
-                                                <Slider 
-                                                    label="Pickup (Is)" 
-                                                    unit=" A" 
-                                                    min={10} 
-                                                    max={2000} 
-                                                    step={10} 
-                                                    value={selectedDevice.pickup} 
-                                                    onChange={e => updateDevice(selectedDevice.id, { pickup: Number(e.target.value) })} 
-                                                    color="blue" 
+                                                <Slider
+                                                    label="Pickup (Is)"
+                                                    unit=" A"
+                                                    min={10}
+                                                    max={2000}
+                                                    step={10}
+                                                    value={selectedDevice.pickup}
+                                                    onChange={e => updateDevice(selectedDevice.id, { pickup: Number(e.target.value) })}
+                                                    color="blue"
                                                 />
-                                                <Slider 
-                                                    label="Time Dial (TMS)" 
-                                                    min={0.01} 
-                                                    max={1.5} 
-                                                    step={0.01} 
-                                                    value={selectedDevice.tds} 
-                                                    onChange={e => updateDevice(selectedDevice.id, { tds: Number(e.target.value) })} 
-                                                    color="purple" 
+                                                <Slider
+                                                    label="Time Dial (TMS)"
+                                                    min={0.01}
+                                                    max={1.5}
+                                                    step={0.01}
+                                                    value={selectedDevice.tds}
+                                                    onChange={e => updateDevice(selectedDevice.id, { tds: Number(e.target.value) })}
+                                                    color="purple"
                                                 />
                                             </div>
                                             <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"><div><div className="text-xs font-bold text-slate-700 dark:text-slate-200">Instantaneous (50)</div></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" className="sr-only peer" checked={!!selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: e.target.checked ? selectedDevice.pickup * 10 : undefined })} /><div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div></label></div>
@@ -1645,7 +1704,7 @@ const SimulatorView = ({ isActive }) => {
                     <div className="space-y-3"><h4 className="font-bold text-sm text-slate-500 uppercase tracking-wider flex items-center gap-2"><Zap className="w-4 h-4" /> Instantaneous (50)</h4><p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">ANSI 50 element trips with no intentional delay (typically &lt;30ms). <strong>Warning:</strong> Ensure pickup is set <em>above</em> the maximum through-fault current to avoid over-reaching.</p></div>
                 </div>
             </div>
-        </div>
+        </section>
     );
 };
 
@@ -1655,8 +1714,13 @@ const TCCStudio = () => {
     const [mode, setMode] = useState('simulator'); // 'theory' | 'simulator' | 'quiz'
 
     return (
-        <div className="h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans">
-<SEO title="T C C Studio" description="Interactive Power System simulation and engineering tool: T C C Studio." url="/tccstudio" />
+        <main className="h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans">
+            <PageSEO
+                title="TCC Studio PRO"
+                description="Interactive Time-Current Coordination (TCC) Studio for power system protection engineering. Coordinate IEC and ANSI overcurrent relays."
+                url="/tcc"
+                schema={tccSchema}
+            />
 
             {/* Top Navigation Bar */}
             <div className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-between px-6 z-50">
@@ -1712,7 +1776,7 @@ const TCCStudio = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </main>
     );
 };
 

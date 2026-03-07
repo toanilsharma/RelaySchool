@@ -1,4 +1,10 @@
 User-agent: *
 Allow: /
 
+User-agent: GPTBot
+Allow: /
+
+User-agent: Anthropic-ai
+Allow: /
+
 Sitemap: https://relayschool.com/sitemap.xml

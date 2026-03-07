@@ -1,12 +1,23 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-    BookOpen, CheckCircle, Lock, Play, Star, Trophy, Zap, 
-    ArrowRight, Activity, GitMerge, Radar, Network, Server, 
+import {
+    BookOpen, CheckCircle, Lock, Play, Star, Trophy, Zap,
+    ArrowRight, Activity, GitMerge, Radar, Network, Server,
     ShieldCheck, GraduationCap, ChevronRight, Check
 } from 'lucide-react';
-import SEO from "../components/SEO";
+import { PageSEO } from "../components/SEO/PageSEO";
+
+const academySchema = {
+    "@type": "Course",
+    "name": "Power Systems Protection Curriculum",
+    "description": "Structured curriculum guiding through the physics, logic, and application of power system protection.",
+    "provider": {
+        "@type": "Organization",
+        "name": "RelaySchool",
+        "sameAs": "https://relayschool.com"
+    }
+};
 
 const CURRICULUM = [
     {
@@ -129,33 +140,33 @@ const CertificateSVG = () => (
         <rect width="800" height="600" fill="url(#cert-bg)" />
         <rect x="20" y="20" width="760" height="560" fill="none" stroke="url(#cert-border)" strokeWidth="12" />
         <rect x="30" y="30" width="740" height="540" fill="none" stroke="#e2e8f0" strokeWidth="2" />
-        
+
         <g transform="translate(400, 100)">
             <path d="M-30,-20 L30,-20 L40,10 L0,40 L-40,10 Z" fill="#f59e0b" />
             <path d="M-20,-10 L20,-10 L25,10 L0,30 L-25,10 Z" fill="#fbbf24" />
         </g>
-        
+
         <text x="400" y="180" fontFamily="serif" fontSize="48" fontWeight="bold" textAnchor="middle" fill="#0f172a">CERTIFICATE OF MASTERY</text>
         <text x="400" y="220" fontFamily="sans-serif" fontSize="16" letterSpacing="4" textAnchor="middle" fill="#64748b">PROUDLY PRESENTED TO</text>
-        
+
         <line x1="200" y1="300" x2="600" y2="300" stroke="#cbd5e1" strokeWidth="2" />
         <text x="400" y="290" fontFamily="serif" fontSize="36" fontStyle="italic" textAnchor="middle" fill="#1e293b">RelaySchool Engineer</text>
-        
+
         <text x="400" y="360" fontFamily="sans-serif" fontSize="14" textAnchor="middle" fill="#475569" width="500">For successfully completing the comprehensive Power Systems Protection Curriculum,</text>
         <text x="400" y="380" fontFamily="sans-serif" fontSize="14" textAnchor="middle" fill="#475569">demonstrating advanced proficiency in electrical theory, coordination, and digital substations.</text>
-        
+
         <g transform="translate(200, 480)">
             <line x1="-80" y1="0" x2="80" y2="0" stroke="#94a3b8" strokeWidth="2" />
             <text x="0" y="20" fontFamily="sans-serif" fontSize="12" textAnchor="middle" fill="#64748b">DATE COMPLETED</text>
             <text x="0" y="-10" fontFamily="sans-serif" fontSize="16" textAnchor="middle" fill="#0f172a">{new Date().toLocaleDateString()}</text>
         </g>
-        
+
         <g transform="translate(600, 480)">
             <line x1="-80" y1="0" x2="80" y2="0" stroke="#94a3b8" strokeWidth="2" />
             <text x="0" y="20" fontFamily="sans-serif" fontSize="12" textAnchor="middle" fill="#64748b">PLATFORM VERIFIED</text>
             <text x="0" y="-10" fontFamily="serif" fontSize="20" fontStyle="italic" textAnchor="middle" fill="#0f172a">RelaySchool</text>
         </g>
-        
+
         <circle cx="400" cy="460" r="40" fill="#f59e0b" />
         <circle cx="400" cy="460" r="35" fill="none" stroke="#ffffff" strokeWidth="2" strokeDasharray="4 2" />
         <path d="M385,460 L395,470 L415,445" fill="none" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
@@ -183,9 +194,15 @@ const Academy = () => {
 
     return (
         <div className="space-y-8 animate-fade-in max-w-6xl mx-auto pb-12">
-<SEO title="Academy" description="Interactive Power System simulation and engineering tool: Academy." url="/academy" />
+            <PageSEO
+                title="Protection Academy"
+                description="Interactive Power System simulation and engineering tool: Academy Curriculum."
+                url="/academy"
+                type="Course"
+                schema={academySchema}
+            />
 
-            
+
             {/* Hero Section */}
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 relative overflow-hidden border border-slate-700 shadow-2xl text-white">
                 <div className="absolute top-0 right-0 p-12 opacity-10">
@@ -196,11 +213,11 @@ const Academy = () => {
                         <Star className="w-3 h-3" /> Career Path
                     </div>
                     <h1 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
-                        From Novice to <br/>
+                        From Novice to <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Protection Expert</span>
                     </h1>
                     <p className="text-lg text-slate-300 leading-relaxed mb-8">
-                        Don't just use the tools—master the engineering behind them. 
+                        Don't just use the tools—master the engineering behind them.
                         This structured curriculum guides you through the physics, logic, and application of power system protection.
                     </p>
                     <div className="flex items-center gap-4">
@@ -224,7 +241,7 @@ const Academy = () => {
                 <div className="space-y-12">
                     {CURRICULUM.map((tier, idx) => (
                         <div key={tier.id} className="relative">
-                            
+
                             {/* Tier Header */}
                             <div className="flex items-center gap-4 mb-6 relative z-10">
                                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg bg-${tier.color}-600 text-white font-bold text-xl shrink-0`}>
@@ -276,7 +293,7 @@ const Academy = () => {
                                                 ))}
                                             </div>
 
-                                            <Link 
+                                            <Link
                                                 to={mod.toolLink}
                                                 className={`w-full py-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-colors ${progress[mod.id] ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30' : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 group-hover:border-blue-500 group-hover:text-blue-600'}`}
                                             >
@@ -310,7 +327,7 @@ const Academy = () => {
                     <div className="text-center md:text-left">
                         <h3 className="text-xl font-bold text-amber-900 dark:text-amber-100 mb-2">Completion Certificate Locked</h3>
                         <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed max-w-2xl">
-                            Complete all {totalModules} modules in the curriculum to unlock your digital Certificate of Mastery. 
+                            Complete all {totalModules} modules in the curriculum to unlock your digital Certificate of Mastery.
                             Currently completed: {completedCount}/{totalModules}.
                         </p>
                     </div>
