@@ -6,60 +6,10 @@ import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import CookieConsent from './components/CookieConsent';
 import AICoach from './components/AICoach';
+import ErrorBoundary from './components/ErrorBoundary';
 import { Menu, Loader2 } from 'lucide-react';
 
-// Lazy Load Pages
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Academy = lazy(() => import('./pages/Academy'));
-const Flashcards = lazy(() => import('./pages/Flashcards'));
-const TCCStudio = lazy(() => import('./pages/TCCStudio'));
-const DigitalTwin = lazy(() => import('./pages/DigitalTwin'));
-const FailureLab = lazy(() => import('./pages/FailureLab'));
-const ForensicLab = lazy(() => import('./pages/ForensicLab'));
-const KnowledgeEngine = lazy(() => import('./pages/KnowledgeEngine'));
-const Challenges = lazy(() => import('./pages/Challenges'));
-const RelayTester = lazy(() => import('./pages/RelayTester'));
-const CommsHub = lazy(() => import('./pages/CommsHub'));
-const MistakeLearning = lazy(() => import('./pages/MistakeLearning'));
-const EngineerToolkit = lazy(() => import('./pages/EngineerToolkit'));
-const DigitalSubstation = lazy(() => import('./pages/DigitalSubstation'));
-const SymComponents = lazy(() => import('./pages/SymComponents'));
-const DistanceLab = lazy(() => import('./pages/DistanceLab'));
-const SubstationBuilder = lazy(() => import('./pages/SubstationBuilder'));
-const LogicSandbox = lazy(() => import('./pages/LogicSandbox'));
-const CaseStudies = lazy(() => import('./pages/CaseStudies'));
-const Calculators = lazy(() => import('./pages/Calculators'));
-const EventAnalyzer = lazy(() => import('./pages/EventAnalyzer'));
-const VectorLab = lazy(() => import('./pages/VectorLab'));
-const SmartGridTrends = lazy(() => import('./pages/SmartGridTrends'));
-const FastBusTransfer = lazy(() => import('./pages/FastBusTransfer'));
-const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
-const TermsOfService = lazy(() => import('./pages/TermsOfService'));
-const Contact = lazy(() => import('./pages/Contact'));
-const DiffSlope = lazy(() => import('./pages/DiffSlope'));
-const Disclaimer = lazy(() => import('./pages/Disclaimer'));
-const CookiePolicy = lazy(() => import('./pages/CookiePolicy'));
-const AboutUs = lazy(() => import('./pages/AboutUs'));
-const AutorecloserSim = lazy(() => import('./pages/AutorecloserSim'));
-const SynchrocheckSim = lazy(() => import('./pages/SynchrocheckSim'));
-const TransformerProtection = lazy(() => import('./pages/TransformerProtection'));
-const FrequencyProtection = lazy(() => import('./pages/FrequencyProtection'));
-const PowerSwingSim = lazy(() => import('./pages/PowerSwingSim'));
-const CTVTCalculator = lazy(() => import('./pages/CTVTCalculator'));
-const GroundFaultSim = lazy(() => import('./pages/GroundFaultSim'));
-const MotorProtection = lazy(() => import('./pages/MotorProtection'));
-const PerUnitCalc = lazy(() => import('./pages/PerUnitCalc'));
-const BreakerFailure = lazy(() => import('./pages/BreakerFailure'));
-const VoltageRegulator = lazy(() => import('./pages/VoltageRegulator'));
-const BusbarProtection = lazy(() => import('./pages/BusbarProtection'));
-const GeneratorProtection = lazy(() => import('./pages/GeneratorProtection'));
-
-// Newly Added Simulators and Pages
-const OvercurrentSim = lazy(() => import('./pages/OvercurrentSim'));
-const LineDiffSim = lazy(() => import('./pages/LineDiffSim'));
-const ImpedanceTester = lazy(() => import('./pages/ImpedanceTester'));
-const StandardsRef = lazy(() => import('./pages/StandardsRef'));
-const SCCalculator = lazy(() => import('./pages/SCCalculator'));
+import { GET_ALL_APP_ROUTES, STATIC_ROUTES } from './routes';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -73,12 +23,18 @@ const RouteTracker = () => {
     // Ignore non-simulator routes for progress tracking
     const ignoredPaths = ['/', '/dashboard', '/academy', '/privacy', '/terms', '/contact', '/disclaimer', '/cookies', '/about'];
     if (!ignoredPaths.includes(location.pathname)) {
-        const stored = JSON.parse(localStorage.getItem('relayschool_progress') || '[]');
-        if (!stored.includes(location.pathname)) {
-            const next = [...stored, location.pathname];
-            localStorage.setItem('relayschool_progress', JSON.stringify(next));
-            window.dispatchEvent(new Event('progress_updated'));
-        }
+      const stored = JSON.parse(localStorage.getItem('relayschool_progress') || '[]');
+      if (!stored.includes(location.pathname)) {
+        const next = [...stored, location.pathname];
+        localStorage.setItem('relayschool_progress', JSON.stringify(next));
+        window.dispatchEvent(new Event('progress_updated'));
+      }
+      // Also track for sidebar progress bar (visitedRoutes)
+      const visited = JSON.parse(localStorage.getItem('visitedRoutes') || '[]');
+      if (!visited.includes(location.pathname)) {
+        visited.push(location.pathname);
+        localStorage.setItem('visitedRoutes', JSON.stringify(visited));
+      }
     }
   }, [location.pathname]);
   return null;
@@ -92,6 +48,41 @@ const LoadingSpinner = () => (
     </div>
   </div>
 );
+
+// FIX #9: AnimatedPages defined OUTSIDE App so it is not re-created on every App render.
+// Defining it inside App caused all child pages to remount on every state change.
+const AnimatedPages = () => {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="flex-1"
+      >
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes location={location} key={location.pathname}>
+            {/* Static top-level routes */}
+            {STATIC_ROUTES.map(route => {
+              const Component = route.component;
+              return <Route key={route.path} path={route.path} element={<Component />} />;
+            })}
+
+            {/* Dynamic Simulator & Learning routes from Sidebar groups */}
+            {GET_ALL_APP_ROUTES().map(route => {
+              const Component = route.component;
+              return <Route key={route.path} path={route.path} element={<Component />} />;
+            })}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
 
 const App = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -111,96 +102,35 @@ const App = () => {
   }, [theme]);
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-  const AnimatedPages = () => {
-    const location = useLocation();
-    return (
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={location.pathname}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="flex-1"
-        >
-          <Suspense fallback={<LoadingSpinner />}>
-            <Routes location={location} key={location.pathname}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/academy" element={<Academy />} />
-                <Route path="/flashcards" element={<Flashcards />} />
-                <Route path="/tcc" element={<TCCStudio />} />
-                <Route path="/fbts" element={<FastBusTransfer />} />
-                <Route path="/symcomp" element={<SymComponents />} />
-                <Route path="/distance" element={<DistanceLab />} />
-                <Route path="/builder" element={<SubstationBuilder />} />
-                <Route path="/logic" element={<LogicSandbox />} />
-                <Route path="/cases" element={<CaseStudies />} />
-                <Route path="/calculators" element={<Calculators />} />
-                <Route path="/diffslope" element={<DiffSlope />} />
-                <Route path="/twin" element={<DigitalTwin />} />
-                <Route path="/vectors" element={<VectorLab />} />
-                <Route path="/forensic" element={<ForensicLab />} />
-                <Route path="/failure" element={<FailureLab />} />
-                <Route path="/events" element={<EventAnalyzer />} />
-                <Route path="/tester" element={<RelayTester />} />
-                <Route path="/comms" element={<CommsHub />} />
-                <Route path="/digital-substation" element={<DigitalSubstation />} />
-                <Route path="/knowledge" element={<KnowledgeEngine />} />
-                <Route path="/challenges" element={<Challenges />} />
-                <Route path="/mistakes" element={<MistakeLearning />} />
-                <Route path="/trends" element={<SmartGridTrends />} />
-                <Route path="/tools" element={<EngineerToolkit />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/terms" element={<TermsOfService />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/disclaimer" element={<Disclaimer />} />
-                <Route path="/cookies" element={<CookiePolicy />} />
-                <Route path="/about" element={<AboutUs />} />
-                <Route path="/autorecloser" element={<AutorecloserSim />} />
-                <Route path="/synchrocheck" element={<SynchrocheckSim />} />
-                <Route path="/transformer-protection" element={<TransformerProtection />} />
-                <Route path="/frequency-protection" element={<FrequencyProtection />} />
-                <Route path="/power-swing" element={<PowerSwingSim />} />
-                <Route path="/ct-vt" element={<CTVTCalculator />} />
-                <Route path="/ground-fault" element={<GroundFaultSim />} />
-                <Route path="/motor-protection" element={<MotorProtection />} />
-                <Route path="/per-unit" element={<PerUnitCalc />} />
-                <Route path="/breaker-failure" element={<BreakerFailure />} />
-                <Route path="/voltage-regulator" element={<VoltageRegulator />} />
-                <Route path="/busbar-protection" element={<BusbarProtection />} />
-                <Route path="/generator-protection" element={<GeneratorProtection />} />
-                <Route path="/overcurrent" element={<OvercurrentSim />} />
-                <Route path="/line-diff" element={<LineDiffSim />} />
-                <Route path="/impedance-tester" element={<ImpedanceTester />} />
-                <Route path="/standards" element={<StandardsRef />} />
-                <Route path="/sc-calc" element={<SCCalculator />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </motion.div>
-      </AnimatePresence>
-    );
-  };
-
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <RouteTracker />
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans antialiased selection:bg-blue-50 selection:text-white transition-colors duration-300">
-        <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white sticky top-0 z-30 shadow-md">
-             <div className="font-bold text-lg flex items-center gap-2">RelaySchool</div>
-             <button onClick={() => setMobileMenuOpen(true)} className="p-2 hover:bg-slate-800 rounded-lg transition-colors"><Menu className="w-6 h-6" /></button>
+    // FIX #1: ErrorBoundary wraps the entire app so any uncaught simulator crash
+    // shows a recovery UI instead of a blank white screen.
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ScrollToTop />
+        <RouteTracker />
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans antialiased selection:bg-blue-50 selection:text-white transition-colors duration-300">
+          <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+            <div className="font-bold text-lg flex items-center gap-2">RelaySchool</div>
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open navigation menu"
+              className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
+          <Sidebar theme={theme} toggleTheme={toggleTheme} isOpen={mobileMenuOpen} closeMobileMenu={() => setMobileMenuOpen(false)} />
+          <main id="main-content" className="md:ml-64 p-4 md:p-8 lg:p-10 animate-fade-in min-h-screen flex flex-col">
+            <AnimatedPages />
+            <Footer />
+          </main>
+          <AICoach />
+          <CookieConsent />
+          <Toaster />
         </div>
-        <Sidebar theme={theme} toggleTheme={toggleTheme} isOpen={mobileMenuOpen} closeMobileMenu={() => setMobileMenuOpen(false)} />
-        <main className="md:ml-64 p-4 md:p-8 lg:p-10 animate-fade-in min-h-screen flex flex-col">
-          <AnimatedPages />
-          <Footer />
-        </main>
-        <AICoach />
-        <CookieConsent />
-        <Toaster />
-      </div>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 };
 

@@ -1,52 +1,37 @@
 <!doctype html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Primary SEO -->
-    <title>
-      RelaySchool | Power System Protection Simulator & Engineering Tools
-    </title>
-    <meta
-      name="description"
-      content="Free online engineering suite for Power System Protection. Features TCC Coordination, IEC 61850 GOOSE Simulator, CT Saturation analysis, and Digital Twin modeling for electrical engineers."
-    />
-    <meta
-      name="keywords"
-      content="Power Systems, Protection Coordination, TCC Curve, IEC 61850, Relay Testing, Electrical Engineering, Short Circuit Analysis, Digital Substation, Smart Grid"
-    />
-    <meta name="author" content="RelaySchool" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Open Graph / Social -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://relayschool.com/" />
-    <meta
-      property="og:title"
-      content="RelaySchool - Advanced Protection Engineering Simulator"
-    />
-    <meta
-      property="og:description"
-      content="Simulate faults, coordinate relays, and analyze IEC 61850 networks directly in your browser. The professional standard for offline-capable engineering training."
-    />
-    <meta
-      property="og:image"
-      content="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop"
-    />
+  <!-- Primary SEO -->
+  <title>
+    RelaySchool | Power System Protection Simulator & Engineering Tools
+  </title>
+  <meta name="description"
+    content="Free online engineering suite for Power System Protection. Features TCC Coordination, IEC 61850 GOOSE Simulator, CT Saturation analysis, and Digital Twin modeling for electrical engineers." />
+  <meta name="keywords"
+    content="Power Systems, Protection Coordination, TCC Curve, IEC 61850, Relay Testing, Electrical Engineering, Short Circuit Analysis, Digital Substation, Smart Grid" />
+  <meta name="author" content="RelaySchool" />
 
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta
-      property="twitter:title"
-      content="RelaySchool | Master Power Protection"
-    />
-    <meta
-      property="twitter:description"
-      content="Interactive TCC Curves, Digital Twins, and Forensic Failure Analysis for Protection Engineers."
-    />
+  <!-- Open Graph / Social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://relayschool.com/" />
+  <meta property="og:title" content="RelaySchool - Advanced Protection Engineering Simulator" />
+  <meta property="og:description"
+    content="Simulate faults, coordinate relays, and analyze IEC 61850 networks directly in your browser. The professional standard for offline-capable engineering training." />
+  <meta property="og:image"
+    content="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop" />
 
-    <!-- Schema.org JSON-LD for Google Rich Snippets -->
-    <script type="application/ld+json">
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:title" content="RelaySchool | Master Power Protection" />
+  <meta property="twitter:description"
+    content="Interactive TCC Curves, Digital Twins, and Forensic Failure Analysis for Protection Engineers." />
+
+  <!-- Schema.org JSON-LD for Google Rich Snippets -->
+  <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
@@ -72,134 +57,38 @@
       }
     </script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
-    <script>
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ["Inter", "sans-serif"],
-              mono: ["JetBrains Mono", "monospace"],
-            },
-            colors: {
-              engineering: {
-                50: "#f0f9ff",
-                100: "#e0f2fe",
-                500: "#0ea5e9",
-                600: "#0284c7",
-                900: "#0c4a6e",
-              },
-            },
-            animation: {
-              "fade-in": "fadeIn 0.5s ease-out",
-            },
-            keyframes: {
-              fadeIn: {
-                "0%": { opacity: "0", transform: "translateY(10px)" },
-                "100%": { opacity: "1", transform: "translateY(0)" },
-              },
-            },
-          },
-        },
-      };
-    </script>
-    <style>
-      body {
-        font-family: "Inter", sans-serif;
-        background-color: #0f172a;
-        color: #f8fafc;
-        transition:
-          background-color 0.3s ease,
-          color 0.3s ease;
-      }
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #94a3b8;
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #64748b;
-      }
-      .dark ::-webkit-scrollbar-thumb {
-        background: #475569;
-      }
-      .dark ::-webkit-scrollbar-thumb:hover {
-        background: #64748b;
-      }
-      .bg-grid {
-        background-size: 40px 40px;
-        background-image:
-          linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-          linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-      }
-      .dark .bg-grid {
-        background-image:
-          linear-gradient(
-            to right,
-            rgba(255, 255, 255, 0.05) 1px,
-            transparent 1px
-          ),
-          linear-gradient(
-            to bottom,
-            rgba(255, 255, 255, 0.05) 1px,
-            transparent 1px
-          );
-      }
+  <!-- PWA Theme Color -->
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
 
-      @media print {
-        @page {
-          margin: 1cm;
-          size: landscape;
-        }
-        body {
-          background-color: white !important;
-          color: black !important;
-          -webkit-print-color-adjust: exact;
-        }
-        aside,
-        header,
-        footer,
-        .no-print {
-          display: none !important;
-        }
-        main {
-          width: 100% !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          max-width: none !important;
-        }
-        .bg-grid {
-          background-image: none !important;
-        }
-        * {
-          box-shadow: none !important;
-        }
-      }
-    </style>
+  <!-- PWA Web App Manifest -->
+  <link rel="manifest" href="/manifest.json" />
 
-    <link rel="stylesheet" href="/index.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
-      integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71bZBTIQHQ"
-      crossorigin="anonymous"
-    />
-  </head>
-  <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50">
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet" />
+  <!-- Styles: Tailwind (build-time) + KaTeX -->
+  <link rel="stylesheet" href="/index.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
+    integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71bZBTIQHQ" crossorigin="anonymous" />
+</head>
+
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50">
+  <!-- Skip to main content — accessibility -->
+  <a href="#main-content" class="skip-to-content">Skip to main content</a>
+  <!-- No-JS fallback -->
+  <noscript>
+    <div
+      style="font-family:sans-serif;text-align:center;padding:4rem;background:#0f172a;color:#f8fafc;min-height:100vh">
+      <h1 style="font-size:1.5rem;margin-bottom:1rem">⚡ RelaySchool requires JavaScript</h1>
+      <p>Please enable JavaScript in your browser to use the Power System Protection Simulator.</p>
+    </div>
+  </noscript>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>

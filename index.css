@@ -1,0 +1,341 @@
+/* =====================================================
+   TAILWIND v4 — processed at build time by @tailwindcss/vite
+   ===================================================== */
+@import "tailwindcss";
+
+/* =====================================================
+   TAILWIND v4 CUSTOM THEME
+   (Replaces tailwind.config.js theme.extend in v4)
+   ===================================================== */
+@theme {
+  /* Fonts */
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Custom Engineering Color Palette */
+  --color-engineering-50: #f0f9ff;
+  --color-engineering-100: #e0f2fe;
+  --color-engineering-500: #0ea5e9;
+  --color-engineering-600: #0284c7;
+  --color-engineering-900: #0c4a6e;
+
+  /* Animations */
+  --animate-fade-in: fadeIn 0.5s ease-out;
+
+  --keyframes-fadeIn-0%: {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  ;
+
+  --keyframes-fadeIn-100%: {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  ;
+}
+
+/* =====================================================
+   GLOBAL BASE STYLES
+   ===================================================== */
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #0f172a;
+  color: #f8fafc;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Fallback keyframes for animate-fade-in utility */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* =====================================================
+   CUSTOM SCROLLBAR
+   ===================================================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* =====================================================
+   UTILITY CLASSES
+   ===================================================== */
+.bg-grid {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+}
+
+.dark .bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* 3D Flashcard helpers */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Sidebar scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Skip-to-content accessibility link */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #2563eb;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 0 0 8px 0;
+  font-weight: bold;
+  z-index: 9999;
+  transition: top 0.2s;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* =====================================================
+   PRINT STYLES
+   ===================================================== */
+@media print {
+  @page {
+    margin: 1cm;
+    size: landscape;
+  }
+
+  body {
+    background-color: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  aside,
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .bg-grid {
+    background-image: none !important;
+  }
+
+  * {
+    box-shadow: none !important;
+  }
+}
+
+
+/* =====================================================
+   GLOBAL BASE STYLES
+   ===================================================== */
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #0f172a;
+  color: #f8fafc;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* =====================================================
+   CUSTOM SCROLLBAR
+   ===================================================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* =====================================================
+   UTILITY CLASSES
+   ===================================================== */
+.bg-grid {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+}
+
+.dark .bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* 3D Flashcard helpers */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Custom Sidebar Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Skip-to-content accessibility link */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #2563eb;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 0 0 8px 0;
+  font-weight: bold;
+  z-index: 9999;
+  transition: top 0.2s;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* =====================================================
+   PRINT STYLES
+   ===================================================== */
+@media print {
+  @page {
+    margin: 1cm;
+    size: landscape;
+  }
+
+  body {
+    background-color: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  aside,
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .bg-grid {
+    background-image: none !important;
+  }
+
+  * {
+    box-shadow: none !important;
+  }
+}
