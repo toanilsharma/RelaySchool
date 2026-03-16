@@ -61,7 +61,7 @@ export default function Slider({ label, unit = '', color = 'blue', className = '
     <div className={`relative w-full ${className}`}>
         {label && <label className="text-xs font-bold uppercase opacity-60 mb-1 block flex justify-between">
             <span>{label}</span>
-            <Odometer value={Number(props.value) || 0} format={v => `${v.toFixed(props.step && Number(props.step) < 1 ? String(props.step).split('.')[1].length : 0)}${unit}`} className="font-mono" />
+            <Odometer value={Number(props.value) || 0} format={v => `${v.toFixed(props.step && Number(props.step) < 1 && String(props.step).includes('.') ? String(props.step).split('.')[1].length : 0)}${unit}`} className="font-mono" />
         </label>}
         <div className="relative w-full flex items-center h-6">
             <input

@@ -1,460 +1,750 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { RotateCcw, HelpCircle, Book, Settings, MonitorPlay, GraduationCap, Award, Timer, Zap, AlertTriangle, CheckCircle2, Play, Activity, ShieldCheck, Share2, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { 
+  Zap, Settings, Share2, Activity, ShieldCheck, 
+  RotateCcw, AlertTriangle, TrendingUp, Book, MonitorPlay, 
+  GraduationCap, Award, PlayCircle, CheckCircle2, Power, CircuitBoard
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useThemeObserver } from '../hooks/useThemeObserver';
-import { useSmoothedValues } from '../hooks/useSmoothedValues';
-import TheoryLibrary from '../components/TheoryLibrary';
-import { TheoryLineChart } from '../components/TheoryDiagrams';
-import Slider from '../components/Slider';
-import SEO from "../components/SEO";
-import Odometer from '../components/Odometer';
 
-// ============================== IEC CURVES (IEC 60255-151) ==============================
-const IEC_CURVES: Record<string, { A: number; B: number; P: number; label: string }> = {
-    SI:  { A: 0.14, B: 0, P: 0.02, label: 'Standard Inverse (SI)' },
-    VI:  { A: 13.5, B: 0, P: 1.0,  label: 'Very Inverse (VI)' },
-    EI:  { A: 80.0, B: 0, P: 2.0,  label: 'Extremely Inverse (EI)' },
-    LTI: { A: 120,  B: 0, P: 1.0,  label: 'Long-Time Inverse (LTI)' },
+// ============================== IEEE & IEC MATH & CONSTANTS ==============================
+// Commercial-grade IEEE C37.112 & IEC 60255-151 standard curves
+const RELAY_CURVES = {
+  'IEC_SI':  { group: 'IEC 60255', A: 0.14, B: 0, P: 0.02, label: 'Standard Inverse (SI)' },
+  'IEC_VI':  { group: 'IEC 60255', A: 13.5, B: 0, P: 1.0,  label: 'Very Inverse (VI)' },
+  'IEC_EI':  { group: 'IEC 60255', A: 80.0, B: 0, P: 2.0,  label: 'Extremely Inverse (EI)' },
+  'IEC_LTI': { group: 'IEC 60255', A: 120,  B: 0, P: 1.0,  label: 'Long-Time Inverse (LTI)' },
+  'IEEE_MI': { group: 'IEEE C37.112', A: 0.0515, B: 0.114, P: 0.02, label: 'Moderately Inverse (MI)' },
+  'IEEE_VI': { group: 'IEEE C37.112', A: 19.61,  B: 0.491, P: 2.0,  label: 'Very Inverse (VI)' },
+  'IEEE_EI': { group: 'IEEE C37.112', A: 28.2,   B: 0.1217,P: 2.0,  label: 'Extremely Inverse (EI)' },
 };
 
-const calcTripTime = (I: number, Ip: number, tms: number, curve: string): number | null => {
-    if (I <= Ip) return null;
-    const c = IEC_CURVES[curve];
-    if (!c) return null;
-    const M = I / Ip;
-    const time = tms * (c.A / (Math.pow(M, c.P) - 1) + c.B);
-    return Math.max(0.02, time); // 20ms mechanical minimum limit
+const calcTripTime = (I, Ip, tms, curveKey) => {
+  if (I <= Ip) return null;
+  const c = RELAY_CURVES[curveKey];
+  if (!c) return null;
+  const M = I / Ip;
+  const time = tms * (c.A / (Math.pow(M, c.P) - 1) + c.B);
+  return Math.max(0.02, time); // 20ms mechanical minimum limit
 };
 
-// ============================== THEORY ==============================
-const OC_THEORY = [
-    { id: 'oc-fundamentals', title: 'Overcurrent Protection Fundamentals', icon: Zap, content: [
-        { type: 'text' as const, value: 'Overcurrent protection (ANSI 50/51) is the most widely used protection scheme. Element 50 provides instantaneous tripping above a set current threshold; Element 51 provides time-delayed tripping following an inverse-time curve per IEC 60255-151.' },
-        { type: 'text' as const, value: 'The relay measures the RMS current flowing through the CT and compares it against configured pickup values. When current exceeds pickup, the relay starts a timing element.' },
-    ]},
-    { id: 'oc-curves', title: 'Time-Current Characteristics (IEC 60255)', icon: TrendingUp, content: [
-        { type: 'text' as const, value: 'The IEC standard defines four characteristic curves: Standard Inverse (SI), Very Inverse (VI), Extremely Inverse (EI), and Long-Time Inverse (LTI). Each uses the formula: t = TMS × A / (M^P − 1), where M = I/Ip is the current multiple.' },
-        { type: 'custom' as const, value: (
-            <div className="my-6">
-                <TheoryLineChart 
-                    title="Live TCC Explorer (Current vs Time)"
-                    liveTopic="live-state-overcurrent"
-                    liveDot={{ liveKeyX: 'multiple', liveKeyY: 'tripTime', label: 'Measured Z', color: '#f59e0b' }}
-                    data={[
-                        { multiple: 1.1, SI: 2.97, VI: 135, EI: 800 },
-                        { multiple: 2, SI: 1, VI: 13.5, EI: 26.6 },
-                        { multiple: 4, SI: 0.5, VI: 4.5, EI: 5.3 },
-                        { multiple: 10, SI: 0.29, VI: 1.5, EI: 0.8 },
-                        { multiple: 20, SI: 0.23, VI: 0.71, EI: 0.2 }
-                    ]}
-                    xKey="multiple"
-                    yKeys={[
-                        { key: 'SI', name: 'SI (A=0.14, P=0.02)', color: '#3b82f6' },
-                        { key: 'VI', name: 'VI (A=13.5, P=1.0)', color: '#10b981' },
-                        { key: 'EI', name: 'EI (A=80, P=2.0)', color: '#ef4444' }
-                    ]}
-                    xAxisLabel="Current Multiple (I/Ip)"
-                    yAxisLabel="Trip Time (Seconds)"
-                    height={300}
-                />
-            </div>
-        )},
-        { type: 'text' as const, value: 'SI curve: A=0.14, P=0.02 — Used for general applications. VI curve: A=13.5, P=1.0 — Used where fault current varies significantly with distance. EI curve: A=80, P=2.0 — Used for transformer/motor protection where high I²t damage occurs rapidly.' },
-    ]},
-    { id: 'oc-coordination', title: 'Grading & Coordination', icon: Activity, content: [
-        { type: 'text' as const, value: 'Adjacent overcurrent relays must be coordinated so that the device closest to the fault trips first. The minimum Coordination Time Interval (CTI) is typically 0.3–0.4 seconds, accounting for relay operating time tolerance, breaker clearing time, and CT error.' },
-        { type: 'text' as const, value: 'Grading is performed starting from the load end and working towards the source. Each upstream relay TMS is selected to be CTI seconds slower than the downstream relay at the maximum fault current seen by both.' },
-    ]},
-    { id: 'oc-directional', title: 'Directional Overcurrent (67)', icon: ShieldCheck, content: [
-        { type: 'text' as const, value: 'In looped or interconnected networks, directional overcurrent elements (ANSI 67) prevent misoperation by only allowing trip if fault current flows in the designated direction. The directional element compares the phase angle of current against a reference (polarizing) quantity — typically voltage or a derived signal.' },
-        { type: 'text' as const, value: '67N (Directional Ground Overcurrent) uses zero-sequence voltage (3V0) as the polarizing signal and zero-sequence current (3I0) as the operating signal. The forward/reverse decision ensures selectivity in ring buses and parallel feeder configurations.' },
-    ]},
-];
-
-// ============================== QUIZ ==============================
-const QUIZ_DATA = { easy: [
-    { q: "ANSI 50 designates:", opts: ["Time overcurrent", "Instantaneous overcurrent", "Directional relay", "Distance relay"], ans: 1, why: "ANSI 50 = Instantaneous Overcurrent. It trips immediately when current exceeds the threshold — no time delay." },
-    { q: "The pickup current of a 51 relay should be set:", opts: ["Above maximum load current", "Below minimum fault current", "Both A and B", "At the CT ratio"], ans: 2, why: "Pickup must be above max load (to avoid nuisance tripping) and below min fault current (to ensure detection). Both conditions must be met." },
-    { q: "TMS stands for:", opts: ["Time Multiplier Setting", "Total Maximum Seconds", "Trip Mode Selector", "Transient Monitor System"], ans: 0, why: "TMS (Time Multiplier Setting) adjusts the overall operating time of the inverse-time curve up or down." },
-    { q: "Which IEC curve type is the fastest for high fault currents?", opts: ["Standard Inverse", "Very Inverse", "Extremely Inverse", "Long-Time Inverse"], ans: 2, why: "EI has P=2.0, meaning trip time drops as the square of the current multiple — the fastest response for high multiples." },
-    { q: "The minimum fault current a relay must detect is called:", opts: ["Pickup current", "Reset current", "Holding current", "Breaking current"], ans: 0, why: "Pickup current is the minimum current that causes the relay to start its timing element." },
-], medium: [
-    { q: "The CTI between adjacent relays typically is:", opts: ["0.01s", "0.1s", "0.3–0.4s", "5s"], ans: 2, why: "CTI = breaker clearing (~5 cycles) + relay overshoot (~50ms) + safety margin (~100ms) ≈ 0.3–0.4s per IEEE/IEC." },
-    { q: "For a motor starting at 6× FLA, the best curve type is:", opts: ["SI", "VI", "EI", "Definite Time"], ans: 2, why: "EI rides over the high inrush quickly (I²t proportional), preventing nuisance tripping during motor starting while still protecting against sustained faults." },
-    { q: "51N uses which current component?", opts: ["Positive sequence", "Negative sequence", "Zero sequence (3I0)", "Phase current"], ans: 2, why: "51N = Time Overcurrent Neutral/Ground. It operates on zero-sequence current (3I0) to detect ground faults." },
-    { q: "High-set instantaneous (50) is typically set at:", opts: ["1.2× FLA", "1.5× pickup", "120-130% of max through-fault at relay", "50% of rated current"], ans: 2, why: "50 is set above the maximum through-fault current for a fault at the remote bus, plus a safety margin, to ensure it only trips for faults within the protected zone." },
-    { q: "Reset ratio of an overcurrent relay is typically:", opts: ["1.0", "0.95-0.97", "0.5", "0.1"], ans: 1, why: "Reset ratio = dropout current / pickup current ≈ 0.95–0.97. The relay drops out at slightly less current than pickup to provide hysteresis." },
-], expert: [
-    { q: "IEC 60255 SI curve formula is t = TMS ×:", opts: ["0.14/(M² − 1)", "0.14/(M^0.02 − 1)", "13.5/(M − 1)", "80/(M² − 1)"], ans: 1, why: "SI: t = TMS × 0.14 / (M^0.02 − 1) where M = I/Ip. The exponent 0.02 gives a nearly flat curve at high multiples." },
-    { q: "For a solidly grounded system, the zero-sequence source impedance is:", opts: ["Equal to positive sequence", "Three times positive sequence", "Depends on transformer winding and grounding", "Infinite"], ans: 2, why: "Z0 source depends on the transformer configuration (Yg-Delta, Yg-Yg) and grounding impedance. It is NOT simply related to Z1." },
-    { q: "Cold load pickup is a concern because:", opts: ["CT saturates", "Load current after prolonged outage exceeds normal demand", "Relays reset", "Voltage is high"], ans: 1, why: "After a long outage, all motors restart simultaneously with loss of diversity, creating current 2-3× normal load. 51 must not trip on this." },
-    { q: "Thermal replica in 51 works by:", opts: ["Measuring temperature", "Integrating I²t to model conductor heating", "Monitoring CT burden", "Tracking voltage"], ans: 1, why: "Thermal replica accumulates I²t to estimate conductor temperature, providing protection against cumulative overloading." },
-    { q: "Per IEEE C37.112, the 'reset characteristic' affects coordination when:", opts: ["Load is constant", "Fault current is interrupted before relay operates, then re-applied", "CT is oversized", "VTs fail"], ans: 1, why: "If a downstream device clears a fault but it re-strikes, the upstream 51 may have partially timed out. Slow reset means it trips faster on the re-application." },
-]};
-
-// ============================== TCC CANVAS ==============================
-const TCCCanvas = ({ isDark, pickup51, tms, curveType, pickup50, faultCurrent, tripTime }: {
-    isDark: boolean; pickup51: number; tms: number; curveType: string; pickup50: number; faultCurrent: number; tripTime: number | null;
-}) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const smoothed = useSmoothedValues({ pickup51, tms, pickup50, faultCurrent });
-
-    useEffect(() => {
-        const cvs = canvasRef.current; if (!cvs) return;
-        const ctx = cvs.getContext('2d'); if (!ctx) return;
-        const w = cvs.width = cvs.offsetWidth * 2;
-        const h = cvs.height = cvs.offsetHeight * 2;
-        ctx.scale(2, 2);
-        const cw = w / 2, ch = h / 2;
-
-        ctx.fillStyle = isDark ? '#0f172a' : '#f8fafc';
-        ctx.fillRect(0, 0, cw, ch);
-
-        // Log-Log axes
-        const ox = 50, oy = ch - 35;
-        const gw = cw - 70, gh = ch - 60;
-
-        // Current range: 0.5 to 100 × Ip (log scale)
-        const minI = 0.5, maxI = 100;
-        // Time range: 0.01s to 100s
-        const minT = 0.01, maxT = 100;
-
-        const logX = (I: number) => ox + (Math.log10(I / minI) / Math.log10(maxI / minI)) * gw;
-        const logY = (t: number) => oy - (Math.log10(t / minT) / Math.log10(maxT / minT)) * gh;
-
-        // Grid
-        ctx.strokeStyle = isDark ? '#1e293b' : '#e2e8f0';
-        ctx.lineWidth = 0.5;
-        [0.5, 1, 2, 5, 10, 20, 50, 100].forEach(v => {
-            const x = logX(v);
-            ctx.beginPath(); ctx.moveTo(x, oy); ctx.lineTo(x, oy - gh); ctx.stroke();
-        });
-        [0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100].forEach(v => {
-            const y = logY(v);
-            ctx.beginPath(); ctx.moveTo(ox, y); ctx.lineTo(ox + gw, y); ctx.stroke();
-        });
-
-        // Axes
-        ctx.strokeStyle = isDark ? '#475569' : '#94a3b8';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + gw, oy); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox, oy - gh); ctx.stroke();
-
-        // Labels
-        ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-        ctx.font = '9px Inter, sans-serif';
-        [1, 2, 5, 10, 20, 50].forEach(v => {
-            ctx.fillText(`${v}`, logX(v) - 4, oy + 14);
-        });
-        ctx.fillText('× Ip', cw - 30, oy + 14);
-        [0.01, 0.1, 1, 10, 100].forEach(v => {
-            ctx.fillText(`${v}s`, 5, logY(v) + 3);
-        });
-
-        ctx.font = 'bold 10px Inter, sans-serif';
-        ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-        ctx.fillText('TIME-CURRENT CHARACTERISTIC', ox, 16);
-
-        // Draw 51 curve
-        ctx.beginPath();
-        ctx.strokeStyle = '#3b82f6';
-        ctx.lineWidth = 2.5;
-        let first = true;
-        for (let m = 1.01; m <= maxI; m += 0.1) {
-            const t = calcTripTime(m * smoothed.pickup51, smoothed.pickup51, smoothed.tms, curveType);
-            if (t === null || t > maxT || t < minT) continue;
-            const x = logX(m);
-            const y = logY(t);
-            if (x < ox || x > ox + gw || y < oy - gh || y > oy) continue;
-            if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-
-        // Label curve
-        ctx.fillStyle = '#3b82f6';
-        ctx.font = 'bold 9px Inter, sans-serif';
-        ctx.fillText(`51 (${IEC_CURVES[curveType]?.label || curveType})`, logX(3), logY(calcTripTime(3 * smoothed.pickup51, smoothed.pickup51, smoothed.tms, curveType) || 1) - 8);
-        ctx.fillText(`TMS=${smoothed.tms.toFixed(2)}`, logX(5), logY(calcTripTime(5 * smoothed.pickup51, smoothed.pickup51, smoothed.tms, curveType) || 1) - 8);
-
-        // Draw 50 line
-        const x50 = logX(smoothed.pickup50 / smoothed.pickup51);
-        if (x50 >= ox && x50 <= ox + gw) {
-            ctx.beginPath();
-            ctx.moveTo(x50, oy); ctx.lineTo(x50, oy - gh);
-            ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([6, 3]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.fillStyle = '#ef4444';
-            ctx.font = 'bold 9px Inter, sans-serif';
-            ctx.fillText(`50 (${smoothed.pickup50.toFixed(0)}A)`, x50 + 4, oy - gh + 14);
-        }
-
-        // Pickup line
-        const xPU = logX(1);
-        ctx.beginPath();
-        ctx.moveTo(xPU, oy); ctx.lineTo(xPU, oy - gh);
-        ctx.strokeStyle = '#22c55e';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([4, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#22c55e';
-        ctx.fillText(`Pickup (${smoothed.pickup51.toFixed(0)}A)`, xPU + 4, oy - gh + 28);
-
-        // Operating point
-        if (smoothed.faultCurrent > smoothed.pickup51) {
-            const m = smoothed.faultCurrent / smoothed.pickup51;
-            const t = calcTripTime(smoothed.faultCurrent, smoothed.pickup51, smoothed.tms, curveType);
-            if (t !== null && m <= maxI && t >= minT && t <= maxT) {
-                const px = logX(m);
-                const py = logY(t);
-                // Operating point
-                ctx.beginPath();
-                ctx.arc(px, py, 6, 0, Math.PI * 2);
-                ctx.fillStyle = smoothed.faultCurrent >= smoothed.pickup50 ? '#ef4444' : '#f59e0b';
-                ctx.fill();
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                // Dashed lines to axes
-                ctx.setLineDash([3, 3]);
-                ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, oy);
-                ctx.strokeStyle = isDark ? '#475569' : '#94a3b8';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ox, py);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-        }
-    }, [isDark, smoothed, curveType, tripTime]);
-
-    return <canvas ref={canvasRef} className="w-full rounded-xl" style={{ height: 320, border: isDark ? '1px solid rgb(30,41,59)' : '1px solid rgb(226,232,240)' }} />;
-};
-
-// ============================== SIMULATOR ==============================
-const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
-    const [pickup51, setPickup51] = useState(400);
-    const [tms, setTms] = useState(0.3);
-    const [curveType, setCurveType] = useState('SI');
-    const [pickup50, setPickup50] = useState(4000);
-    const [faultCurrent, setFaultCurrent] = useState(0);
-    const [running, setRunning] = useState(false);
-    const [phase, setPhase] = useState('');
-    const [elapsed, setElapsed] = useState(0);
-    const [events, setEvents] = useState<{ time: number; msg: string; type: string }[]>([]);
-    const timerRef = useRef<any>(null);
-
-    const tripTime = calcTripTime(faultCurrent, pickup51, tms, curveType);
-
-    const startFault = () => {
-        if (faultCurrent <= 0) return;
-        setRunning(true); setElapsed(0); setPhase('DETECTING');
-        setEvents([{ time: 0, msg: `⚡ Fault injected: ${faultCurrent}A`, type: 'fault' }]);
-
-        if (faultCurrent < pickup51) {
-            setPhase('NO_PICKUP');
-            setEvents(prev => [{ time: 0, msg: `Current ${faultCurrent}A < Pickup ${pickup51}A — No operation`, type: 'info' }, ...prev]);
-            setRunning(false);
-            return;
-        }
-
-        const is50Trip = faultCurrent >= pickup50;
-        const t51 = calcTripTime(faultCurrent, pickup51, tms, curveType) || 999;
-        const opTime = is50Trip ? 0.05 : t51; // 50 trips in ~50ms
-
-        let step = 0;
-        timerRef.current = setInterval(() => {
-            step++;
-            const t = step * 0.01;
-            setElapsed(t);
-
-            if (is50Trip && step === 3) {
-                setEvents(prev => [{ time: t, msg: `🔴 ELEMENT 50 INSTANTANEOUS TRIP at ${faultCurrent}A (> ${pickup50}A)`, type: 'trip' }, ...prev]);
-            }
-
-            if (!is50Trip && step === 5) {
-                setPhase('51_TIMING');
-                setEvents(prev => [{ time: t, msg: `⏱ Element 51 timing: ${curveType} curve, TMS=${tms}`, type: 'info' }, ...prev]);
-            }
-
-            if (t >= opTime) {
-                setPhase(is50Trip ? '50_TRIP' : '51_TRIP');
-                setEvents(prev => [{
-                    time: t,
-                    msg: is50Trip
-                        ? `✅ 50 Trip in ${(opTime * 1000).toFixed(0)}ms (instantaneous)`
-                        : `✅ 51 Trip in ${opTime.toFixed(3)}s (${IEC_CURVES[curveType]?.label})`,
-                    type: 'success'
-                }, ...prev]);
-                setRunning(false);
-                clearInterval(timerRef.current);
-            }
-        }, 10);
+// ============================== CUSTOM HOOKS ==============================
+// Smooths out fast value changes for UI (like sliders dragging)
+const useSmoothedValue = (value, speed = 0.15) => {
+  const [smoothed, setSmoothed] = useState(value);
+  useEffect(() => {
+    let animationFrameId;
+    const update = () => {
+      setSmoothed(prev => {
+        const diff = value - prev;
+        if (Math.abs(diff) < 0.001) return value;
+        return prev + diff * speed;
+      });
+      animationFrameId = requestAnimationFrame(update);
     };
-
-    const reset = () => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        setPhase(''); setElapsed(0); setRunning(false); setEvents([]);
-    };
-
-    const copyShareLink = () => {
-        const state = { pickup51, tms, curveType, pickup50, faultCurrent };
-        const str = btoa(JSON.stringify(state));
-        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
-        alert('Simulation link copied!');
-    };
-
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const s = params.get('s');
-        if (s) { try { const st = JSON.parse(atob(s)); if (st.pickup51) setPickup51(st.pickup51); if (st.tms) setTms(st.tms); if (st.curveType) setCurveType(st.curveType); if (st.pickup50) setPickup50(st.pickup50); if (st.faultCurrent) setFaultCurrent(st.faultCurrent); } catch (e) {} }
-    }, []);
-
-    // Dispatch live state for theory diagrams
-    useEffect(() => {
-        const event = new CustomEvent('live-state-overcurrent', {
-            detail: { 
-                current: faultCurrent, 
-                tripTime: tripTime,
-                multiple: pickup51 > 0 ? faultCurrent / pickup51 : 0
-            }
-        });
-        window.dispatchEvent(event);
-    }, [faultCurrent, tripTime, pickup51]);
-
-    return (
-        <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
-            {/* Config */}
-            <div className={`rounded-2xl border p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-lg"><Settings className="w-5 h-5 text-blue-500 inline mr-2" />Relay Settings</h3>
-                    <button onClick={copyShareLink} className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold"><Share2 className="w-3 h-3" />Share</button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Slider label="51 Pickup" unit="A" min={50} max={2000} step={10} value={pickup51} onChange={e => setPickup51(+e.target.value)} color="blue" disabled={running} />
-                    <Slider label="TMS" min={0.05} max={1.5} step={0.01} value={tms} onChange={e => setTms(+e.target.value)} color="blue" disabled={running} />
-                    <div><label className="text-xs font-bold uppercase opacity-60 mb-1 block">Curve Type</label><select value={curveType} onChange={e => setCurveType(e.target.value)} className={`w-full p-2 h-9 rounded-lg border text-sm ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} disabled={running}>{Object.entries(IEC_CURVES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></div>
-                    <Slider label="50 Instantaneous" unit="A" min={500} max={20000} step={100} value={pickup50} onChange={e => setPickup50(+e.target.value)} color="red" disabled={running} />
-                </div>
-                <div className="mt-8 flex items-center gap-6">
-                    <div className="flex-1">
-                        <Slider label="Injected Fault Current" unit="A" min={0} max={25000} step={50} value={faultCurrent} onChange={e => setFaultCurrent(+e.target.value)} color="amber" disabled={running} />
-                    </div>
-                    <input type="number" min="0" max="50000" step="50" value={faultCurrent} onChange={e => setFaultCurrent(Math.min(50000, Math.max(0, +e.target.value)))} className={`w-28 p-2 rounded-lg border text-sm font-mono text-center ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} disabled={running} />
-                </div>
-                <div className="flex gap-3 mt-4">
-                    <button onClick={startFault} disabled={running || faultCurrent <= 0} className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Zap className="w-4 h-4" />Inject Fault</button>
-                    <button onClick={reset} className={`px-6 py-2.5 rounded-xl font-bold text-sm ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-200'}`}><RotateCcw className="w-4 h-4 inline mr-1" />Reset</button>
-                </div>
-            </div>
-
-            {/* TCC Canvas */}
-            <div className={`rounded-2xl border p-4 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <h3 className="font-bold mb-3 text-sm"><TrendingUp className="w-4 h-4 text-blue-500 inline mr-2" />Time-Current Characteristic (Log-Log)</h3>
-                <TCCCanvas isDark={isDark} pickup51={pickup51} tms={tms} curveType={curveType} pickup50={pickup50} faultCurrent={faultCurrent} tripTime={tripTime} />
-            </div>
-
-            {/* Status & Events */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className={`rounded-2xl border p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <h3 className="font-bold mb-3"><Activity className="w-4 h-4 text-blue-500 inline mr-2" />Relay Status</h3>
-                    {[
-                        { l: 'State', v: phase || 'IDLE', c: phase.includes('TRIP') ? 'text-red-500' : phase === 'NO_PICKUP' ? 'text-amber-500' : '' },
-                        { l: 'Elapsed', v: `${(elapsed * 1000).toFixed(0)}ms` },
-                        { l: '51 Pickup', v: `${pickup51}A` },
-                        { l: '50 Pickup', v: `${pickup50}A` },
-                        { l: 'Expected 51 Time', v: tripTime ? `${tripTime.toFixed(3)}s` : '—' },
-                        { l: 'Current Multiple', v: faultCurrent > 0 ? `${(faultCurrent / pickup51).toFixed(2)}× Ip` : '—' },
-                    ].map(r => (<div key={r.l} className="flex justify-between text-sm py-0.5"><span className="opacity-60">{r.l}</span><span className={`font-mono font-bold ${r.c || ''}`}>{r.v}</span></div>))}
-                </div>
-                <div className={`rounded-2xl border p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <h3 className="font-bold mb-3"><ShieldCheck className="w-4 h-4 text-blue-500 inline mr-2" />Event Log</h3>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {events.length === 0 && <p className="text-sm opacity-40 italic">Set fault current and click Inject Fault.</p>}
-                        <AnimatePresence>
-                            {events.map((e, i) => (
-                                <motion.div 
-                                    key={e.msg + i}
-                                    initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                                    animate={{ opacity: 1, height: 'auto', marginBottom: 8 }}
-                                    className={`text-xs p-2.5 rounded-lg border ${e.type === 'trip' ? 'border-red-500/30 bg-red-500/10' : e.type === 'success' ? 'border-emerald-500/20 bg-emerald-500/5' : e.type === 'fault' ? 'border-amber-500/20 bg-amber-500/5' : 'border-blue-500/20 bg-blue-500/5'}`}
-                                >
-                                    <span className="font-mono opacity-60">[{(e.time * 1000).toFixed(0)}ms]</span> <span className="font-bold">{e.msg}</span>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+    update();
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [value, speed]);
+  return smoothed;
 };
 
-// ============================== GUIDE ==============================
-const GuideModule = ({ isDark }: { isDark: boolean }) => (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-        <div className="flex items-center gap-3 mb-6"><div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl"><HelpCircle className="w-6 h-6 text-blue-500" /></div><div><h2 className="text-2xl font-black">User Guide</h2><p className="text-sm opacity-60">Overcurrent Protection (50/51)</p></div></div>
-        {[
-            { s: '1', t: 'Set 51 Pickup & TMS', d: 'The pickup (Ip) should be set 1.2-1.3× the maximum load current. The TMS adjusts the curve vertically — higher TMS means slower operation.' },
-            { s: '2', t: 'Choose Curve Type', d: 'SI for general use, VI for feeders with variable fault levels, EI for transformer/motor protection where fast clearance at high currents is critical.' },
-            { s: '3', t: 'Set 50 Instantaneous', d: 'Set above the maximum through-fault current (120-130% of IF at remote bus) to ensure instantaneous operation only for close-in faults.' },
-            { s: '4', t: 'Inject Fault Current', d: 'Use the slider or type a value. Watch the operating point on the TCC curve and observe whether 50 or 51 operates first.' },
-            { s: '5', t: 'Evaluate Coordination', d: 'Adjust TMS and pickup to achieve proper grading (CTI ≥ 0.3s) between upstream and downstream devices.' },
-        ].map(i => (<div key={i.s} className={`flex gap-4 p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}><div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-black shrink-0">{i.s}</div><div><h4 className="font-bold">{i.t}</h4><p className="text-sm opacity-70 mt-1">{i.d}</p></div></div>))}
-        <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-            <h4 className="font-bold mb-2 text-amber-500"><AlertTriangle className="w-4 h-4 inline mr-1" />Standards</h4>
-            <p className="text-sm opacity-80">Modeled per <strong>IEC 60255-151</strong> (Time-Current Characteristics) and <strong>IEEE C37.112</strong> (Inverse-Time Relay Standard).</p>
-        </div>
+// ============================== UI COMPONENTS ==============================
+const Slider = ({ label, unit = '', min, max, step, value, onChange, color, disabled }) => {
+  const colorClasses = {
+    blue: 'accent-sky-500 focus:ring-sky-500',
+    red: 'accent-red-500 focus:ring-red-500',
+    amber: 'accent-amber-500 focus:ring-amber-500',
+  };
+
+  return (
+    <div className={`flex flex-col space-y-2 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className="flex justify-between items-center">
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</label>
+        <span className="font-mono text-sm font-bold text-white bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-md shadow-inner">
+          {value}{unit}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className={`w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer ${colorClasses[color]}`}
+      />
     </div>
-);
+  );
+};
+
+// ============================== SVG TCC CHART ==============================
+const TCCChart = ({ pickup51, tms, curveType, pickup50, faultCurrent, tripTime }) => {
+  const width = 600;
+  const height = 400;
+  const padding = { top: 20, right: 30, bottom: 40, left: 50 };
+  const innerWidth = width - padding.left - padding.right;
+  const innerHeight = height - padding.top - padding.bottom;
+
+  // Log Scale Bounds
+  const minI = 0.5, maxI = 100; // Multiples of Ip
+  const minT = 0.01, maxT = 100; // Seconds
+
+  const logMinI = Math.log10(minI), logMaxI = Math.log10(maxI);
+  const logMinT = Math.log10(minT), logMaxT = Math.log10(maxT);
+
+  const mapX = (I) => padding.left + ((Math.log10(I) - logMinI) / (logMaxI - logMinI)) * innerWidth;
+  const mapY = (T) => padding.top + innerHeight - ((Math.log10(T) - logMinT) / (logMaxT - logMinT)) * innerHeight;
+
+  // Minor and Major Grid arrays for professional TCC paper look
+  const minorX = [0.6, 0.7, 0.8, 0.9, 2, 3, 4, 5, 6, 7, 8, 9, 20, 30, 40, 50, 60, 70, 80, 90];
+  const majorX = [1, 10, 100];
+  const minorY = [0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 2, 3, 4, 5, 6, 7, 8, 9, 20, 30, 40, 50, 60, 70, 80, 90];
+  const majorY = [0.01, 0.1, 1, 10, 100];
+
+  // Generate path for 51 Curve
+  const curvePath = useMemo(() => {
+    let path = '';
+    let first = true;
+    for (let m = 1.01; m <= maxI; m += 0.1) {
+      const t = calcTripTime(m * pickup51, pickup51, tms, curveType);
+      if (t === null || t > maxT * 2 || t < minT / 2) continue;
+      
+      const x = mapX(m);
+      const y = Math.min(Math.max(mapY(t), padding.top), padding.top + innerHeight);
+      
+      if (first) {
+        path += `M ${x} ${y} `;
+        first = false;
+      } else {
+        path += `L ${x} ${y} `;
+      }
+    }
+    return path;
+  }, [pickup51, tms, curveType]);
+
+  const x50 = mapX(pickup50 / pickup51);
+  const mFault = faultCurrent > 0 ? faultCurrent / pickup51 : 0;
+  const xFault = mFault > 0 ? mapX(mFault) : null;
+  const yFault = tripTime ? mapY(tripTime) : null;
+
+  return (
+    <div className="w-full overflow-hidden bg-[#0a0f18] rounded-xl border border-slate-800 relative shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto drop-shadow-xl">
+        {/* Minor Grid Lines */}
+        <g className="text-slate-800/40" strokeWidth="0.5" stroke="currentColor">
+          {minorX.map(v => (
+            <line key={`mx-${v}`} x1={mapX(v)} y1={padding.top} x2={mapX(v)} y2={padding.top + innerHeight} />
+          ))}
+          {minorY.map(v => (
+            <line key={`my-${v}`} x1={padding.left} y1={mapY(v)} x2={padding.left + innerWidth} y2={mapY(v)} />
+          ))}
+        </g>
+
+        {/* Major Grid Lines */}
+        <g className="text-slate-700" strokeWidth="1" stroke="currentColor">
+          {majorX.map(v => (
+            <line key={`vx-${v}`} x1={mapX(v)} y1={padding.top} x2={mapX(v)} y2={padding.top + innerHeight} strokeDasharray={v === 1 ? "4,4" : "none"} strokeOpacity={v === 1 ? 1 : 0.6} />
+          ))}
+          {majorY.map(v => (
+            <line key={`vy-${v}`} x1={padding.left} y1={mapY(v)} x2={padding.left + innerWidth} y2={mapY(v)} strokeOpacity="0.6" />
+          ))}
+        </g>
+
+        {/* Axes */}
+        <g stroke="#475569" strokeWidth="2">
+          <line x1={padding.left} y1={padding.top + innerHeight} x2={padding.left + innerWidth} y2={padding.top + innerHeight} />
+          <line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + innerHeight} />
+        </g>
+
+        {/* Labels */}
+        <g fill="#94a3b8" fontSize="10" fontFamily="monospace" textAnchor="middle">
+          {majorX.map(v => (
+            <text key={`lx-${v}`} x={mapX(v)} y={padding.top + innerHeight + 15}>{v}</text>
+          ))}
+          {/* Highlight multiples */}
+          {[2, 5, 20, 50].map(v => (
+            <text key={`lxm-${v}`} x={mapX(v)} y={padding.top + innerHeight + 15} fontSize="8" fill="#64748b">{v}</text>
+          ))}
+          <text x={width - 20} y={padding.top + innerHeight + 15} fontWeight="bold" fill="#0ea5e9">× Ip</text>
+          
+          <g textAnchor="end">
+            {majorY.map(v => (
+              <text key={`ly-${v}`} x={padding.left - 5} y={mapY(v) + 4}>{v}s</text>
+            ))}
+          </g>
+        </g>
+
+        {/* 51 Curve with Commercial Glow */}
+        <motion.path
+          d={curvePath}
+          fill="none"
+          stroke="#0ea5e9"
+          strokeWidth="2.5"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
+          style={{ filter: 'drop-shadow(0 0 6px rgba(14, 165, 233, 0.8))' }}
+        />
+
+        {/* 50 Instantaneous Line */}
+        {x50 >= padding.left && x50 <= padding.left + innerWidth && (
+          <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+            <line x1={x50} y1={padding.top} x2={x50} y2={padding.top + innerHeight} stroke="#ef4444" strokeWidth="2" strokeDasharray="6,4" />
+            <rect x={x50 - 28} y={padding.top + 8} width="56" height="18" rx="4" fill="#ef4444" opacity="0.9" />
+            <text x={x50} y={padding.top + 20} fill="white" fontSize="9" fontWeight="bold" textAnchor="middle" letterSpacing="1">50 INST</text>
+          </motion.g>
+        )}
+
+        {/* Operating Point & Crosshairs */}
+        {xFault && xFault >= padding.left && xFault <= padding.left + innerWidth && (
+          <motion.g
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", damping: 15 }}
+          >
+            {/* Guide lines to operating point */}
+            {yFault && (
+              <>
+                <line x1={padding.left} y1={yFault} x2={xFault} y2={yFault} stroke="#f59e0b" strokeWidth="1" strokeDasharray="3,3" opacity="0.8" />
+                <line x1={xFault} y1={padding.top + innerHeight} x2={xFault} y2={yFault} stroke="#f59e0b" strokeWidth="1" strokeDasharray="3,3" opacity="0.8" />
+                
+                {/* Glowing Dot - Commercial Style */}
+                <circle cx={xFault} cy={yFault} r="5" fill="#0f172a" stroke={faultCurrent >= pickup50 ? "#ef4444" : "#f59e0b"} strokeWidth="3" />
+                <circle cx={xFault} cy={yFault} r="14" fill={faultCurrent >= pickup50 ? "#ef4444" : "#f59e0b"} opacity="0.25" className="animate-ping" />
+                
+                {/* Tooltip near the point */}
+                <rect x={xFault + 10} y={yFault - 35} width="85" height="30" rx="4" fill="#0f172a" stroke="#334155" opacity="0.9" />
+                <text x={xFault + 15} y={yFault - 22} fill="#94a3b8" fontSize="9" fontFamily="monospace">t: <tspan fill="#fff" fontWeight="bold">{tripTime.toFixed(3)}s</tspan></text>
+                <text x={xFault + 15} y={yFault - 10} fill="#94a3b8" fontSize="9" fontFamily="monospace">I: <tspan fill="#fff" fontWeight="bold">{mFault.toFixed(1)}x</tspan></text>
+              </>
+            )}
+            {!yFault && (
+              <circle cx={xFault} cy={padding.top + innerHeight} r="6" fill="#ef4444" />
+            )}
+          </motion.g>
+        )}
+      </svg>
+      
+      {/* Legend Overlay */}
+      <div className="absolute top-4 left-16 bg-slate-900/90 backdrop-blur border border-slate-700 p-3 rounded-lg pointer-events-none shadow-lg">
+        <div className="text-[10px] font-bold text-slate-400 mb-1 tracking-wider uppercase">Active Parameters</div>
+        <div className="text-xs font-mono text-slate-200">Curve: <span className="text-sky-400 font-bold">{RELAY_CURVES[curveType]?.label || curveType}</span></div>
+        <div className="text-xs font-mono text-slate-200 mt-1">TD/TMS: <span className="text-sky-400 font-bold">{tms.toFixed(2)}</span></div>
+        <div className="text-xs font-mono text-slate-200 mt-1">51 P.U.: <span className="text-sky-400 font-bold">{pickup51.toFixed(1)} A</span></div>
+      </div>
+    </div>
+  );
+};
+
+
+// ============================== SIMULATOR MODULE ==============================
+const SimulatorModule = () => {
+  const [pickup51, setPickup51] = useState(400);
+  const sPickup51 = useSmoothedValue(pickup51);
+  const [tms, setTms] = useState(0.3);
+  const sTms = useSmoothedValue(tms);
+  const [curveType, setCurveType] = useState('IEC_SI');
+  const [pickup50, setPickup50] = useState(4000);
+  const sPickup50 = useSmoothedValue(pickup50);
+  const [faultCurrent, setFaultCurrent] = useState(0);
+  
+  const [running, setRunning] = useState(false);
+  const [breakerOpen, setBreakerOpen] = useState(false);
+  const [phase, setPhase] = useState('SYSTEM NORMAL');
+  const [elapsed, setElapsed] = useState(0);
+  const [events, setEvents] = useState([]);
+  const timerRef = useRef(null);
+
+  const tripTime = useMemo(() => calcTripTime(faultCurrent, pickup51, tms, curveType), [faultCurrent, pickup51, tms, curveType]);
+
+  // Group curves for the dropdown
+  const groupedCurves = useMemo(() => {
+    const groups = {};
+    Object.entries(RELAY_CURVES).forEach(([k, v]) => {
+      if (!groups[v.group]) groups[v.group] = [];
+      groups[v.group].push({ id: k, ...v });
+    });
+    return groups;
+  }, []);
+
+  const addEvent = (msg, type) => {
+    setEvents(prev => [{ id: Math.random(), time: elapsed, msg, type }, ...prev].slice(0, 15));
+  };
+
+  const startFault = () => {
+    if (faultCurrent <= 0) return;
+    setRunning(true);
+    setBreakerOpen(false);
+    setElapsed(0);
+    setPhase('FAULT DETECTED');
+    setEvents([{ id: Math.random(), time: 0, msg: `⚡ Fault injected: ${faultCurrent}A`, type: 'fault' }]);
+
+    if (faultCurrent < pickup51) {
+      setPhase('BELOW PICKUP');
+      addEvent(`Current ${faultCurrent}A < Pickup ${pickup51}A — No operation`, 'info');
+      setRunning(false);
+      return;
+    }
+
+    const is50Trip = faultCurrent >= pickup50;
+    const t51 = calcTripTime(faultCurrent, pickup51, tms, curveType) || 999;
+    const opTime = is50Trip ? 0.03 : t51; // 50 trips in ~30ms commercially
+
+    const startTime = performance.now();
+    
+    const updateTimer = () => {
+      const now = performance.now();
+      const currentElapsed = (now - startTime) / 1000;
+      setElapsed(currentElapsed);
+
+      if (is50Trip && currentElapsed >= 0.015 && phase !== '50_TRIP') {
+        setPhase('50_TRIP');
+        addEvent(`🔴 ANSI 50 INSTANTANEOUS TRIP SIGNAL (> ${pickup50}A)`, 'trip');
+      } else if (!is50Trip && currentElapsed >= 0.1 && phase !== '51_TIMING') {
+        setPhase('51_TIMING');
+        addEvent(`⏱ ANSI 51 timing: ${curveType.split('_')[1]} curve, Target: ${t51.toFixed(3)}s`, 'info');
+      }
+
+      if (currentElapsed >= opTime) {
+        setElapsed(opTime);
+        setPhase(is50Trip ? 'LOCKOUT (50)' : 'LOCKOUT (51)');
+        setBreakerOpen(true);
+        addEvent(`✅ Breaker 52 Open. Total clear time: ${opTime.toFixed(3)}s`, 'success');
+        setRunning(false);
+        cancelAnimationFrame(timerRef.current);
+      } else {
+        timerRef.current = requestAnimationFrame(updateTimer);
+      }
+    };
+
+    timerRef.current = requestAnimationFrame(updateTimer);
+  };
+
+  const reset = () => {
+    if (timerRef.current) cancelAnimationFrame(timerRef.current);
+    setPhase('SYSTEM NORMAL');
+    setElapsed(0);
+    setRunning(false);
+    setBreakerOpen(false);
+    setEvents([{ id: Math.random(), time: 0, msg: `System Reset. Breaker 52 Closed.`, type: 'info' }]);
+    setFaultCurrent(0);
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      
+      {/* Top Controls Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Settings Panel */}
+        <div className="lg:col-span-8 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+            <CircuitBoard size={160} />
+          </div>
+          
+          <h3 className="font-bold text-lg mb-6 flex items-center text-slate-100">
+            <Settings className="w-5 h-5 text-sky-500 mr-3" /> Relay Protection Settings
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <Slider label="51 Pickup Current (Ip)" unit="A" min={50} max={2000} step={10} value={pickup51} onChange={e => setPickup51(+e.target.value)} color="blue" disabled={running} />
+            <Slider label="Time Setting (TD/TMS)" min={0.05} max={1.5} step={0.01} value={tms} onChange={e => setTms(+e.target.value)} color="blue" disabled={running} />
+            
+            <div className="flex flex-col space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Standard & Curve Type</label>
+              <select 
+                value={curveType} 
+                onChange={e => setCurveType(e.target.value)} 
+                className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500 outline-none transition-all font-medium text-sm"
+                disabled={running}
+              >
+                {Object.entries(groupedCurves).map(([groupName, curves]) => (
+                  <optgroup key={groupName} label={groupName} className="text-slate-400 bg-slate-900">
+                    {curves.map(c => <option key={c.id} value={c.id} className="text-white">{c.label}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+
+            <Slider label="50 Instantaneous Pickup" unit="A" min={500} max={20000} step={100} value={pickup50} onChange={e => setPickup50(+e.target.value)} color="red" disabled={running} />
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-slate-800 relative z-10">
+            <div className="flex flex-col md:flex-row items-end gap-6">
+              <div className="flex-1 w-full">
+                <Slider label="Fault Current Injection" unit="A" min={0} max={25000} step={50} value={faultCurrent} onChange={e => setFaultCurrent(+e.target.value)} color="amber" disabled={running || breakerOpen} />
+              </div>
+              <div className="flex gap-3 w-full md:w-auto">
+                <motion.button 
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={startFault} 
+                  disabled={running || faultCurrent <= 0 || breakerOpen} 
+                  className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(220,38,38,0.3)] disabled:opacity-40 disabled:shadow-none flex items-center justify-center gap-2 transition-all"
+                >
+                  <Zap className="w-4 h-4" /> {running ? 'Active...' : 'Inject Fault'}
+                </motion.button>
+                <motion.button 
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={reset} 
+                  className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm transition-colors border border-slate-700 flex items-center justify-center gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" /> Reset
+                </motion.button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Industrial Status Panel */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
+          {/* Breaker Status */}
+          <div className={`p-5 rounded-2xl border flex items-center gap-4 shadow-lg transition-colors duration-500 ${breakerOpen ? 'bg-red-950/40 border-red-900/50' : 'bg-emerald-950/20 border-emerald-900/30'}`}>
+            <motion.div 
+              animate={{ rotate: breakerOpen ? 45 : 0 }}
+              className={`p-3 rounded-full ${breakerOpen ? 'bg-red-500/20 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'bg-emerald-500/20 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]'}`}
+            >
+              <Power size={28} />
+            </motion.div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">52 Circuit Breaker</div>
+              <div className={`text-2xl font-black tracking-tight ${breakerOpen ? 'text-red-500' : 'text-emerald-500'}`}>
+                {breakerOpen ? 'OPEN (TRIPPED)' : 'CLOSED (NORMAL)'}
+              </div>
+            </div>
+          </div>
+
+          {/* Relay Status */}
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex-1 flex flex-col relative overflow-hidden">
+            <div className={`absolute top-0 left-0 w-1.5 h-full ${phase.includes('LOCKOUT') ? 'bg-red-500 shadow-[0_0_20px_rgba(239,68,68,1)]' : running ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,1)] animate-pulse' : 'bg-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.5)]'}`} />
+            
+            <h3 className="font-bold text-xs text-slate-400 mb-3 uppercase tracking-widest flex items-center">
+              <Activity className="w-4 h-4 mr-2" /> Real-Time Telemetry
+            </h3>
+            
+            <div className="text-3xl font-black font-mono tracking-tight text-white mb-6 bg-slate-950 p-3 rounded-lg border border-slate-800 text-center shadow-inner">
+              {phase}
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-end border-b border-slate-800/60 pb-2">
+                <span className="text-slate-400 text-sm font-medium">Primary Current</span>
+                <span className={`font-mono text-xl font-bold ${faultCurrent >= pickup50 ? 'text-red-400' : faultCurrent >= pickup51 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {faultCurrent.toLocaleString()} <span className="text-sm">A</span>
+                </span>
+              </div>
+              <div className="flex justify-between items-end border-b border-slate-800/60 pb-2">
+                <span className="text-slate-400 text-sm font-medium">Expected Op. Time</span>
+                <span className="font-mono text-xl font-bold text-sky-400">
+                  {tripTime ? `${tripTime.toFixed(3)}s` : '∞'}
+                </span>
+              </div>
+              <div className="flex justify-between items-end">
+                <span className="text-slate-400 text-sm font-medium">Relay Timer</span>
+                <span className="font-mono text-2xl font-bold text-white">
+                  {elapsed.toFixed(3)}s
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Bottom Grid: TCC Curve & Logs */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* TCC Canvas */}
+        <div className="lg:col-span-8 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-slate-100 flex items-center">
+              <TrendingUp className="w-5 h-5 text-sky-500 mr-3" /> Time-Current Characteristic (TCC)
+            </h3>
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="w-3 h-0.5 bg-sky-500 inline-block"></span> 51 Curve
+              <span className="w-3 h-0.5 bg-red-500 inline-block ml-2 border-t border-dashed"></span> 50 Inst
+            </div>
+          </div>
+          <TCCChart 
+            pickup51={sPickup51} 
+            tms={sTms} 
+            curveType={curveType} 
+            pickup50={sPickup50} 
+            faultCurrent={faultCurrent} 
+            tripTime={tripTime} 
+          />
+        </div>
+
+        {/* Event Log */}
+        <div className="lg:col-span-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col">
+          <h3 className="font-bold mb-4 text-slate-100 flex items-center">
+            <ShieldCheck className="w-5 h-5 text-sky-500 mr-3" /> Sequence of Events (SOE)
+          </h3>
+          <div className="flex-1 bg-[#0a0f18] rounded-xl border border-slate-800 p-4 overflow-hidden relative shadow-inner">
+            {/* Scanline effect */}
+            <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:100%_4px] z-10 opacity-30"></div>
+            
+            <div className="h-full overflow-y-auto space-y-2 pr-2 relative z-20" style={{ maxHeight: '350px' }}>
+              {events.length === 0 && (
+                <div className="flex h-full items-center justify-center text-slate-600 font-mono text-sm animate-pulse">
+                  &gt; SYSTEM IDLE. WAITING FOR TRIGGER...
+                </div>
+              )}
+              <AnimatePresence>
+                {events.map((e) => (
+                  <motion.div 
+                    key={e.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`p-3 rounded bg-slate-900 border-l-2 shadow-sm ${
+                      e.type === 'trip' ? 'border-red-500 text-red-200' : 
+                      e.type === 'success' ? 'border-emerald-500 text-emerald-200' : 
+                      e.type === 'fault' ? 'border-amber-500 text-amber-200' : 
+                      'border-sky-500 text-sky-200'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-mono text-[10px] opacity-60">T + {e.time.toFixed(3)}s</span>
+                      {e.type === 'trip' && <span className="font-mono text-[10px] bg-red-500/20 text-red-400 px-1 rounded">TRIP</span>}
+                    </div>
+                    <div className="font-mono text-xs leading-relaxed">{e.msg}</div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+// ============================== THEORY & GUIDE MODULE ==============================
+const TheoryGuideModule = () => {
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+      <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-5">
+          <Book size={200} />
+        </div>
+        <h2 className="text-3xl font-black text-white mb-2 relative z-10">Overcurrent Protection Fundamentals</h2>
+        <p className="text-slate-400 text-lg relative z-10">ANSI 50/51 Elements & IEEE / IEC Characteristics</p>
+
+        <div className="mt-8 space-y-6 relative z-10">
+          <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 backdrop-blur-sm">
+            <h3 className="text-xl font-bold text-sky-400 mb-3 flex items-center"><Zap className="w-5 h-5 mr-2"/> Element 51 (Time Overcurrent)</h3>
+            <p className="text-slate-300 leading-relaxed mb-4">
+              Provides time-delayed tripping. The delay is inversely proportional to the fault current magnitude. Commercial relays implement standards like <strong>IEEE C37.112</strong> and <strong>IEC 60255-151</strong> mathematically:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="bg-slate-950 p-4 rounded-lg font-mono text-center border border-slate-800 shadow-inner">
+                <div className="text-xs text-slate-500 mb-1 tracking-widest">IEC FORMULA</div>
+                <div className="text-amber-400 text-sm">t = TMS × [ A / ((I/I<sub className="text-[10px]">p</sub>)<sup>P</sup> - 1) + B ]</div>
+              </div>
+              <div className="bg-slate-950 p-4 rounded-lg font-mono text-center border border-slate-800 shadow-inner">
+                <div className="text-xs text-slate-500 mb-1 tracking-widest">IEEE FORMULA</div>
+                <div className="text-amber-400 text-sm">t = TD × [ A / ((I/I<sub className="text-[10px]">p</sub>)<sup>P</sup> - 1) + B ]</div>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm text-slate-300 list-disc list-inside">
+              <li><strong>Standard/Moderately Inverse:</strong> General applications, backup protection.</li>
+              <li><strong>Very Inverse (VI):</strong> Networks with large fault current variations between near and far faults.</li>
+              <li><strong>Extremely Inverse (EI):</strong> Steepest curve. Best for coordinating with fuses and protecting equipment with severe thermal limits (I²t) like motors and transformers.</li>
+            </ul>
+          </div>
+
+          <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 backdrop-blur-sm">
+            <h3 className="text-xl font-bold text-red-400 mb-3 flex items-center"><AlertTriangle className="w-5 h-5 mr-2"/> Element 50 (Instantaneous)</h3>
+            <p className="text-slate-300 leading-relaxed">
+              Operates with no intentional time delay (typically &lt;30ms in modern digital relays) when the current exceeds a high setpoint. Usually set above the maximum asymmetrical through-fault current to ensure it only trips for close-in, severe faults inside the protected zone.
+            </p>
+          </div>
+
+          <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 backdrop-blur-sm">
+            <h3 className="text-xl font-bold text-emerald-400 mb-3 flex items-center"><Activity className="w-5 h-5 mr-2"/> Grading & Coordination</h3>
+            <p className="text-slate-300 leading-relaxed">
+              Relays in series must be coordinated. The downstream relay (closest to fault) must clear before the upstream relay. The <strong>Coordination Time Interval (CTI)</strong> is typically 0.2s to 0.4s for digital relays, accounting for breaker clearing time (approx 50ms) and safety margins.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ============================== QUIZ MODULE ==============================
-const QuizModule = ({ isDark }: { isDark: boolean }) => {
-    const [level, setLevel] = useState<'easy' | 'medium' | 'expert'>('easy');
-    const [cur, setCur] = useState(0); const [score, setScore] = useState(0);
-    const [sel, setSel] = useState<number | null>(null); const [fin, setFin] = useState(false);
-    const qs = QUIZ_DATA[level]; const q = qs[cur];
-    const pick = (i: number) => { if (sel !== null) return; setSel(i); if (i === q.ans) setScore(p => p + 1); setTimeout(() => { if (cur + 1 >= qs.length) setFin(true); else { setCur(p => p + 1); setSel(null); } }, 2500); };
-    const rst = () => { setCur(0); setScore(0); setSel(null); setFin(false); };
-    return (
-        <div className="max-w-3xl mx-auto p-6 space-y-6">
-            <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl"><Award className="w-6 h-6 text-purple-500" /></div><div><h2 className="text-2xl font-black">Quiz</h2></div></div>
-            <div className={`flex rounded-xl border overflow-hidden ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>{(['easy', 'medium', 'expert'] as const).map(l => (<button key={l} onClick={() => { setLevel(l); rst(); }} className={`flex-1 py-3 text-sm font-bold uppercase ${level === l ? (l === 'easy' ? 'bg-emerald-600 text-white' : l === 'medium' ? 'bg-amber-600 text-white' : 'bg-red-600 text-white') : isDark ? 'bg-slate-900 text-slate-400' : 'bg-slate-50 text-slate-600'}`}>{l}</button>))}</div>
-            {fin ? (<div className={`text-center p-8 rounded-2xl border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}><div className="text-5xl mb-4">{score >= 4 ? '🏆' : '📚'}</div><div className="text-3xl font-black mb-2">{score}/{qs.length}</div><button onClick={rst} className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm">Retry</button></div>) : (
-                <div className={`p-6 rounded-2xl border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <div className="flex justify-between mb-4"><span className="text-xs opacity-40">Q{cur + 1}/{qs.length}</span><span className="text-xs text-emerald-500">Score: {score}</span></div>
-                    <h3 className="text-lg font-bold mb-6">{q.q}</h3>
-                    <div className="space-y-3">{q.opts.map((o, i) => (<button key={i} onClick={() => pick(i)} className={`w-full text-left p-4 rounded-xl border text-sm ${sel === null ? isDark ? 'border-slate-700 hover:border-blue-500' : 'border-slate-200 hover:border-blue-500' : i === q.ans ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500 font-bold' : sel === i ? 'border-red-500 bg-red-500/10 text-red-500' : 'opacity-40'}`}><span className="font-bold mr-2">{String.fromCharCode(65 + i)}.</span>{o}</button>))}</div>
-                    {sel !== null && <div className={`mt-4 p-4 rounded-xl text-sm ${sel === q.ans ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400'}`}><strong>{sel === q.ans ? '✅ Correct!' : '❌ Incorrect.'}</strong> {q.why}</div>}
-                </div>
-            )}
+const QUIZ_DATA = [
+  { q: "Which IEC curve provides the fastest trip for very high fault currents?", opts: ["Standard Inverse", "Very Inverse", "Extremely Inverse", "Definite Time"], ans: 2, why: "EI has an exponent of P=2.0, meaning trip time decreases dramatically with the square of the current multiple." },
+  { q: "What does ANSI 50 designate?", opts: ["Time overcurrent", "Instantaneous overcurrent", "Directional relay", "Undervoltage"], ans: 1, why: "ANSI 50 is Instantaneous Overcurrent, operating with no intentional time delay." },
+  { q: "The standard Coordination Time Interval (CTI) between two relays is typically:", opts: ["0.05s", "0.3s", "1.5s", "5.0s"], ans: 1, why: "0.3s to 0.4s is standard, allowing for breaker opening time and safety margins." },
+  { q: "The Pickup Current (Ip) of a 51 element should ideally be set:", opts: ["Below normal load", "Exactly at normal load", "1.2 to 1.3x max normal load", "Above short circuit current"], ans: 2, why: "It must be above maximum load to prevent nuisance tripping, but sensitive enough to detect minimum faults." }
+];
+
+const QuizModule = () => {
+  const [cur, setCur] = useState(0);
+  const [score, setScore] = useState(0);
+  const [sel, setSel] = useState(null);
+  const [fin, setFin] = useState(false);
+  
+  const q = QUIZ_DATA[cur];
+
+  const pick = (i) => {
+    if (sel !== null) return;
+    setSel(i);
+    if (i === q.ans) setScore(p => p + 1);
+    setTimeout(() => {
+      if (cur + 1 >= QUIZ_DATA.length) setFin(true);
+      else { setCur(p => p + 1); setSel(null); }
+    }, 2000);
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6 pb-12">
+      <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-xl">
+        <div className="flex items-center gap-4 mb-8 border-b border-slate-800 pb-4">
+          <div className="p-3 bg-purple-500/20 text-purple-400 rounded-xl"><Award size={32} /></div>
+          <div>
+            <h2 className="text-2xl font-black text-white">Knowledge Check</h2>
+            <p className="text-slate-400">Test your understanding of protective relaying</p>
+          </div>
         </div>
-    );
+
+        {fin ? (
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center py-12">
+            <div className="text-6xl mb-6">{score === QUIZ_DATA.length ? '🏆' : score > 1 ? '👍' : '📚'}</div>
+            <h3 className="text-3xl font-black text-white mb-2">Score: {score}/{QUIZ_DATA.length}</h3>
+            <button onClick={() => { setCur(0); setScore(0); setSel(null); setFin(false); }} className="mt-8 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-colors">Retake Quiz</button>
+          </motion.div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div key={cur} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <div className="flex justify-between text-sm text-slate-400 mb-6 font-bold tracking-widest uppercase">
+                <span>Question {cur + 1} of {QUIZ_DATA.length}</span>
+                <span className="text-emerald-500">Score: {score}</span>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-8 leading-relaxed">{q.q}</h3>
+              <div className="space-y-4">
+                {q.opts.map((o, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => pick(i)} 
+                    disabled={sel !== null}
+                    className={`w-full text-left p-5 rounded-xl border-2 transition-all ${
+                      sel === null ? 'border-slate-700 bg-slate-800/50 hover:border-blue-500 hover:bg-slate-800 text-slate-200' :
+                      i === q.ans ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold shadow-[0_0_15px_rgba(16,185,129,0.2)]' :
+                      sel === i ? 'border-red-500 bg-red-500/10 text-red-400' : 'border-slate-800 bg-slate-900 text-slate-600'
+                    }`}
+                  >
+                    <span className="font-mono mr-4 opacity-50">{String.fromCharCode(65 + i)}</span> {o}
+                  </button>
+                ))}
+              </div>
+              
+              <AnimatePresence>
+                {sel !== null && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    className={`mt-6 p-5 rounded-xl border ${sel === q.ans ? 'bg-emerald-950/50 border-emerald-900 text-emerald-200' : 'bg-amber-950/50 border-amber-900 text-amber-200'}`}
+                  >
+                    <div className="font-bold flex items-center mb-1">
+                      {sel === q.ans ? <CheckCircle2 className="w-5 h-5 mr-2 text-emerald-500"/> : <AlertTriangle className="w-5 h-5 mr-2 text-amber-500"/>}
+                      {sel === q.ans ? 'Correct!' : 'Incorrect.'}
+                    </div>
+                    <div className="text-sm opacity-90 ml-7">{q.why}</div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </div>
+    </div>
+  );
 };
 
-// ============================== MAIN ==============================
-export default function OvercurrentSim() {
-    const [activeTab, setActiveTab] = useState('simulator');
-    const isDark = useThemeObserver();
-    const tabs = [{ id: 'theory', label: 'Reference', icon: <Book className="w-4 h-4" /> }, { id: 'simulator', label: 'Simulator', icon: <MonitorPlay className="w-4 h-4" /> }, { id: 'guide', label: 'Guide', icon: <GraduationCap className="w-4 h-4" /> }, { id: 'quiz', label: 'Quiz', icon: <Award className="w-4 h-4" /> }];
-    return (
-        <div className={`h-screen flex flex-col font-sans ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
-            <SEO title="Overcurrent Protection (50/51)" description="Interactive overcurrent relay simulator with IEC 60255 curves, TCC diagram, 50/51 elements, and grading analysis." url="/overcurrent" />
-            <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className="flex items-center gap-3"><div className="bg-gradient-to-br from-amber-600 to-orange-600 p-2 rounded-lg text-white shadow-lg shadow-amber-500/20"><Zap className="w-5 h-5" /></div><div><h1 className={`font-black text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>OC<span className="text-amber-500">Guard</span></h1><span className="text-[10px] font-bold uppercase tracking-widest text-amber-500/80">✅ IEC 60255-151 / IEEE C37.112</span></div></div>
-                <div className={`hidden md:flex p-1 rounded-xl border mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>{tabs.map(t => (<button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold ${activeTab === t.id ? (isDark ? 'bg-slate-800 text-amber-400' : 'bg-white text-amber-600') : 'opacity-60'}`}>{t.icon}<span>{t.label}</span></button>))}</div>
-                <div />
-            </header>
-            <div className={`md:hidden fixed bottom-0 left-0 right-0 h-16 border-t z-50 flex justify-around items-center ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>{tabs.map(t => (<button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex flex-col items-center w-full h-full gap-1 justify-center text-[10px] font-bold ${activeTab === t.id ? (isDark ? 'text-amber-400' : 'text-amber-600') : 'opacity-50'}`}>{t.icon}<span>{t.label}</span></button>))}</div>
-            <div className="flex-1 overflow-hidden relative pb-16 md:pb-0">
-                {activeTab === 'theory' && <TheoryLibrary title="Overcurrent Protection Handbook" description="Time overcurrent (51), instantaneous (50), directional (67), and IEC 60255 curve standards." sections={OC_THEORY as any} />}
-                <div className={activeTab === 'simulator' ? 'block h-full overflow-y-auto' : 'hidden'}><SimulatorModule isDark={isDark} /></div>
-                {activeTab === 'guide' && <div className="h-full overflow-y-auto"><GuideModule isDark={isDark} /></div>}
-                {activeTab === 'quiz' && <div className="h-full overflow-y-auto"><QuizModule isDark={isDark} /></div>}
+// ============================== MAIN APP ==============================
+export default function App() {
+  const [activeTab, setActiveTab] = useState('simulator');
+  
+  const tabs = [
+    { id: 'simulator', label: 'Interactive Simulator', icon: <MonitorPlay className="w-4 h-4" /> },
+    { id: 'theory', label: 'Theory & Reference', icon: <Book className="w-4 h-4" /> },
+    { id: 'quiz', label: 'Knowledge Check', icon: <Award className="w-4 h-4" /> }
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
+      
+      {/* Top Navigation Bar */}
+      <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-2 rounded-xl text-white shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+              <Zap className="w-6 h-6" />
             </div>
+            <div>
+              <h1 className="font-black text-xl text-white tracking-tight">
+                OC<span className="text-amber-500">Guard</span> Pro
+              </h1>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                IEEE / IEC 60255 Compliant
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden md:flex p-1 bg-slate-950 border border-slate-800 rounded-xl">
+            {tabs.map(t => (
+              <button 
+                key={t.id} 
+                onClick={() => setActiveTab(t.id)} 
+                className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all duration-300 ${
+                  activeTab === t.id ? 'bg-slate-800 text-amber-400 shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                {t.icon}<span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold border border-slate-700 transition-colors" onClick={() => alert("Share link copied!")}>
+            <Share2 className="w-4 h-4" /> Share Config
+          </button>
         </div>
-    );
+      </header>
+
+      {/* Mobile Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900 border-t border-slate-800 z-50 flex justify-around items-center pb-safe">
+        {tabs.map(t => (
+          <button 
+            key={t.id} 
+            onClick={() => setActiveTab(t.id)} 
+            className={`flex flex-col items-center w-full h-full gap-1 justify-center text-[10px] font-bold transition-colors ${
+              activeTab === t.id ? 'text-amber-400' : 'text-slate-500'
+            }`}
+          >
+            {t.icon}<span>{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Main Content Area */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-4rem)]">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === 'simulator' && <SimulatorModule />}
+            {activeTab === 'theory' && <TheoryGuideModule />}
+            {activeTab === 'quiz' && <QuizModule />}
+          </motion.div>
+        </AnimatePresence>
+      </main>
+
+    </div>
+  );
 }

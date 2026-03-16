@@ -15,18 +15,24 @@ export function useSmoothedValues<T extends Record<string, number>>(targetValues
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
-        const controls = animate(currentRef.current, targetValues, {
-            type: "spring",
-            stiffness: 120,
-            damping: 20,
-            onUpdate: (latest) => {
-                currentRef.current = { ...latest } as T;
-                setCurrentValues({ ...latest } as T);
-            }
+        const keys = Object.keys(targetValues);
+        const controls: any[] = [];
+
+        keys.forEach(key => {
+            const ctrl = animate(currentRef.current[key as keyof T] as any, targetValues[key] as any, {
+                type: "spring",
+                stiffness: 120,
+                damping: 20,
+                onUpdate: (latest) => {
+                    const updated = { ...currentRef.current, [key]: latest };
+                    currentRef.current = updated as T;
+                    setCurrentValues(updated as T);
+                }
+            });
+            controls.push(ctrl);
         });
-        return () => controls.stop();
-        // JSON.stringify gives a stable, value-based comparison for the dep array
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
+        return () => controls.forEach(c => c.stop());
     }, [JSON.stringify(targetValues)]);
 
     return currentValues;
