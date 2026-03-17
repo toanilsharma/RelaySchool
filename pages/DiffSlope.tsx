@@ -1,36 +1,98 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { InlineMath } from 'react-katex';
-import 'katex/dist/katex.min.css';
 import {
     GitMerge, Sliders, Zap, CheckCircle2, AlertTriangle,
-    Activity, BookOpen, ShieldCheck, TrendingUp, Info,
-    Sun, Moon, RotateCcw, MonitorPlay, Terminal,
-    AlertOctagon, MousePointer2, Book, GraduationCap,
-    ArrowRight, FileText, Menu, RefreshCw, Share2
+    Activity, BookOpen, ShieldCheck, TrendingUp,
+    RotateCcw, MonitorPlay, Terminal, AlertOctagon,
+    MousePointer2, Book, GraduationCap, Share2
 } from 'lucide-react';
-import { useThemeObserver } from '../hooks/useThemeObserver';
-import { useSmoothedValues } from '../hooks/useSmoothedValues';
-import Slider from '../components/Slider';
-import SEO from "../components/SEO";
 
-// --- 1. ENGINEERING CONSTANTS ---
-const IEEE_C37_91 = "IEEE Guide for Protective Relay Applications to Power Transformers";
-const IEC_60255 = "IEC Standard for Measuring Relays and Protection Equipment";
+// --- 1. CUSTOM HOOKS ---
 
-// --- 2. THEORY & MANUAL DATA ---
+// Hook for system dark mode detection
+const useThemeObserver = () => {
+    const [isDark, setIsDark] = useState(false);
+    useEffect(() => {
+        const matchMedia = window.matchMedia('(prefers-color-scheme: dark)');
+        setIsDark(matchMedia.matches);
+        const handler = (e) => setIsDark(e.matches);
+        matchMedia.addEventListener('change', handler);
+        return () => matchMedia.removeEventListener('change', handler);
+    }, []);
+    return isDark;
+};
 
-// Helper for Info Boxes (Moved up to avoid TDZ ReferenceError)
-const BoxInfo = ({ title, color, children }: { title: string, color: string, children: React.ReactNode }) => {
-    // Maps for dynamic classes (tailored for specific colors used)
-    const colorClasses: Record<string, string> = {
+// Hook for spring-like physics interpolation
+const useSmoothedValues = (targetValues, speed = 0.15) => {
+    const [smoothed, setSmoothed] = useState(targetValues);
+    const targetRef = useRef(targetValues);
+    targetRef.current = targetValues;
+
+    useEffect(() => {
+        let frame;
+        const update = () => {
+            setSmoothed(prev => {
+                let hasChanges = false;
+                const next = { ...prev };
+                for (const key in targetRef.current) {
+                    const diff = targetRef.current[key] - prev[key];
+                    if (Math.abs(diff) > 0.001) {
+                        next[key] = prev[key] + diff * speed;
+                        hasChanges = true;
+                    } else {
+                        next[key] = targetRef.current[key];
+                    }
+                }
+                return hasChanges ? next : prev;
+            });
+            frame = requestAnimationFrame(update);
+        };
+        frame = requestAnimationFrame(update);
+        return () => cancelAnimationFrame(frame);
+    }, [speed]);
+    return smoothed;
+};
+
+// --- 2. REUSABLE UI COMPONENTS ---
+
+const Slider = ({ label, unit, min, max, step, value, onChange, color = "blue" }) => {
+    const colorMap = {
+        blue: 'accent-blue-500',
+        emerald: 'accent-emerald-500',
+        purple: 'accent-purple-500',
+        pink: 'accent-pink-500',
+        amber: 'accent-amber-500',
+    };
+
+    return (
+        <div className="mb-4 group">
+            <div className="flex justify-between items-center mb-1">
+                <label className="text-[10px] font-bold uppercase opacity-60 group-hover:opacity-100 transition-opacity">{label}</label>
+                <span className={`text-xs font-mono font-bold ${value > (max - min) * 0.8 + min ? 'text-red-500' : ''}`}>
+                    {value.toFixed(step < 1 ? 2 : 0)} {unit}
+                </span>
+            </div>
+            <input
+                type="range"
+                min={min}
+                max={max}
+                step={step}
+                value={value}
+                onChange={onChange}
+                className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer bg-slate-200 dark:bg-slate-700 ${colorMap[color] || 'accent-blue-500'}`}
+            />
+        </div>
+    );
+};
+
+const BoxInfo = ({ title, color, children }) => {
+    const colorClasses = {
         blue: "border-blue-500 bg-blue-50 dark:bg-blue-900/10 text-blue-900 dark:text-blue-100",
         emerald: "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-900 dark:text-emerald-100",
         purple: "border-purple-500 bg-purple-50 dark:bg-purple-900/10 text-purple-900 dark:text-purple-100",
         pink: "border-pink-500 bg-pink-50 dark:bg-pink-900/10 text-pink-900 dark:text-pink-100",
         amber: "border-amber-500 bg-amber-50 dark:bg-amber-900/10 text-amber-900 dark:text-amber-100",
     };
-    const defaultClass = colorClasses['blue'];
-    const activeClass = colorClasses[color] || defaultClass;
+    const activeClass = colorClasses[color] || colorClasses['blue'];
 
     return (
         <div className={`p-4 rounded-xl border-l-4 shadow-sm ${activeClass}`}>
@@ -39,6 +101,13 @@ const BoxInfo = ({ title, color, children }: { title: string, color: string, chi
         </div>
     );
 };
+
+const MathEq = ({ eq }) => (
+    <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold" dangerouslySetInnerHTML={{ __html: eq }} />
+);
+
+// --- 3. THEORY CONTENT WITH INLINE SVGS ---
+
 const THEORY_DATA = [
     {
         id: 'fundamentals',
@@ -49,34 +118,43 @@ const THEORY_DATA = [
                 <div className="p-5 rounded-xl border-l-4 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-sm">
                     <h3 className="text-lg font-bold mb-2 text-emerald-900 dark:text-emerald-100">Kirchhoff's Current Law (KCL) Applied</h3>
                     <p className="text-slate-800 dark:text-slate-200">
-                        Differential protection (ANSI 87) is the gold standard for protecting critical assets like Transformers, Generators, and Motors. 
-                        It is based on the principle of <strong>Unit Protection</strong>: checking if the current entering a zone equals the current leaving it.
+                        Differential protection (ANSI 87) is the gold standard for protecting critical assets like Transformers, Generators, and Motors.
+                        It is based on <strong>Unit Protection</strong>: ensuring the current entering a zone equals the current leaving it.
                     </p>
-                    <div className="mt-4 font-mono text-center bg-white dark:bg-black/30 p-2 rounded border border-emerald-200 dark:border-emerald-800">
-                        <InlineMath math={'\\sum I_{in} + \\sum I_{out} = 0'} />
+                    <div className="mt-4 font-mono text-center bg-white dark:bg-black/30 p-2 rounded border border-emerald-200 dark:border-emerald-800 text-lg">
+                        &Sigma; I<sub>in</sub> + &Sigma; I<sub>out</sub> = 0
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         <strong className="block text-slate-900 dark:text-white border-b pb-1">External Fault (Through Fault)</strong>
+                        <svg viewBox="0 0 200 100" className="w-full rounded-lg bg-slate-50 dark:bg-slate-900 border dark:border-slate-800">
+                            <line x1="20" y1="50" x2="180" y2="50" stroke="#64748b" strokeWidth="4" />
+                            <circle cx="100" cy="50" r="30" fill="none" stroke="#10b981" strokeWidth="2" strokeDasharray="4 4" />
+                            <path d="M 30,30 L 70,50 L 30,70 Z" fill="#3b82f6" opacity="0.8" />
+                            <path d="M 130,30 L 170,50 L 130,70 Z" fill="#3b82f6" opacity="0.8" />
+                            <text x="100" y="20" textAnchor="middle" fill="#10b981" fontSize="12" fontWeight="bold">Protected Zone</text>
+                            <text x="180" y="40" fill="#ef4444" fontSize="14" fontWeight="bold">⚡ Fault</text>
+                        </svg>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                            Current flows IN from the source and OUT to the fault location. The relay sees equal and opposite currents.
-                            <br/><strong>Result:</strong> <InlineMath math={'I_{diff} \\approx 0'} />. Relay is STABLE.
+                            Current flows IN from source and OUT to fault. Relay sees equal/opposite currents. <br /><strong>Result:</strong> <MathEq eq="I<sub>diff</sub> &approx; 0" />. STABLE.
                         </p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         <strong className="block text-slate-900 dark:text-white border-b pb-1">Internal Fault</strong>
+                        <svg viewBox="0 0 200 100" className="w-full rounded-lg bg-slate-50 dark:bg-slate-900 border dark:border-slate-800">
+                            <line x1="20" y1="50" x2="180" y2="50" stroke="#64748b" strokeWidth="4" />
+                            <circle cx="100" cy="50" r="30" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="4 4" />
+                            <path d="M 30,30 L 70,50 L 30,70 Z" fill="#3b82f6" opacity="0.8" />
+                            <path d="M 170,30 L 130,50 L 170,70 Z" fill="#3b82f6" opacity="0.8" />
+                            <text x="100" y="40" fill="#ef4444" fontSize="14" fontWeight="bold" textAnchor="middle">⚡ Fault</text>
+                        </svg>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                            Current flows IN from all sources towards the fault inside the zone.
-                            <br/><strong>Result:</strong> <InlineMath math={'I_{diff} = \\sum I_{feeders}'} />. Relay TRIPS.
+                            Current flows IN from all sources towards the fault inside the zone. <br /><strong>Result:</strong> <MathEq eq="I<sub>diff</sub> = &Sigma; I<sub>feeders</sub>" />. TRIPS.
                         </p>
                     </div>
                 </div>
-
-                <p className="text-slate-700 dark:text-slate-300">
-                    <strong>Selectivity vs. Sensitivity:</strong> Unlike Overcurrent (51) relays which must coordinate with downstream devices, Differential (87) relays are essentially "selfish". They only care about their defined zone (bounded by CTs). This allows them to trip instantaneously (<strong>&lt;30ms</strong>) without waiting for downstream breakers.
-                </p>
             </div>
         )
     },
@@ -86,40 +164,35 @@ const THEORY_DATA = [
         icon: <TrendingUp className="w-5 h-5 text-blue-500" />,
         content: (
             <div className="space-y-6 text-sm leading-relaxed">
-                <div className="space-y-4">
-                    <p className="text-slate-600 dark:text-slate-400">
-                        In an ideal world, <InlineMath math={'I_{diff}'} /> would be exactly zero for all external faults. In reality, CT errors, tap changer positions, and relay measurement inaccuracies creating a "False Differential" current.
-                        To prevent nuisance tripping, we use a <strong>Biased Differential</strong> characteristic.
-                    </p>
+                <p className="text-slate-600 dark:text-slate-400">
+                    In reality, CT errors, tap changer positions, and relay measurement inaccuracies create a "False Differential" current.
+                    To prevent nuisance tripping, we use a <strong>Biased Differential</strong> characteristic.
+                </p>
 
-                    <BoxInfo title="The Bias Equation" color="blue">
-                        <p>We define two quantities:</p>
-                        <ul className="list-disc pl-5 mt-2 space-y-1">
-                            <li><strong>Operate Current (Idiff):</strong> <InlineMath math={'|\\vec{I}_1 + \\vec{I}_2|'} /></li>
-                            <li><strong>Restraint Current (Ibias):</strong> <InlineMath math={'(|\\vec{I}_1| + |\\vec{I}_2|) / 2'} /> (Average) or sometimes <InlineMath math={'max(|\\vec{I}_1|, |\\vec{I}_2|)'} /></li>
-                        </ul>
-                        <p className="mt-2 text-xs">The relay trips if: <InlineMath math={'I_{diff} > K \\times I_{bias} + I_{pickup}'} /></p>
-                    </BoxInfo>
+                <BoxInfo title="The Bias Equation (IEC Standard)" color="blue">
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                        <li><strong>Operate Current (I<sub>diff</sub>):</strong> | I&#8407;<sub>1</sub> + I&#8407;<sub>2</sub> |</li>
+                        <li><strong>Restraint Current (I<sub>bias</sub>):</strong> ( |I&#8407;<sub>1</sub>| + |I&#8407;<sub>2</sub>| ) / 2</li>
+                    </ul>
+                    <p className="mt-2 text-xs">Trip condition: I<sub>diff</sub> &gt; K &times; I<sub>bias</sub> + I<sub>pickup</sub></p>
+                </BoxInfo>
 
-                    <h4 className="font-bold text-slate-900 dark:text-white mt-4 border-b pb-2">Why Two Slopes?</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-                            <strong className="text-blue-600 dark:text-blue-400 text-xs uppercase tracking-wider">Slope 1 (20-30%)</strong>
-                            <p className="text-xs mt-1 text-slate-600 dark:text-slate-400">
-                                Handles linear errors during normal load or mild faults.
-                                <br/>- CT Ratio Mismatch (up to 5%)
-                                <br/>- On-Load Tap Changer (OLTC) range (maybe <InlineMath math={'\\pm 10\\%'} />)
-                                <br/>- Relay ADC drift
-                            </p>
-                        </div>
-                        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-                            <strong className="text-amber-600 dark:text-amber-400 text-xs uppercase tracking-wider">Slope 2 (60-80%)</strong>
-                            <p className="text-xs mt-1 text-slate-600 dark:text-slate-400">
-                                Handles <strong>CT Saturation</strong> during massive through-faults.
-                                When one CT saturates, it stops producing secondary current, causing a huge false Idiff.
-                                By increasing the required trip ratio (Slope 2) at high currents, we ensure stability.
-                            </p>
-                        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                        <strong className="text-blue-600 dark:text-blue-400 text-xs uppercase tracking-wider">Slope 1 (Typically 20-30%)</strong>
+                        <p className="text-xs mt-1 text-slate-600 dark:text-slate-400">
+                            Handles linear errors during normal load or mild faults:
+                            <br />• CT Ratio Mismatch (up to 5%)
+                            <br />• On-Load Tap Changer (OLTC) range (&plusmn;10-15%)
+                            <br />• ADC & Measurement drift
+                        </p>
+                    </div>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                        <strong className="text-amber-600 dark:text-amber-400 text-xs uppercase tracking-wider">Slope 2 (Typically 60-80%)</strong>
+                        <p className="text-xs mt-1 text-slate-600 dark:text-slate-400">
+                            Handles <strong>CT Saturation</strong> during massive through-faults.
+                            When a CT saturates, it produces zero secondary current, causing huge false I<sub>diff</sub>. Slope 2 drastically increases restraint to maintain stability.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -133,122 +206,42 @@ const THEORY_DATA = [
             <div className="space-y-6 text-sm leading-relaxed">
                 <h4 className="font-bold text-lg text-slate-900 dark:text-white">Magnetizing Inrush</h4>
                 <p className="text-slate-600 dark:text-slate-400">
-                    When energizing a transformer, the core may be driven deep into saturation for a few seconds. This draws a large asymmetric current (up to 10-12x FLA) from the source.
-                    Since there is no load connected yet, current enters but doesn't leave.
-                    To the 87 relay, this looks purely <strong>Unknown</strong> (Internal Fault).
+                    Energizing a transformer drives the core deep into saturation. It draws a huge asymmetric current (up to 12x FLA) from the source. Since there is no load, it looks identical to an Internal Fault.
                 </p>
+
+                <svg viewBox="0 0 400 120" className="w-full rounded-lg bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 my-4">
+                    <polyline fill="none" stroke="#334155" strokeWidth="1" points="0,60 400,60" />
+                    <path fill="none" stroke="#a855f7" strokeWidth="2"
+                        d="M0,60 Q10,10 20,60 Q30,60 40,60 Q50,20 60,60 Q70,60 80,60 Q90,30 100,60 Q110,60 120,60 Q130,40 140,60"
+                        transform="scale(2, 1) translate(0, 0)" />
+                    <text x="20" y="20" fill="#a855f7" fontSize="12" fontWeight="bold">Asymmetric Inrush Waveform (Rich in 2nd Harmonic)</text>
+                </svg>
 
                 <div className="p-4 rounded-xl border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/10">
                     <h5 className="font-bold text-purple-900 dark:text-purple-100 flex items-center gap-2">
-                        <Zap className="w-4 h-4" /> Physics of Inrush
+                        <Zap className="w-4 h-4" /> Harmonic Fingerprints
                     </h5>
                     <p className="mt-2 text-xs text-purple-800 dark:text-purple-200">
-                        Inrush waveforms are non-sinusoidal. A Fourier Transform reveals they are rich in <strong>Even Harmonics</strong>, specifically the <strong>2nd Harmonic (100Hz/120Hz)</strong>.
-                        <br/><br/>
-                        <strong>Identification:</strong> If <InlineMath math={'I_{2nd}/I_{1st} > 15\\%'} />, it's Inrush. Block the trip!
-                        <br/>
-                        <strong>Faults:</strong> Internal faults are sinusoidal (Odd Harmonics only). <InlineMath math={'I_{2nd} \\approx 0'} />. Trip allowed.
+                        Inrush waveforms are heavily distorted. A Fourier Transform reveals high <strong>Even Harmonics</strong>, specifically the <strong>2nd Harmonic (100Hz/120Hz)</strong>.
+                        <br /><br />
+                        <strong>Identification:</strong> If I<sub>2nd</sub> / I<sub>1st</sub> &gt; 15%, it's Inrush. <strong>Block the trip!</strong>
+                        <br />
+                        <strong>Faults:</strong> True faults are sinusoidal (Odd Harmonics only). I<sub>2nd</sub> &approx; 0. Trip allowed.
                     </p>
-                </div>
-
-                <div className="mt-6">
-                    <h4 className="font-bold text-slate-900 dark:text-white mb-2">Other Harmonics</h4>
-                    <ul className="space-y-2 text-xs">
-                        <li className="flex gap-2">
-                            <span className="font-bold bg-amber-100 text-amber-800 px-1 rounded">5th Harmonic</span>
-                            <span className="text-slate-600 dark:text-slate-400">
-                                Caused by <strong>Overexcitation (V/Hz)</strong>. The core is saturated due to high voltage or low frequency.
-                                The relay should trip (or alarm) but usually on a separate "Volts/Hz" (24) element. Some 87 relays block on 5th harmonic to prevent misoperation.
-                            </span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'ct_reqs',
-        title: "4. CT Selection & Knee Point",
-        icon: <Sliders className="w-5 h-5 text-pink-500" />,
-        content: (
-            <div className="space-y-6 text-sm leading-relaxed">
-                <p className="text-slate-600 dark:text-slate-400">
-                    Differential protection puts the highest demand on Current Transformers. They must not saturate for external faults (to ensure stability) and must perform reasonably well for internal faults (to ensure speed).
-                </p>
-
-                <BoxInfo title="Dimensioning Class X (IEC 60044-1 / 61869-2)" color="pink">
-                    <p>For high-impedance differential schemes or strict low-impedance requirements, we calculate the required Knee Point Voltage <InlineMath math={'(V_k)'} />.</p>
-                    <div className="font-mono text-center my-2 p-2 bg-white dark:bg-black/20 rounded">
-                        <InlineMath math={'V_k \\ge K \\times I_{f,max} (R_{ct} + 2 R_{lead})'} />
-                    </div>
-                    <ul className="list-disc pl-5 mt-2 space-y-1 text-xs">
-                        <li><strong>K:</strong> Transient dimensioning factor. Typically 2.0 to account for DC offset.</li>
-                        <li><strong>If,max:</strong> Maximum through-fault current (external fault).</li>
-                        <li><strong>Rct:</strong> Internal resistance of the CT secondary winding.</li>
-                    </ul>
-                </BoxInfo>
-
-                <div className="mt-4">
-                    <h5 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-2">Common Pitfalls</h5>
-                    <ul className="space-y-2 text-slate-600 dark:text-slate-400 text-xs">
-                        <li>• <strong>Lead Burden:</strong> Using 2.5mm² wire instead of 4mm² or 6mm² can double <InlineMath math={'R_{lead}'} />, causing saturation.</li>
-                        <li>• <strong>Remanence:</strong> If a fault is cleared at zero-crossing (max flux), the CT core retains magnetic flux ("memory"). The next fault might saturate it instantly. Solution: Gapped cores (class TPZ/PR).</li>
-                    </ul>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: 'standards',
-        title: "5. Testing & Commissioning",
-        icon: <BookOpen className="w-5 h-5 text-amber-500" />,
-        content: (
-            <div className="space-y-6 text-sm leading-relaxed">
-                <h4 className="font-bold text-lg text-slate-900 dark:text-white">The Stability Test</h4>
-                <p className="text-slate-600 dark:text-slate-400">
-                    The most critical test for any differential scheme. You must prove that for an external fault (load current), the relay sees ZERO differential current.
-                </p>
-
-                <div className="space-y-4 my-4">
-                    <div className="p-3 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-                        <strong className="block text-slate-900 dark:text-white mb-1">Step 1: Primary Injection</strong>
-                        <p className="text-xs text-slate-500">
-                            Apply low voltage (415V) to the HV side of the transformer with LV shorted. This circulates typically 5-10% of nominal current.
-                        </p>
-                    </div>
-                    <div className="p-3 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-                        <strong className="block text-slate-900 dark:text-white mb-1">Step 2: Measure Spill Current</strong>
-                        <p className="text-xs text-slate-500">
-                            Connect an ammeter in the diff circuit. It should read nearly 0mA.
-                            <br/>
-                            <strong>If it reads <InlineMath math={'2 \\times I_{load}'} />:</strong> One CT polarity is reversed! This is a classic commissioning error.
-                        </p>
-                    </div>
-                    <div className="p-3 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
-                        <strong className="block text-slate-900 dark:text-white mb-1">Step 3: Slope Verification</strong>
-                        <p className="text-xs text-slate-500">
-                            Using a secondary injection kit (Omicron/Doble), inject I1 and I2 at various angles to trace the Slope 1 and Slope 2 characteristic.
-                            <br/>
-                            Reference <strong>IEEE C37.91 Clause 8</strong> for specific test points.
-                        </p>
-                    </div>
                 </div>
             </div>
         )
     }
 ];
 
+// --- 4. SUB-MODULES ---
 
-
-// --- 3. SUB-COMPONENTS ---
-
-const TheoryModule = ({ isDark }: { isDark: boolean }) => {
+const TheoryModule = ({ isDark }) => {
     const [activeSection, setActiveSection] = useState(THEORY_DATA[0].id);
     const content = THEORY_DATA.find(d => d.id === activeSection);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-12 h-full">
-            {/* Sidebar */}
             <div className={`md:col-span-4 lg:col-span-3 border-r overflow-y-auto ${isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
                 <div className="p-4">
                     <h2 className={`text-xs font-bold uppercase tracking-widest mb-4 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Table of Contents</h2>
@@ -269,8 +262,6 @@ const TheoryModule = ({ isDark }: { isDark: boolean }) => {
                     </div>
                 </div>
             </div>
-
-            {/* Content */}
             <div className={`md:col-span-8 lg:col-span-9 overflow-y-auto p-6 md:p-10 ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
                 <div className="max-w-3xl mx-auto">
                     <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
@@ -288,29 +279,32 @@ const TheoryModule = ({ isDark }: { isDark: boolean }) => {
     );
 };
 
-const VectorPreview = ({ i1, i2, ang, isDark }: { i1: number, i2: number, ang: number, isDark: boolean }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+const VectorPreview = ({ i1, i2, ang, isDark }) => {
+    const canvasRef = useRef(null);
+    const containerRef = useRef(null);
 
     useEffect(() => {
         const cvs = canvasRef.current;
         const container = containerRef.current;
         if (!cvs || !container) return;
 
-        // Responsive Sizing
-        cvs.width = container.clientWidth;
-        cvs.height = 150; // Fixed height for vector view
+        const dpr = window.devicePixelRatio || 1;
+        const w = container.clientWidth;
+        const h = 150;
+
+        cvs.width = w * dpr;
+        cvs.height = h * dpr;
+        cvs.style.width = `${w}px`;
+        cvs.style.height = `${h}px`;
 
         const ctx = cvs.getContext('2d');
         if (!ctx) return;
+        ctx.scale(dpr, dpr);
 
-        const w = cvs.width;
-        const h = cvs.height;
         const cx = w / 2;
         const cy = h / 2;
-        const scale = Math.min(w, h) / 10; // Dynamic scale
+        const scale = Math.min(w, h) / 12;
 
-        // Colors
         const gridColor = isDark ? '#334155' : '#e2e8f0';
         const i1Color = '#3b82f6';
         const i2Color = '#f59e0b';
@@ -318,48 +312,46 @@ const VectorPreview = ({ i1, i2, ang, isDark }: { i1: number, i2: number, ang: n
 
         ctx.clearRect(0, 0, w, h);
 
-        // Grid
         ctx.strokeStyle = gridColor;
         ctx.lineWidth = 0.5;
         ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
 
-        // I1 (Reference)
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + i1 * scale, cy);
-        ctx.strokeStyle = i1Color;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        ctx.fillStyle = i1Color;
-        ctx.beginPath(); ctx.arc(cx + i1 * scale, cy, 3, 0, 2 * Math.PI); ctx.fill();
+        const drawArrow = (fromX, fromY, toX, toY, color, isDashed = false) => {
+            const headlen = 8;
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash(isDashed ? [5, 5] : []);
+            ctx.stroke();
 
-        // I2 (Rotated)
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.lineTo(toX, toY);
+            ctx.fillStyle = color;
+            ctx.fill();
+        };
+
+        drawArrow(cx, cy, cx + i1 * scale, cy, i1Color);
         const angRad = ang * (Math.PI / 180);
         const i2x = cx + i2 * scale * Math.cos(angRad);
         const i2y = cy - i2 * scale * Math.sin(angRad);
+        drawArrow(cx, cy, i2x, i2y, i2Color);
 
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(i2x, i2y);
-        ctx.strokeStyle = i2Color;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        ctx.fillStyle = i2Color;
-        ctx.beginPath(); ctx.arc(i2x, i2y, 3, 0, 2 * Math.PI); ctx.fill();
-
-        // Idiff (Vector Sum)
         const diffX = i1 * scale + i2 * scale * Math.cos(angRad);
         const diffY = - (i2 * scale * Math.sin(angRad));
+        drawArrow(cx, cy, cx + diffX, cy + diffY, diffColor, true);
 
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + diffX, cy + diffY);
-        ctx.strokeStyle = diffColor;
-        ctx.setLineDash([4, 2]);
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.setLineDash([]);
+        // Labels
+        ctx.font = '10px monospace';
+        ctx.fillStyle = i1Color; ctx.fillText('I1', cx + i1 * scale + 5, cy - 5);
+        ctx.fillStyle = i2Color; ctx.fillText('I2', i2x + 5, i2y - 5);
+        ctx.fillStyle = diffColor; ctx.fillText('Idiff', cx + diffX + 5, cy + diffY - 5);
 
     }, [i1, i2, ang, isDark]);
 
@@ -370,24 +362,24 @@ const VectorPreview = ({ i1, i2, ang, isDark }: { i1: number, i2: number, ang: n
     );
 };
 
-const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
-    // Settings
+const SimulatorModule = ({ isDark }) => {
+    // Settings state
     const [pickup, setPickup] = useState(0.3);
     const [slope1, setSlope1] = useState(30);
     const [slope2, setSlope2] = useState(70);
     const [breakPoint, setBreakPoint] = useState(2.0);
     const [harmonicBlock, setHarmonicBlock] = useState(15);
 
-    // Injection
+    // Injection state
     const [i1Mag, setI1Mag] = useState(1.0);
     const [i2Mag, setI2Mag] = useState(1.0);
     const [angleDiff, setAngleDiff] = useState(180);
     const [injectedHarmonic, setInjectedHarmonic] = useState(0);
 
-    // Smooth values for Canvas tweening and odometers
-    const smoothed = useSmoothedValues({ pickup, slope1, slope2, breakPoint, harmonicBlock, i1Mag, i2Mag, angleDiff, injectedHarmonic });
+    // Smooth animation loop values
+    const smoothed = useSmoothedValues({ pickup, slope1, slope2, breakPoint, harmonicBlock, i1Mag, i2Mag, angleDiff, injectedHarmonic }, 0.12);
 
-    // Math
+    // Physics calculations
     const angRad = smoothed.angleDiff * (Math.PI / 180);
     const diffReal = smoothed.i1Mag + (smoothed.i2Mag * Math.cos(angRad));
     const diffImag = smoothed.i2Mag * Math.sin(angRad);
@@ -409,24 +401,22 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
     const isHarmonicBlocked = smoothed.injectedHarmonic > smoothed.harmonicBlock;
     const isTrip = isAboveCurve && !isHarmonicBlocked;
 
-    // Presets
+    // Fast Preset Scenarios
     const setInternalFault = () => { setI1Mag(3.5); setI2Mag(0.5); setAngleDiff(20); setInjectedHarmonic(2); };
     const setExternalFault = () => { setI1Mag(4.0); setI2Mag(4.0); setAngleDiff(180); setInjectedHarmonic(2); };
     const setSaturation = () => { setI1Mag(5.0); setI2Mag(3.0); setAngleDiff(160); setInjectedHarmonic(5); };
     const setInrush = () => { setI1Mag(3.0); setI2Mag(0.0); setAngleDiff(0); setInjectedHarmonic(35); };
     const setCTMismatch = () => { setI1Mag(2.0); setI2Mag(1.8); setAngleDiff(175); setInjectedHarmonic(0); };
     const setOverexcitation = () => { setI1Mag(1.5); setI2Mag(0.5); setAngleDiff(40); setInjectedHarmonic(10); };
-
-    // Reset function
     const resetValues = () => {
         setI1Mag(1.0); setI2Mag(1.0); setAngleDiff(180); setInjectedHarmonic(0);
         setPickup(0.3); setSlope1(30); setSlope2(70); setBreakPoint(2.0); setHarmonicBlock(15);
     };
 
-    // Canvas Logic
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef(null);
+    const containerRef = useRef(null);
 
+    // Share link processing
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const stateParam = params.get('s');
@@ -443,7 +433,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                 if (state.angleDiff !== undefined) setAngleDiff(state.angleDiff);
                 if (state.injectedHarmonic !== undefined) setInjectedHarmonic(state.injectedHarmonic);
             } catch (e) {
-                console.error("Failed to parse share link", e);
+                console.error("Failed to parse state", e);
             }
         }
     }, []);
@@ -452,28 +442,32 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
         const state = { pickup, slope1, slope2, breakPoint, harmonicBlock, i1Mag, i2Mag, angleDiff, injectedHarmonic };
         const str = btoa(JSON.stringify(state));
         navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?s=${str}`);
-        alert("Simulation link copied! You can share this URL to load the exact state.");
+        alert("State URL copied! You can share this to load exact parameters.");
     };
 
+    // Advanced Canvas Renderer (Retina Ready)
     useEffect(() => {
         const cvs = canvasRef.current;
         const container = containerRef.current;
         if (!cvs || !container) return;
 
+        const dpr = window.devicePixelRatio || 1;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+
+        cvs.width = w * dpr;
+        cvs.height = h * dpr;
+        cvs.style.width = `${w}px`;
+        cvs.style.height = `${h}px`;
+
         const ctx = cvs.getContext('2d');
         if (!ctx) return;
+        ctx.scale(dpr, dpr);
 
-        // Resize canvas to container width for responsiveness
-        cvs.width = container.clientWidth;
-        cvs.height = container.clientHeight;
-
-        const w = cvs.width;
-        const h = cvs.height;
-        const scale = w > 500 ? 50 : 35; // Adjust scale for mobile/desktop
+        const scale = w > 500 ? 50 : 35;
         const ox = 50;
         const oy = h - 40;
 
-        // Colors
         const bgColor = isDark ? '#0f172a' : '#ffffff';
         const gridColor = isDark ? '#334155' : '#cbd5e1';
         const axisColor = isDark ? '#94a3b8' : '#64748b';
@@ -482,17 +476,17 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, w, h);
 
-        // Fill entire area red first (Trip Zone)
-        ctx.fillStyle = isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.05)';
+        // Trip Zone Red Background
+        ctx.fillStyle = isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.05)';
         ctx.fillRect(0, 0, w, h);
 
-        // Fill under curve green (Restraint Zone)
-        ctx.fillStyle = isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)';
+        // Restraint Zone Green Background
+        ctx.fillStyle = isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.1)';
         ctx.beginPath();
         ctx.moveTo(ox, oy);
 
         const maxX_pu = (w - ox) / scale;
-        for (let xb = 0; xb <= maxX_pu; xb += 0.1) {
+        for (let xb = 0; xb <= maxX_pu; xb += 0.05) {
             let y_val = 0;
             if (xb < smoothed.breakPoint) {
                 y_val = Math.max(smoothed.pickup, s1 * xb);
@@ -506,10 +500,9 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
         ctx.lineTo(ox, oy);
         ctx.fill();
 
-        // Grid & Axes
+        // Grid Lines
         ctx.strokeStyle = gridColor;
         ctx.lineWidth = 0.5;
-        // Verticals
         for (let i = 0; i < 20; i++) {
             const x = ox + i * scale;
             if (x > w) break;
@@ -518,7 +511,6 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                 ctx.fillStyle = axisColor; ctx.font = '10px sans-serif'; ctx.fillText(i.toString(), x - 3, oy + 15);
             }
         }
-        // Horizontals
         for (let i = 0; i < 20; i++) {
             const y = oy - i * scale;
             if (y < 0) break;
@@ -528,7 +520,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
             }
         }
 
-        // Labels
+        // Axis Labels
         ctx.fillStyle = axisColor;
         ctx.font = 'bold 11px sans-serif';
         ctx.fillText("Ibias [pu]", w - 60, h - 10);
@@ -538,12 +530,12 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
         ctx.fillText("Idiff [pu]", 0, 0);
         ctx.restore();
 
-        // Characteristic Line
+        // Characteristic Line (The Curve)
         ctx.strokeStyle = curveColor;
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(ox, oy - (smoothed.pickup * scale));
-        for (let xb = 0; xb <= maxX_pu; xb += 0.1) {
+        for (let xb = 0; xb <= maxX_pu; xb += 0.05) {
             let y_val = 0;
             if (xb < smoothed.breakPoint) {
                 y_val = Math.max(smoothed.pickup, s1 * xb);
@@ -555,18 +547,18 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
         }
         ctx.stroke();
 
-        // Operating Point
+        // Operating Point logic
         const ptX = ox + ibias * scale;
         const ptY = oy - idiff * scale;
 
-        // Ghost line
+        // Ghost Path tracking origin to dot
         ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 4]);
         ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ptX, ptY); ctx.stroke();
         ctx.setLineDash([]);
 
-        // The Dot
+        // The Dot (Pulsing Effect)
         ctx.fillStyle = isTrip ? '#ef4444' : isHarmonicBlocked ? '#f59e0b' : '#10b981';
         ctx.beginPath();
         ctx.arc(ptX, ptY, 6, 0, 2 * Math.PI);
@@ -575,12 +567,11 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Annotations
+        // Curve Annotation Text
         ctx.fillStyle = curveColor;
         ctx.font = '12px sans-serif';
         const s1X = ox + (smoothed.breakPoint / 2) * scale;
         const s1Y = oy - (Math.max(smoothed.pickup, s1 * (smoothed.breakPoint / 2)) * scale) - 10;
-        // Only draw text if it fits
         if (s1X < w) ctx.fillText(`K1: ${Math.round(smoothed.slope1)}%`, s1X, s1Y);
 
         const s2X = ox + (smoothed.breakPoint + 1) * scale;
@@ -591,7 +582,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1600px] mx-auto p-4 md:p-6 pb-20">
-            {/* SETTINGS PANEL */}
+            {/* RELAY SETTINGS PANEL */}
             <div className="lg:col-span-3 space-y-6">
                 <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <div className="flex justify-between items-center mb-4">
@@ -602,76 +593,28 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                             <button onClick={copyShareLink} title="Share State" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-indigo-900 text-indigo-400' : 'hover:bg-indigo-100 text-indigo-600'}`}>
                                 <Share2 className="w-3.5 h-3.5" />
                             </button>
-                            <button onClick={resetValues} title="Reset to Defaults" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-500' : 'hover:bg-slate-100 text-slate-400'}`}>
+                            <button onClick={resetValues} title="Reset Settings" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-500' : 'hover:bg-slate-100 text-slate-400'}`}>
                                 <RotateCcw className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     </div>
 
                     <div className="space-y-5">
-                        <Slider 
-                            label="Pickup (Is1)" 
-                            unit="pu" 
-                            min={0.1} 
-                            max={1.0} 
-                            step={0.05} 
-                            value={pickup} 
-                            onChange={(e) => setPickup(Number(e.target.value))} 
-                            color="blue"
-                        />
-
-                        <Slider 
-                            label="Slope 1 (K1)" 
-                            unit="%" 
-                            min={10} 
-                            max={60} 
-                            step={5} 
-                            value={slope1} 
-                            onChange={(e) => setSlope1(Number(e.target.value))} 
-                            color="blue"
-                        />
-
-                        <Slider 
-                            label="Slope 2 (K2)" 
-                            unit="%" 
-                            min={50} 
-                            max={150} 
-                            step={5} 
-                            value={slope2} 
-                            onChange={(e) => setSlope2(Number(e.target.value))} 
-                            color="blue"
-                        />
-
-                        <Slider 
-                            label="Break Point (Is2)" 
-                            unit="pu" 
-                            min={1.0} 
-                            max={5.0} 
-                            step={0.5} 
-                            value={breakPoint} 
-                            onChange={(e) => setBreakPoint(Number(e.target.value))} 
-                            color="blue"
-                        />
-
+                        <Slider label="Pickup (Is1)" unit="pu" min={0.1} max={1.0} step={0.05} value={pickup} onChange={(e) => setPickup(Number(e.target.value))} color="blue" />
+                        <Slider label="Slope 1 (K1)" unit="%" min={10} max={60} step={5} value={slope1} onChange={(e) => setSlope1(Number(e.target.value))} color="blue" />
+                        <Slider label="Slope 2 (K2)" unit="%" min={50} max={150} step={5} value={slope2} onChange={(e) => setSlope2(Number(e.target.value))} color="blue" />
+                        <Slider label="Break Point (Is2)" unit="pu" min={1.0} max={5.0} step={0.5} value={breakPoint} onChange={(e) => setBreakPoint(Number(e.target.value))} color="blue" />
+                        
                         <div className={`pt-4 border-t ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
-                            <Slider 
-                                label="2nd Harmonic Block" 
-                                unit="%" 
-                                min={5} 
-                                max={30} 
-                                step={1} 
-                                value={harmonicBlock} 
-                                onChange={(e) => setHarmonicBlock(Number(e.target.value))} 
-                                color="amber"
-                            />
+                            <Slider label="2nd Harmonic Block" unit="%" min={5} max={30} step={1} value={harmonicBlock} onChange={(e) => setHarmonicBlock(Number(e.target.value))} color="amber" />
                         </div>
                     </div>
                 </div>
 
-                {/* Scenarios */}
+                {/* QUICK SCENARIOS */}
                 <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <h3 className={`font-bold mb-4 flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        <Zap className="w-4 h-4" /> Quick Tests
+                        <Zap className="w-4 h-4" /> Lab Scenarios
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
                         <button onClick={setInternalFault} className={`py-3 px-2 rounded-xl text-[10px] font-bold transition-all border flex flex-col items-center gap-1 ${isDark ? 'bg-red-900/20 text-red-300 border-red-900/50 hover:bg-red-900/40' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'}`}>
@@ -684,20 +627,14 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                             <Activity className="w-4 h-4" /> CT Saturation
                         </button>
                         <button onClick={setInrush} className={`py-3 px-2 rounded-xl text-[10px] font-bold transition-all border flex flex-col items-center gap-1 ${isDark ? 'bg-purple-900/20 text-purple-300 border-purple-900/50 hover:bg-purple-900/40' : 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'}`}>
-                            <TrendingUp className="w-4 h-4" /> Inrush
-                        </button>
-                        <button onClick={setCTMismatch} className={`py-3 px-2 rounded-xl text-[10px] font-bold transition-all border flex flex-col items-center gap-1 ${isDark ? 'bg-blue-900/20 text-blue-300 border-blue-900/50 hover:bg-blue-900/40' : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'}`}>
-                            <RefreshCw className="w-4 h-4" /> CT Mismatch
-                        </button>
-                        <button onClick={setOverexcitation} className={`py-3 px-2 rounded-xl text-[10px] font-bold transition-all border flex flex-col items-center gap-1 ${isDark ? 'bg-pink-900/20 text-pink-300 border-pink-900/50 hover:bg-pink-900/40' : 'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100'}`}>
-                            <Zap className="w-4 h-4" /> Overexcite
+                            <TrendingUp className="w-4 h-4" /> Magnetizing Inrush
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* GRAPH PANEL */}
-            <div ref={containerRef} className={`lg:col-span-6 rounded-2xl border p-1 flex flex-col shadow-inner relative overflow-hidden h-[400px] lg:h-[600px] ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+            {/* MAIN GRAPH CANVAS */}
+            <div ref={containerRef} className={`lg:col-span-6 rounded-2xl border p-1 flex flex-col shadow-inner relative overflow-hidden h-[450px] lg:h-[650px] ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <canvas ref={canvasRef} className={`w-full h-full rounded-xl ${isDark ? 'bg-slate-950' : 'bg-white'}`} />
 
                 <div className="absolute top-4 right-4 flex flex-col gap-2 pointer-events-none">
@@ -705,15 +642,15 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Restraint Zone
                     </div>
                     <div className={`backdrop-blur-md px-3 py-1.5 rounded-lg border text-[10px] font-bold flex items-center gap-2 shadow-sm ${isDark ? 'bg-slate-900/80 border-slate-700 text-red-400' : 'bg-white/80 border-slate-200 text-red-600'}`}>
-                        <div className="w-2 h-2 rounded-full bg-red-500"></div> Trip Zone
+                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div> Trip Zone
                     </div>
                 </div>
             </div>
 
-            {/* STATUS PANEL */}
+            {/* STATUS & INJECTION PANEL */}
             <div className="lg:col-span-3 space-y-6">
 
-                {/* Relay Decision Card */}
+                {/* Dynamic Relay Decision Card */}
                 <div className={`p-6 rounded-2xl border-l-4 flex flex-col items-center justify-center text-center transition-all duration-500 shadow-lg ${isTrip
                     ? isDark ? 'bg-red-900/10 border-red-500 text-red-400' : 'bg-red-50 border-red-500 text-red-700'
                     : isHarmonicBlocked
@@ -721,20 +658,19 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                         : isDark ? 'bg-emerald-900/10 border-emerald-500 text-emerald-400' : 'bg-emerald-50 border-emerald-500 text-emerald-700'
                     }`}>
                     <div>
-                        <div className="text-[10px] font-bold uppercase opacity-60 mb-2 tracking-widest">Relay Status</div>
+                        <div className="text-[10px] font-bold uppercase opacity-60 mb-2 tracking-widest">Relay Target Output</div>
                         <div className="text-3xl font-black mb-2 tracking-tight">{isTrip ? 'TRIP' : isHarmonicBlocked ? 'BLOCKED' : 'STABLE'}</div>
                         {isHarmonicBlocked && <div className="text-[10px] font-bold bg-amber-500/20 px-3 py-1 rounded-full border border-amber-500/30">2nd Harmonic &gt; {harmonicBlock}%</div>}
                     </div>
-                    <div className="mt-4 p-3 bg-white/5 rounded-full">
+                    <div className="mt-4 p-3 bg-white/10 rounded-full">
                         {isTrip ? <AlertTriangle className="w-8 h-8 animate-bounce" /> : isHarmonicBlocked ? <Activity className="w-8 h-8" /> : <ShieldCheck className="w-8 h-8" />}
                     </div>
-                    {/* Margin to Trip */}
                     <div className={`mt-3 text-[10px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                         Margin: {isAboveCurve ? '-' : '+'}{Math.abs(((currentTripThreshold - idiff) / currentTripThreshold) * 100).toFixed(1)}% to characteristic
                     </div>
                 </div>
 
-                {/* Injection Controls */}
+                {/* Test Injection Inputs */}
                 <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <h3 className={`font-bold mb-4 flex items-center gap-2 text-xs uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         <Terminal className="w-4 h-4" /> Current Injection
@@ -743,137 +679,92 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className={`text-[10px] font-bold opacity-60 uppercase ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>I1 Mag (pu)</label>
-                                <input type="number" min="0" max="100" step="0.1" value={i1Mag} onChange={(e) => setI1Mag(Math.min(100, Math.max(0, Number(e.target.value))))} className={`w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono font-bold ${isDark ? 'bg-slate-950 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-200 focus:border-blue-500 text-black'}`} />
+                                <input type="number" min="0" max="100" step="0.1" value={i1Mag} onChange={(e) => setI1Mag(Math.min(100, Math.max(0, Number(e.target.value))))} className={`w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono font-bold outline-none transition-colors ${isDark ? 'bg-slate-950 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-200 focus:border-blue-500 text-black'}`} />
                             </div>
                             <div>
                                 <label className={`text-[10px] font-bold opacity-60 uppercase ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>I2 Mag (pu)</label>
-                                <input type="number" min="0" max="100" step="0.1" value={i2Mag} onChange={(e) => setI2Mag(Math.min(100, Math.max(0, Number(e.target.value))))} className={`w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono font-bold ${isDark ? 'bg-slate-950 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-200 focus:border-blue-500 text-black'}`} />
+                                <input type="number" min="0" max="100" step="0.1" value={i2Mag} onChange={(e) => setI2Mag(Math.min(100, Math.max(0, Number(e.target.value))))} className={`w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono font-bold outline-none transition-colors ${isDark ? 'bg-slate-950 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-200 focus:border-blue-500 text-black'}`} />
                             </div>
                         </div>
-                        <Slider 
-                            label="Phase Angle" 
-                            unit="°" 
-                            min={0} 
-                            max={360} 
-                            step={1} 
-                            value={angleDiff} 
-                            onChange={(e) => setAngleDiff(Number(e.target.value))} 
-                            color="purple"
-                        />
-                        <Slider 
-                            label="Injected Harmonic" 
-                            unit="%" 
-                            min={0} 
-                            max={50} 
-                            step={1} 
-                            value={injectedHarmonic} 
-                            onChange={(e) => setInjectedHarmonic(Number(e.target.value))} 
-                            color="amber"
-                        />
+                        <Slider label="Phase Angle" unit="°" min={0} max={360} step={1} value={angleDiff} onChange={(e) => setAngleDiff(Number(e.target.value))} color="purple" />
+                        <Slider label="Injected Harmonic" unit="%" min={0} max={50} step={1} value={injectedHarmonic} onChange={(e) => setInjectedHarmonic(Number(e.target.value))} color="amber" />
                     </div>
 
                     <div className={`mt-4 pt-4 border-t grid grid-cols-2 gap-3 text-xs ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <div className={`p-2 rounded border ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                            <div className="opacity-50 text-[9px] uppercase font-bold">Idiff</div>
+                            <div className="opacity-50 text-[9px] uppercase font-bold">Idiff Output</div>
                             <div className={`font-mono font-bold text-lg ${isDark ? 'text-white' : 'text-black'}`}>{idiff.toFixed(2)}</div>
                         </div>
                         <div className={`p-2 rounded border ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                            <div className="opacity-50 text-[9px] uppercase font-bold">Ibias</div>
+                            <div className="opacity-50 text-[9px] uppercase font-bold">Ibias Output</div>
                             <div className={`font-mono font-bold text-lg ${isDark ? 'text-white' : 'text-black'}`}>{ibias.toFixed(2)}</div>
                         </div>
                     </div>
                 </div>
 
-                {/* Vector View */}
+                {/* Responsive Vector Preview */}
                 <div className="hidden lg:block">
-                    <h4 className={`text-[10px] font-bold uppercase mb-2 opacity-60 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Vector Diagram</h4>
+                    <h4 className={`text-[10px] font-bold uppercase mb-2 opacity-60 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Real-time Phasor View</h4>
                     <VectorPreview i1={i1Mag} i2={i2Mag} ang={angleDiff} isDark={isDark} />
                 </div>
-
-                {/* Copy Analysis */}
-                <button onClick={() => {
-                    const txt = `DiffSlope Analysis\nIdiff: ${idiff.toFixed(3)} pu | Ibias: ${ibias.toFixed(3)} pu\nStatus: ${isTrip ? 'TRIP' : isHarmonicBlocked ? 'BLOCKED' : 'STABLE'}\nSettings: K1=${slope1}%, K2=${slope2}%, Pickup=${pickup}pu, BP=${breakPoint}pu\n2nd Harmonic: ${injectedHarmonic}% (Block at ${harmonicBlock}%)`;
-                    navigator.clipboard.writeText(txt);
-                }} className="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold flex items-center justify-center gap-2 transition-colors mt-4">
-                    Copy Analysis
-                </button>
             </div>
         </div>
     );
 };
 
-const UserGuideModule = ({ isDark }: { isDark: boolean }) => {
-    return (
-        <div className={`max-w-3xl mx-auto p-8 animate-fade-in ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                <MousePointer2 className="w-6 h-6 text-blue-500" /> How to Use the Tool
-            </h2>
+const UserGuideModule = ({ isDark }) => (
+    <div className={`max-w-3xl mx-auto p-8 animate-fade-in ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+            <MousePointer2 className="w-6 h-6 text-blue-500" /> Operating Instructions
+        </h2>
 
-            <div className="space-y-8">
-                <div className={`p-6 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                    <div className="flex gap-4 mb-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0 ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'}`}>1</div>
+        <div className="space-y-8">
+            <div className={`p-6 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                {[
+                    { title: "Define Characteristic", desc: "Use the Relay Settings panel to sculpt your protection zone. Keep Slope 1 tight (30%) for sensitivity and Slope 2 loose (70%) for heavy faults." },
+                    { title: "Inject Values", desc: "Use the Current Injection panel to emulate field measurements. Modulate magnitudes and phase angle to shift the operational dot." },
+                    { title: "Analyze Response", desc: "Monitor the Canvas. If the dot breaches the blue line into the Red Zone, a Trip is asserted (unless Harmonic Blocking intervenes)." }
+                ].map((step, idx) => (
+                    <div className="flex gap-4 mb-5 last:mb-0" key={idx}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0 ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>{idx + 1}</div>
                         <div>
-                            <h3 className="font-bold text-lg">Set the Characteristic</h3>
-                            <p className="text-sm opacity-80 mt-1">
-                                Use the "Relay Settings" panel on the left to define your protection zone.
-                                Typically, Slope 1 is 30% (for linear errors) and Slope 2 is 70% (for heavy saturation).
-                            </p>
+                            <h3 className="font-bold text-lg">{step.title}</h3>
+                            <p className="text-sm opacity-80 mt-1">{step.desc}</p>
                         </div>
                     </div>
-                    <div className="flex gap-4 mb-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0 ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'}`}>2</div>
-                        <div>
-                            <h3 className="font-bold text-lg">Inject Currents</h3>
-                            <p className="text-sm opacity-80 mt-1">
-                                Use the "Current Injection" panel on the right to simulate field conditions.
-                                Adjust Magnitudes (I1, I2) and Phase Angle.
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex gap-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shrink-0 ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'}`}>3</div>
-                        <div>
-                            <h3 className="font-bold text-lg">Observe the Result</h3>
-                            <p className="text-sm opacity-80 mt-1">
-                                Watch the central graph. If the operating point (dot) crosses into the Red Zone, the relay trips.
-                                Note how Inrush (2nd Harmonic) can block a trip even in the red zone.
-                            </p>
-                        </div>
-                    </div>
+                ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <h4 className="font-bold mb-2 flex items-center gap-2 text-emerald-500"><CheckCircle2 className="w-4 h-4" /> Lab Objective</h4>
+                    <p className="text-sm opacity-80">
+                        Find the <strong>Stability Limit</strong>. Set an external fault (180&deg;) and increase currents until CT mismatch forces the operational dot towards the trip zone. Observe how Slope 2 corrects this.
+                    </p>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <h4 className="font-bold mb-2 flex items-center gap-2 text-emerald-500"><CheckCircle2 className="w-4 h-4" /> Simulation Goal</h4>
-                        <p className="text-sm opacity-80">
-                            Try to find the <strong>Stability Limit</strong>. Set an external fault (180° diff) and increase currents until CT saturation (Slope 2) is needed to prevent tripping.
-                        </p>
-                    </div>
-                    <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <h4 className="font-bold mb-2 flex items-center gap-2 text-amber-500"><AlertOctagon className="w-4 h-4" /> Safety Note</h4>
-                        <p className="text-sm opacity-80">
-                            In real systems, open-circuiting a current transformer (CT) secondary can generate lethal voltages. Always short CTs before working!
-                        </p>
-                    </div>
+                <div className={`p-5 rounded-xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <h4 className="font-bold mb-2 flex items-center gap-2 text-amber-500"><AlertOctagon className="w-4 h-4" /> Safety Notice</h4>
+                    <p className="text-sm opacity-80">
+                        In live substations, open-circuiting a Current Transformer secondary generates lethal peak voltages. Always apply shorting links before interaction.
+                    </p>
                 </div>
             </div>
         </div>
-    );
-}
+    </div>
+);
 
-// --- 4. MAIN LAYOUT ---
+// --- 5. MAIN ENTRY COMPONENT ---
 
 export default function DifferentialProtectionApp() {
     const [activeTab, setActiveTab] = useState('simulator');
     const isDark = useThemeObserver();
 
+    useEffect(() => {
+        document.title = "GridGuard Pro | Diff Slope";
+    }, []);
+
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
-<SEO title="Diff Slope" description="Interactive Power System simulation and engineering tool: Diff Slope." url="/diffslope" />
-
-
-            {/* Header */}
             <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className="flex items-center gap-3">
                     <div className="bg-gradient-to-br from-pink-600 to-rose-600 p-2 rounded-lg text-white shadow-lg shadow-pink-500/20">
@@ -882,9 +773,9 @@ export default function DifferentialProtectionApp() {
                     <div>
                         <h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>GridGuard <span className="text-pink-500">PRO</span></h1>
                         <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Differential Analysis Suite</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Differential Analysis</span>
                             <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-pink-500/80">✅ IEEE C37.91 / IEC 60255 Compliant</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-pink-500/80">IEC 60255 Standard</span>
                         </div>
                     </div>
                 </div>
@@ -892,9 +783,9 @@ export default function DifferentialProtectionApp() {
                 {/* Desktop Tabs */}
                 <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
                     {[
-                        { id: 'theory', label: 'Handbook', icon: <Book className="w-4 h-4" /> },
+                        { id: 'theory', label: 'Theory & Specs', icon: <Book className="w-4 h-4" /> },
                         { id: 'simulator', label: 'Laboratory', icon: <MonitorPlay className="w-4 h-4" /> },
-                        { id: 'guide', label: 'User Guide', icon: <GraduationCap className="w-4 h-4" /> },
+                        { id: 'guide', label: 'Operator Guide', icon: <GraduationCap className="w-4 h-4" /> },
                     ].map(tab => (
                         <button
                             key={tab.id}
@@ -914,7 +805,7 @@ export default function DifferentialProtectionApp() {
             <div className={`md:hidden fixed bottom-0 left-0 right-0 h-16 border-t z-50 flex justify-around items-center px-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 {[
                     { id: 'theory', label: 'Theory', icon: <Book className="w-5 h-5" /> },
-                    { id: 'simulator', label: 'Sim', icon: <MonitorPlay className="w-5 h-5" /> },
+                    { id: 'simulator', label: 'Simulate', icon: <MonitorPlay className="w-5 h-5" /> },
                     { id: 'guide', label: 'Guide', icon: <GraduationCap className="w-5 h-5" /> },
                 ].map(tab => (
                     <button
@@ -930,15 +821,12 @@ export default function DifferentialProtectionApp() {
                 ))}
             </div>
 
-            {/* Main Content Area */}
+            {/* Application Area */}
             <div className="flex-1 overflow-hidden relative pb-16 md:pb-0">
                 {activeTab === 'theory' && <TheoryModule isDark={isDark} />}
-
-                {/* Simulator: Wrapped in overflow-y-auto for vertical scrolling */}
                 <div className={activeTab === 'simulator' ? 'block h-full overflow-y-auto' : 'hidden'}>
                     <SimulatorModule isDark={isDark} />
                 </div>
-
                 {activeTab === 'guide' && (
                     <div className="h-full overflow-y-auto">
                         <UserGuideModule isDark={isDark} />
