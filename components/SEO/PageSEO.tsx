@@ -17,12 +17,12 @@ export const PageSEO: React.FC<PageSEOProps> = ({
     description,
     type = 'website',
     url,
-    image = 'https://relayschool.com/og-default.jpg', // Placeholder for actual asset
+    image = 'https://relayschool.co.in/og-default.jpg', // Placeholder for actual asset
     schema,
     keywords,
     author = 'RelaySchool'
 }) => {
-    const absoluteUrl = url ? `https://relayschool.com${url}` : 'https://relayschool.com';
+    const absoluteUrl = url ? `https://relayschool.co.in${url}` : 'https://relayschool.co.in';
     const fullTitle = `${title} | RelaySchool`;
 
     return (

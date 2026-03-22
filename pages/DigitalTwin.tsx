@@ -5,6 +5,8 @@ import {
   BookOpen, GitMerge, FileText, Info, BarChart2, Radio, Compass
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { InlineMath, BlockMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
 
 // ==============================
 // UTILS & EXPORT
@@ -235,7 +237,7 @@ const TheoryHub = () => (
             <div><span className="text-emerald-400">Torque</span> = |V| &times; |I| &times; cos(&theta; - &tau;)</div>
             <div className="text-slate-400 mt-2">&theta; = Angle of Current relative to Voltage</div>
             <div className="text-slate-400">&tau; = Relay Characteristic Angle (RCA), typically 45&deg; or 60&deg;</div>
-            <div className="text-purple-400 mt-2 font-bold">TRIP IF: Torque &gt; 0 AND |I| &gt; I<sub>pickup</sub></div>
+            <div className="text-purple-400 mt-2 font-bold">TRIP IF: Torque &gt; 0 AND <InlineMath math="|I| > I_{pickup}" /></div>
           </div>
         </div>
         <div className="w-full lg:w-96 bg-[#040812] border border-slate-800 rounded-xl p-4 flex justify-center items-center">
@@ -276,24 +278,25 @@ const TheoryHub = () => (
         <div className="grid md:grid-cols-2 gap-8">
           <div className="bg-[#030712] p-6 rounded-lg border border-slate-800 font-mono text-sm space-y-4">
             <div className="text-slate-500 font-bold border-b border-slate-800 pb-2">Given Parameters:</div>
-            <div>• <span className="text-pink-400">I<sub>pickup</sub></span> (Relay Setting) = 1,260 A <span className="text-slate-500 text-xs">(1.05 × 1200A Rating)</span></div>
-            <div>• <span className="text-purple-400">I<sub>fault</sub></span> (Measured Load) = 2,500 A</div>
+            <div>• <span className="text-pink-400"><InlineMath math="I_{pickup}" /></span> (Relay Setting) = 1,260 A <span className="text-slate-500 text-xs">(1.05 × 1200A Rating)</span></div>
+            <div>• <span className="text-purple-400"><InlineMath math="I_{fault}" /></span> (Measured Load) = 2,500 A</div>
             <div>• <span className="text-cyan-400">TD</span> (Time Dial) = 0.5</div>
             
             <div className="text-slate-500 font-bold border-b border-slate-800 pb-2 mt-6">Step 1: Calculate Multiple (M)</div>
-            <div>M = <span className="text-purple-400">I<sub>fault</sub></span> / <span className="text-pink-400">I<sub>pickup</sub></span></div>
-            <div>M = 2500 / 1260 = <strong className="text-white">1.984</strong></div>
+            <div className="overflow-x-auto my-2 text-center text-lg"><BlockMath math="M = \frac{I_{fault}}{I_{pickup}} = \frac{2500}{1260} = 1.984" /></div>
           </div>
 
-          <div className="bg-[#030712] p-6 rounded-lg border border-slate-800 font-mono text-sm space-y-4">
+          <div className="bg-[#030712] p-6 rounded-lg border border-slate-800 font-mono text-sm space-y-4 overflow-x-auto custom-scrollbar">
             <div className="text-slate-500 font-bold border-b border-slate-800 pb-2">Step 2: IEEE Extremely Inverse Formula</div>
-            <div className="text-emerald-400">t = TD &times; [ 28.2 / ( M<sup>2.0</sup> - 1 ) + 0.1217 ]</div>
+            <div className="text-emerald-400"><BlockMath math="t = TD \times \left[ \frac{28.2}{M^{2.0} - 1} + 0.1217 \right]" /></div>
             
             <div className="text-slate-500 font-bold border-b border-slate-800 pb-2 mt-6">Step 3: Solve for Trip Time (t)</div>
-            <div>t = 0.5 &times; [ 28.2 / ( 1.984<sup>2</sup> - 1 ) + 0.1217 ]</div>
-            <div>t = 0.5 &times; [ 28.2 / ( 3.936 - 1 ) + 0.1217 ]</div>
-            <div>t = 0.5 &times; [ 28.2 / 2.936 + 0.1217 ]</div>
-            <div>t = 0.5 &times; [ 9.605 + 0.1217 ]</div>
+            <div className="space-y-2 overflow-x-auto">
+              <BlockMath math="t = 0.5 \times \left[ \frac{28.2}{1.984^2 - 1} + 0.1217 \right]" />
+              <BlockMath math="t = 0.5 \times \left[ \frac{28.2}{3.936 - 1} + 0.1217 \right]" />
+              <BlockMath math="t = 0.5 \times \left[ \frac{28.2}{2.936} + 0.1217 \right]" />
+              <BlockMath math="t = 0.5 \times [ 9.605 + 0.1217 ]" />
+            </div>
             <div className="text-lg text-emerald-400 font-bold bg-emerald-950/30 p-2 rounded inline-block mt-2">t = 4.86 seconds</div>
           </div>
         </div>
@@ -315,21 +318,21 @@ const TheoryHub = () => (
             <div>• Slope Setting = <span className="text-amber-400">20% (0.2)</span></div>
 
             <div className="text-slate-500 font-bold border-b border-slate-800 pb-2 mt-6">Step 1: Calculate Rated Line Currents</div>
-            <div>I<sub>L_pri</sub> = 50,000 / (√3 &times; 132) = <strong className="text-white">218.7 A</strong></div>
-            <div>I<sub>L_sec</sub> = 50,000 / (√3 &times; 33) = <strong className="text-white">874.8 A</strong></div>
+            <div className="overflow-x-auto"><InlineMath math="I_{L\_pri} = \frac{50,000}{\sqrt{3} \times 132} =" /> <strong className="text-white">218.7 A</strong></div>
+            <div className="overflow-x-auto"><InlineMath math="I_{L\_sec} = \frac{50,000}{\sqrt{3} \times 33} =" /> <strong className="text-white">874.8 A</strong></div>
           </div>
 
           <div className="bg-[#030712] p-6 rounded-lg border border-slate-800 font-mono text-sm space-y-4">
             <div className="text-slate-500 font-bold border-b border-slate-800 pb-2">Step 2: Calculate CT Secondary Currents</div>
-            <div>I<sub>pri_sec</sub> = 218.7 &times; (5 / 300) = <span className="text-pink-400">3.645 A</span></div>
-            <div>I<sub>sec_sec</sub> = 874.8 &times; (5 / 1000) = <span className="text-purple-400">4.374 A</span></div>
+            <div className="overflow-x-auto"><InlineMath math="I_{pri\_sec} = 218.7 \times \left(\frac{5}{300}\right) =" /> <span className="text-pink-400">3.645 A</span></div>
+            <div className="overflow-x-auto"><InlineMath math="I_{sec\_sec} = 874.8 \times \left(\frac{5}{1000}\right) =" /> <span className="text-purple-400">4.374 A</span></div>
 
             <div className="text-slate-500 font-bold border-b border-slate-800 pb-2 mt-6">Step 3: Restraint vs Operating</div>
-            <div>I<sub>OP</sub> (Mismatch) = |3.645 - 4.374| = <strong className="text-red-400">0.729 A</strong></div>
-            <div>I<sub>RES</sub> (Average) = (3.645 + 4.374) / 2 = <strong className="text-cyan-400">4.010 A</strong></div>
+            <div className="overflow-x-auto"><InlineMath math="I_{OP}" /> (Mismatch) = <InlineMath math="|3.645 - 4.374| =" /> <strong className="text-red-400">0.729 A</strong></div>
+            <div className="overflow-x-auto"><InlineMath math="I_{RES}" /> (Average) = <InlineMath math="\frac{3.645 + 4.374}{2} =" /> <strong className="text-cyan-400">4.010 A</strong></div>
             
             <div className="mt-4 p-3 bg-slate-900 border border-slate-800 rounded">
-              <div className="text-xs text-slate-500 mb-1">Check Trip Condition: I<sub>OP</sub> &gt; Slope &times; I<sub>RES</sub></div>
+              <div className="text-xs text-slate-500 mb-1">Check Trip Condition: <InlineMath math="I_{OP} > \text{Slope} \times I_{RES}" /></div>
               <div>0.729 &gt; 0.2 &times; 4.010</div>
               <div>0.729 &gt; 0.802 &rarr; <span className="text-emerald-400 font-bold text-lg">FALSE (No Trip)</span></div>
               <div className="text-xs text-slate-400 mt-1">The relay successfully restrains under normal load despite CT mismatch.</div>

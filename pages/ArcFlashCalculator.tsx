@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Flame, AlertTriangle, Shield, Download, RotateCcw, Info, Zap, HardHat } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
+import { InlineMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
 import SEO from '../components/SEO';
 
 // ─── IEEE 1584-2018 SIMPLIFIED EQUATIONS ───
@@ -180,7 +182,7 @@ export default function ArcFlashCalculator() {
                             {/* Bolted Fault Current */}
                             <div>
                                 <label className="flex items-center justify-between text-sm font-bold mb-2">
-                                    <span>Bolted Fault Current (I<sub>bf</sub>)</span>
+                                    <span>Bolted Fault Current (<InlineMath math="I_{bf}" />)</span>
                                     <span className="text-blue-500 font-mono">{boltedFault} kA</span>
                                 </label>
                                 <input

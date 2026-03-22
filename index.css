@@ -3,6 +3,7 @@
    ===================================================== */
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
 /* =====================================================
    TAILWIND v4 CUSTOM THEME
    (Replaces tailwind.config.js theme.extend in v4)

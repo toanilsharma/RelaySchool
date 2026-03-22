@@ -8,8 +8,8 @@ const AboutUs = () => {
 <SEO title="About Us" description="Interactive Power System simulation and engineering tool: About Us." url="/aboutus" />
 
       <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-          <Zap className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl overflow-hidden">
+          <img src="/favicon.svg" alt="RelaySchool Logo" className="w-7 h-7 object-contain" />
         </div>
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">About RelaySchool</h1>
       </div>

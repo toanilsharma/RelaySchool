@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster } from './components/Toast';
 import Sidebar from './components/Sidebar';
@@ -111,7 +111,7 @@ const App = () => {
         <RouteTracker />
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans antialiased selection:bg-blue-50 selection:text-white transition-colors duration-300">
           <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white sticky top-0 z-30 shadow-md">
-            <div className="font-bold text-lg flex items-center gap-2">RelaySchool</div>
+            <Link to="/" onClick={() => setMobileMenuOpen(false)} className="font-bold text-lg flex items-center gap-2 hover:text-blue-400 transition-colors">RelaySchool</Link>
             <button
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Open navigation menu"

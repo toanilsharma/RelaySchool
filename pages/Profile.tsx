@@ -158,7 +158,7 @@ export default function Profile() {
 
     const shareProfile = () => {
         if (navigator.clipboard) {
-            const text = `I'm Level ${stats.level} on RelaySchool with ${stats.totalXP} XP and ${earnedAchievements.length} achievements! ⚡ Check it out: https://relayschool.com`;
+            const text = `I'm Level ${stats.level} on RelaySchool with ${stats.totalXP} XP and ${earnedAchievements.length} achievements! ⚡ Check it out: https://relayschool.co.in`;
             navigator.clipboard.writeText(text);
             alert('Profile stats copied to clipboard!');
         }

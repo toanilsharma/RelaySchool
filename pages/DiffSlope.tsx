@@ -5,6 +5,8 @@ import {
     RotateCcw, MonitorPlay, Terminal, AlertOctagon,
     MousePointer2, Book, GraduationCap, Share2
 } from 'lucide-react';
+import { InlineMath, BlockMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
 
 // --- 1. CUSTOM HOOKS ---
 
@@ -103,7 +105,7 @@ const BoxInfo = ({ title, color, children }) => {
 };
 
 const MathEq = ({ eq }) => (
-    <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold" dangerouslySetInnerHTML={{ __html: eq }} />
+    <span className="text-blue-600 dark:text-blue-400 font-semibold"><InlineMath math={eq} /></span>
 );
 
 // --- 3. THEORY CONTENT WITH INLINE SVGS ---
@@ -121,8 +123,8 @@ const THEORY_DATA = [
                         Differential protection (ANSI 87) is the gold standard for protecting critical assets like Transformers, Generators, and Motors.
                         It is based on <strong>Unit Protection</strong>: ensuring the current entering a zone equals the current leaving it.
                     </p>
-                    <div className="mt-4 font-mono text-center bg-white dark:bg-black/30 p-2 rounded border border-emerald-200 dark:border-emerald-800 text-lg">
-                        &Sigma; I<sub>in</sub> + &Sigma; I<sub>out</sub> = 0
+                    <div className="mt-4 text-center bg-white dark:bg-black/30 p-2 rounded border border-emerald-200 dark:border-emerald-800 text-lg">
+                        <BlockMath math="\Sigma I_{in} + \Sigma I_{out} = 0" />
                     </div>
                 </div>
 
@@ -138,7 +140,7 @@ const THEORY_DATA = [
                             <text x="180" y="40" fill="#ef4444" fontSize="14" fontWeight="bold">⚡ Fault</text>
                         </svg>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                            Current flows IN from source and OUT to fault. Relay sees equal/opposite currents. <br /><strong>Result:</strong> <MathEq eq="I<sub>diff</sub> &approx; 0" />. STABLE.
+                            Current flows IN from source and OUT to fault. Relay sees equal/opposite currents. <br /><strong>Result:</strong> <MathEq eq="I_{diff} \approx 0" />. STABLE.
                         </p>
                     </div>
                     <div className="space-y-3">
@@ -151,7 +153,7 @@ const THEORY_DATA = [
                             <text x="100" y="40" fill="#ef4444" fontSize="14" fontWeight="bold" textAnchor="middle">⚡ Fault</text>
                         </svg>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                            Current flows IN from all sources towards the fault inside the zone. <br /><strong>Result:</strong> <MathEq eq="I<sub>diff</sub> = &Sigma; I<sub>feeders</sub>" />. TRIPS.
+                            Current flows IN from all sources towards the fault inside the zone. <br /><strong>Result:</strong> <MathEq eq="I_{diff} = \Sigma I_{feeders}" />. TRIPS.
                         </p>
                     </div>
                 </div>
@@ -171,10 +173,10 @@ const THEORY_DATA = [
 
                 <BoxInfo title="The Bias Equation (IEC Standard)" color="blue">
                     <ul className="list-disc pl-5 mt-2 space-y-1">
-                        <li><strong>Operate Current (I<sub>diff</sub>):</strong> | I&#8407;<sub>1</sub> + I&#8407;<sub>2</sub> |</li>
-                        <li><strong>Restraint Current (I<sub>bias</sub>):</strong> ( |I&#8407;<sub>1</sub>| + |I&#8407;<sub>2</sub>| ) / 2</li>
+                        <li><strong>Operate Current (<InlineMath math="I_{diff}"/>):</strong> <InlineMath math="|\vec{I}_1 + \vec{I}_2|" /></li>
+                        <li><strong>Restraint Current (<InlineMath math="I_{bias}"/>):</strong> <InlineMath math="(|\vec{I}_1| + |\vec{I}_2|) / 2" /></li>
                     </ul>
-                    <p className="mt-2 text-xs">Trip condition: I<sub>diff</sub> &gt; K &times; I<sub>bias</sub> + I<sub>pickup</sub></p>
+                    <p className="mt-2 text-xs">Trip condition: <InlineMath math="I_{diff} > K \times I_{bias} + I_{pickup}" /></p>
                 </BoxInfo>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -191,7 +193,7 @@ const THEORY_DATA = [
                         <strong className="text-amber-600 dark:text-amber-400 text-xs uppercase tracking-wider">Slope 2 (Typically 60-80%)</strong>
                         <p className="text-xs mt-1 text-slate-600 dark:text-slate-400">
                             Handles <strong>CT Saturation</strong> during massive through-faults.
-                            When a CT saturates, it produces zero secondary current, causing huge false I<sub>diff</sub>. Slope 2 drastically increases restraint to maintain stability.
+                            When a CT saturates, it produces zero secondary current, causing huge false <InlineMath math="I_{diff}"/>. Slope 2 drastically increases restraint to maintain stability.
                         </p>
                     </div>
                 </div>
@@ -224,9 +226,9 @@ const THEORY_DATA = [
                     <p className="mt-2 text-xs text-purple-800 dark:text-purple-200">
                         Inrush waveforms are heavily distorted. A Fourier Transform reveals high <strong>Even Harmonics</strong>, specifically the <strong>2nd Harmonic (100Hz/120Hz)</strong>.
                         <br /><br />
-                        <strong>Identification:</strong> If I<sub>2nd</sub> / I<sub>1st</sub> &gt; 15%, it's Inrush. <strong>Block the trip!</strong>
+                        <strong>Identification:</strong> If <InlineMath math="I_{2nd} / I_{1st} > 15\%"/>, it's Inrush. <strong>Block the trip!</strong>
                         <br />
-                        <strong>Faults:</strong> True faults are sinusoidal (Odd Harmonics only). I<sub>2nd</sub> &approx; 0. Trip allowed.
+                        <strong>Faults:</strong> True faults are sinusoidal (Odd Harmonics only). <InlineMath math="I_{2nd} \approx 0"/>. Trip allowed.
                     </p>
                 </div>
             </div>

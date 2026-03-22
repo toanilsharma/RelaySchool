@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { BookOpen, Search, Hash, Globe2, Flag, Filter, X } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
 import SEO from '../components/SEO';
-import { ANSI_DEVICES, DEVICE_CATEGORIES, HINDI_GLOSSARY, INDIAN_STANDARDS } from '../data/referenceData';
+import { ANSI_DEVICES, DEVICE_CATEGORIES, INDIAN_STANDARDS } from '../data/referenceData';
 
-type Tab = 'ansi' | 'hindi' | 'indian';
+type Tab = 'ansi' | 'indian';
 
 export default function ANSIReference() {
     const isDark = useThemeObserver();
@@ -28,15 +28,6 @@ export default function ANSIReference() {
         return items;
     }, [search, catFilter]);
 
-    // ─── Hindi Filtering ───
-    const filteredGlossary = useMemo(() => {
-        if (!search.trim()) return HINDI_GLOSSARY;
-        const q = search.toLowerCase();
-        return HINDI_GLOSSARY.filter(g =>
-            g.english.toLowerCase().includes(q) || g.hindi.toLowerCase().includes(q) || g.devanagari.includes(q)
-        );
-    }, [search]);
-
     // ─── Indian Standards Filtering ───
     const [stdFilter, setStdFilter] = useState<string>('all');
     const filteredStandards = useMemo(() => {
@@ -53,7 +44,6 @@ export default function ANSIReference() {
 
     const tabs = [
         { id: 'ansi' as Tab, label: 'ANSI Device Numbers', icon: <Hash className="w-4 h-4" />, count: ANSI_DEVICES.length },
-        { id: 'hindi' as Tab, label: '🇮🇳 Hindi Glossary', icon: <Globe2 className="w-4 h-4" />, count: HINDI_GLOSSARY.length },
         { id: 'indian' as Tab, label: 'Indian Standards', icon: <Flag className="w-4 h-4" />, count: INDIAN_STANDARDS.length },
     ];
 
@@ -61,7 +51,7 @@ export default function ANSIReference() {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans">
             <SEO
                 title="ANSI Device Numbers & Indian Standards Reference"
-                description="Complete ANSI/IEEE C37.2 device number table, Hindi engineering glossary, and Indian standards (IS, CEA, IEGC, CEIG) for electrical engineers."
+                description="Complete ANSI/IEEE C37.2 device number table, and Indian standards (IS, CEA, IEGC, CEIG) for electrical engineers."
                 url="/ansi-reference"
             />
 
@@ -74,7 +64,7 @@ export default function ANSIReference() {
                     <div>
                         <h1 className="text-xl font-bold tracking-tight">Engineering Reference</h1>
                         <p className="text-xs text-slate-500 font-mono tracking-widest uppercase">
-                            {ANSI_DEVICES.length} Device Codes • {HINDI_GLOSSARY.length} Hindi Terms • {INDIAN_STANDARDS.length} Standards
+                            {ANSI_DEVICES.length} Device Codes • {INDIAN_STANDARDS.length} Standards
                         </p>
                     </div>
                 </div>
@@ -108,7 +98,7 @@ export default function ANSIReference() {
                         type="text"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder={activeTab === 'ansi' ? 'Search by code, name, or application...' : activeTab === 'hindi' ? 'Search in English, Hindi, or Devanagari...' : 'Search standards...'}
+                        placeholder={activeTab === 'ansi' ? 'Search by code, name, or application...' : 'Search standards...'}
                         className={`w-full pl-9 pr-8 py-3 rounded-xl border text-sm ${isDark ? 'bg-slate-900 border-slate-800 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'} focus:outline-none focus:ring-2 focus:ring-blue-500/30`}
                     />
                     {search && (
@@ -176,37 +166,6 @@ export default function ANSIReference() {
                     </>
                 )}
 
-                {/* ═══════ HINDI GLOSSARY TAB ═══════ */}
-                {activeTab === 'hindi' && (
-                    <>
-                        <div className={`mb-4 p-4 rounded-xl border ${isDark ? 'bg-amber-950/20 border-amber-800' : 'bg-amber-50 border-amber-200'}`}>
-                            <p className={`text-sm ${isDark ? 'text-amber-300' : 'text-amber-800'}`}>
-                                🇮🇳 <strong>Tailored for Indian Engineers</strong> — Study protection engineering terms in Hindi (हिन्दी) alongside English.
-                                These translations follow standard technical Hindi terminology used in IS/BIS publications.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {filteredGlossary.map((g) => (
-                                <div key={g.english} className={`p-4 rounded-xl border transition-all hover:shadow-sm ${isDark ? 'bg-slate-900 border-slate-800 hover:border-slate-700' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <div className="font-bold text-sm">{g.english}</div>
-                                            <div className={`text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{g.context}</div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-lg font-bold text-orange-500">{g.devanagari}</div>
-                                            <div className={`text-[10px] font-mono ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>{g.hindi}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        {filteredGlossary.length === 0 && (
-                            <div className="text-center py-12 text-slate-500">No terms match your search.</div>
-                        )}
-                    </>
-                )}
 
                 {/* ═══════ INDIAN STANDARDS TAB ═══════ */}
                 {activeTab === 'indian' && (

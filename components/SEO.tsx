@@ -18,7 +18,7 @@ const SEO: React.FC<SEOProps> = ({
   image = "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop",
   schema 
 }) => {
-  const siteUrl = "https://relayschool.com";
+  const siteUrl = "https://relayschool.co.in";
   const fullUrl = url ? `${siteUrl}${url}` : siteUrl;
   const fullTitle = `${title} | RelaySchool`;
   

@@ -15,7 +15,7 @@ const academySchema = {
     "provider": {
         "@type": "Organization",
         "name": "RelaySchool",
-        "sameAs": "https://relayschool.com"
+        "sameAs": "https://relayschool.co.in"
     }
 };
 

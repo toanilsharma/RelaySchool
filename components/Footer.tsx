@@ -17,14 +17,14 @@ const Footer = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
                     {/* Brand Column */}
                     <div className="col-span-1">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                <Zap className="text-white w-5 h-5" />
+                        <Link to="/" className="flex items-center gap-2 mb-6 hover:opacity-80 transition-opacity cursor-pointer">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden">
+                                <img src="/favicon.svg" alt="RelaySchool Logo" className="w-full h-full object-cover" />
                             </div>
                             <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">
                                 Relay<span className="text-blue-600 dark:text-blue-400">School</span>
                             </span>
-                        </div>
+                        </Link>
                         <div className="mb-6">
                             <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-2">Who is this for?</h4>
                             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
