@@ -125,7 +125,7 @@ const Sidebar = ({ theme, toggleTheme, isOpen, closeMobileMenu }: SidebarProps) 
         <Link to="/" onClick={closeMobileMenu} className="p-5 flex items-center gap-3 border-b border-slate-800/80 h-[72px] shrink-0 relative overflow-hidden group/brand hover:bg-slate-800/30 transition-colors cursor-pointer">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-transparent pointer-events-none group-hover/brand:from-blue-600/10 transition-all"></div>
           <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/30 ring-1 ring-blue-400/30 group-hover/brand:scale-105 transition-transform overflow-hidden">
-            <img src="/favicon.svg" alt="RelaySchool Logo" className="w-full h-full object-cover" />
+            <img src="/android-chrome-192x192.png" alt="RelaySchool Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <div className="font-bold text-lg tracking-tight leading-none group-hover/brand:text-white transition-colors">

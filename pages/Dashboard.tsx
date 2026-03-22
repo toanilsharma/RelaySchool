@@ -60,7 +60,7 @@ const GridPulseHero = () => {
       setFreq(
         baseFreq + (Math.random() - 0.5) * (breakerClosed ? 0.035 : 0.5)
       );
-    }, 800);
+    }, 1200);
     return () => clearInterval(i);
   }, [baseFreq, breakerClosed]);
 
@@ -69,14 +69,14 @@ const GridPulseHero = () => {
       setParticles([]);
       return;
     }
-    let frame: number;
     let particleId = 0;
-    const animate = () => {
+    const MAX_PARTICLES = 12;
+    const interval = setInterval(() => {
       setParticles((prev) => {
         const next = prev
-          .map((p) => ({ ...p, x: p.x + p.speed }))
+          .map((p) => ({ ...p, x: p.x + p.speed * 3 }))
           .filter((p) => p.x < 100);
-        if (Math.random() > 0.6) {
+        if (next.length < MAX_PARTICLES && Math.random() > 0.5) {
           next.push({
             x: 0,
             y: Math.random() * 100,
@@ -86,10 +86,8 @@ const GridPulseHero = () => {
         }
         return next;
       });
-      frame = requestAnimationFrame(animate);
-    };
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
+    }, 50);
+    return () => clearInterval(interval);
   }, [breakerClosed]);
 
   const pathData =
@@ -197,7 +195,7 @@ const GridPulseHero = () => {
         </div>
 
         {/* RIGHT — Live Interactive Monitor */}
-        <div className="flex-1 w-full max-w-md bg-slate-950/60 backdrop-blur-md rounded-2xl border border-slate-700 p-6 shadow-2xl relative overflow-hidden group/monitor hover:border-slate-600 transition-colors">
+        <div className="flex-1 w-full max-w-md bg-slate-950/90 rounded-2xl border border-slate-700 p-6 shadow-2xl relative overflow-hidden group/monitor hover:border-slate-600 transition-colors">
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
             <div className="flex items-center gap-3">
               <button

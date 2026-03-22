@@ -66,6 +66,15 @@ body {
 }
 
 /* =====================================================
+   PERFORMANCE: GPU compositing & content-visibility
+   ===================================================== */
+main > section,
+main > div {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+/* =====================================================
    CUSTOM SCROLLBAR
    ===================================================== */
 ::-webkit-scrollbar {

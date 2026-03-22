@@ -9,7 +9,7 @@ const AboutUs = () => {
 
       <div className="flex items-center gap-3 mb-8">
         <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl overflow-hidden">
-          <img src="/favicon.svg" alt="RelaySchool Logo" className="w-7 h-7 object-contain" />
+          <img src="/android-chrome-192x192.png" alt="RelaySchool Logo" className="w-7 h-7 object-contain" />
         </div>
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">About RelaySchool</h1>
       </div>
