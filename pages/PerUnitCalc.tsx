@@ -1,270 +1,674 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { RotateCcw, HelpCircle, Book, Settings, MonitorPlay, GraduationCap, Award, Calculator, CheckCircle2, Activity, Zap, AlertTriangle , Share2 } from 'lucide-react';
-import { useThemeObserver } from '../hooks/useThemeObserver';
-import Slider from '../components/Slider';
-import TheoryLibrary from '../components/TheoryLibrary';
-import { PER_UNIT_THEORY_CONTENT } from '../data/learning-modules/per-unit';
-import SEO from "../components/SEO";
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+    Settings, BookOpen, HelpCircle, ArrowRight, RefreshCw, Award, 
+    Calculator, Share2, Activity, CheckCircle, XCircle, ChevronDown, Zap, Shield
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const QUIZ_DATA={easy:[
-{q:"Per-unit values are quantities expressed as:",opts:["Percentages only","Fractions of a chosen base value","Absolute values in SI","Logarithmic scale"],ans:1,why:"Per-unit normalizes quantities by dividing the actual value by the base value. A 1.0 pu voltage means 100% of the nominal base."},
-{q:"If base voltage is 230kV and actual is 242kV, per-unit is:",opts:["0.95","1.00","1.052","242"],ans:2,why:"V_pu = V_actual / V_base = 242 / 230 = 1.052 pu (5.2% above nominal)."},
-{q:"In per-unit, transformer turns ratio becomes:",opts:["Complex","1:1 (unity) when using transformer's rated voltages as bases on each side","Doubled","Unchanged"],ans:1,why:"This is the key advantage of per-unit. By choosing base voltages equal to the transformer rated voltages, the ideal transformer disappears from the circuit model."},
-{q:"How many independent base quantities do we choose?",opts:["4","2 (typically S_base and V_base)","1","All are fixed"],ans:1,why:"We choose 2 bases: S_base (MVA) and V_base (kV). The other two (I_base and Z_base) are calculated from these."},
-{q:"Standard system S_base is commonly:",opts:["1 MVA","10 MVA","100 MVA","1000 MVA"],ans:2,why:"100 MVA is the standard system base. All equipment impedances are converted to this common base for system studies."}
-],medium:[
-{q:"To convert impedance from one base to another:",opts:["Multiply by voltage ratio","Z_new = Z_old × (MVA_new/MVA_old) × (kV_old/kV_new)²","Add bases","Cannot be done"],ans:1,why:"The conversion formula accounts for both the power base change (linear) and voltage base change (squared, because Z_base = V²/S)."},
-{q:"Z_base in per-unit is calculated as:",opts:["V_base / I_base","V_base² / S_base","S_base / V_base","V_base × I_base"],ans:1,why:"Z_base = V_base² / S_base. For example, at 230kV and 100MVA: Z_base = 230² / 100 = 529Ω."},
-{q:"A generator rated 50MVA, X''d = 0.2 pu on 100MVA base becomes:",opts:["0.2 pu","0.4 pu","0.1 pu","1.0 pu"],ans:1,why:"Z_pu(new) = 0.2 × (100/50) = 0.4 pu. Higher MVA base → higher per-unit impedance."},
-{q:"Per-unit system advantage for parallel analysis:",opts:["Faster computation only","Transformers disappear, voltages similar magnitude across system","Better graphics","None"],ans:1,why:"All voltages are near 1.0 pu, all impedances are directly comparable, and transformer turns ratios become unity. This simplifies the math enormously."},
-{q:"I_base is derived from S_base and V_base as:",opts:["S_base × V_base","S_base / (√3 × V_base) for 3-phase","V_base / S_base","S_base²"],ans:1,why:"I_base = S_base / (√3 × V_base) for three-phase systems. For single-phase, omit the √3."}
-],expert:[
-{q:"In a 3-winding transformer, how many per-unit impedances?",opts:["1","2","3 (Z_PS, Z_PT, Z_ST)","6"],ans:2,why:"A 3-winding transformer has 3 independent impedances between each pair of windings: primary-secondary, primary-tertiary, and secondary-tertiary."},
-{q:"Negative per-unit impedance in a 3-winding transformer means:",opts:["Error","The impedance between one pair includes a mutual coupling effect","Short circuit","Open circuit"],ans:1,why:"When the star-equivalent impedance is calculated, one leg can be negative. This is physically valid — it represents the mutual coupling dominance."},
-{q:"Per-unit fault current in a radial system with Z_total=0.1 pu is:",opts:["0.1 pu","10 pu","1 pu","100 pu"],ans:1,why:"I_fault(pu) = V/Z = 1.0/0.1 = 10 pu. Then I_actual = I_fault(pu) × I_base. This is why low impedance = high fault current."},
-{q:"Generator short circuit ratio (SCR) is the reciprocal of:",opts:["X'q","X_d(saturated) in per-unit","Armature resistance","Voltage"],ans:1,why:"SCR = 1/X_d(sat). A higher SCR means a stiffer machine (lower synchronous reactance, better voltage regulation)."},
-{q:"Per-unit impedance of a cable depends on:",opts:["Only voltage","Length, cross-section, and spacing (then normalized to system base)","Color","Manufacturer only"],ans:1,why:"Cable impedance is first calculated in Ω/km from physical properties, then converted to per-unit using the system base: Z_pu = Z(Ω) / Z_base."}
-]};
+// --- TYPE DEFINITIONS ---
 
-// ============================== PER-UNIT DIAGRAM CANVAS ==============================
-const PUDiagram = ({isDark, sBase, vBase, zBase, iBase, puV, puI, puZ}:
-    {isDark:boolean;sBase:number;vBase:number;zBase:number;iBase:number;puV:number;puI:number;puZ:number}) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    useEffect(() => {
-        const cvs = canvasRef.current; if(!cvs) return;
-        const ctx = cvs.getContext('2d'); if(!ctx) return;
-        const w = cvs.width = cvs.offsetWidth * 2;
-        const h = cvs.height = cvs.offsetHeight * 2;
-        ctx.scale(2,2);
-        const cw = w/2, ch = h/2;
-        ctx.fillStyle = isDark ? '#0f172a' : '#f8fafc';
-        ctx.fillRect(0,0,cw,ch);
+type TabType = 'simulator' | 'theory' | 'quiz';
 
-        const cx = cw/2, cy = ch/2;
-        const r = Math.min(cx,cy)*0.55;
+interface SystemParams {
+    sBase: number;
+    vBase: number;
+    actualV: number;
+    actualI: number;
+    actualZ: number;
+    equipMVA: number;
+    equipV: number;
+    equipZ: number;
+}
 
-        // Central hub
-        ctx.beginPath(); ctx.arc(cx,cy,30,0,Math.PI*2);
-        ctx.fillStyle = isDark?'#1e40af':'#dbeafe';
-        ctx.fill();
-        ctx.fillStyle = isDark?'#93c5fd':'#1e40af';
-        ctx.font = 'bold 10px Inter,sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('BASE', cx, cy-3);
-        ctx.fillText('SYSTEM', cx, cy+9);
+// --- MATH TYPOGRAPHY COMPONENTS ---
 
-        // Four base quantities at compass points
-        const items = [
-            {angle:-90, label:`S_base`, value:`${sBase} MVA`, color:'#f59e0b', detail:'Chosen'},
-            {angle:0, label:`V_base`, value:`${vBase} kV`, color:'#3b82f6', detail:'Chosen'},
-            {angle:90, label:`Z_base`, value:`${zBase.toFixed(1)} Ω`, color:'#22c55e', detail:`V²/S`},
-            {angle:180, label:`I_base`, value:`${iBase.toFixed(0)} A`, color:'#a855f7', detail:`S/(√3·V)`},
-        ];
+const InlineMath = ({ children }: { children: React.ReactNode }) => (
+    <span className="font-serif italic text-teal-700 dark:text-teal-300 mx-0.5 text-[1.05em] tracking-wide">{children}</span>
+);
 
-        items.forEach(item => {
-            const rad = item.angle * Math.PI / 180;
-            const ex = cx + Math.cos(rad) * r;
-            const ey = cy + Math.sin(rad) * r;
-
-            // Connecting line
-            ctx.beginPath(); ctx.moveTo(cx + Math.cos(rad)*32, cy + Math.sin(rad)*32);
-            ctx.lineTo(ex, ey);
-            ctx.strokeStyle = item.color;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Node circle
-            ctx.beginPath(); ctx.arc(ex,ey,28,0,Math.PI*2);
-            ctx.fillStyle = isDark ? `${item.color}22` : `${item.color}15`;
-            ctx.fill();
-            ctx.strokeStyle = item.color;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Text
-            ctx.fillStyle = item.color;
-            ctx.font = 'bold 9px Inter,sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(item.label, ex, ey-8);
-            ctx.fillStyle = isDark?'#e2e8f0':'#1e293b';
-            ctx.font = 'bold 11px Inter,sans-serif';
-            ctx.fillText(item.value, ex, ey+5);
-            ctx.fillStyle = isDark?'#64748b':'#94a3b8';
-            ctx.font = '8px Inter,sans-serif';
-            ctx.fillText(item.detail, ex, ey+17);
-        });
-
-        // Results box
-        ctx.fillStyle = isDark?'rgba(30,41,59,0.8)':'rgba(241,245,249,0.9)';
-        const bx = cw - 120, by = 8;
-        ctx.fillRect(bx, by, 112, 55);
-        ctx.strokeStyle = isDark?'#334155':'#cbd5e1';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(bx, by, 112, 55);
-        ctx.fillStyle = isDark?'#94a3b8':'#64748b';
-        ctx.font = 'bold 8px Inter,sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText('CONVERTED VALUES', bx+5, by+12);
-        ctx.font = '9px Inter,sans-serif';
-        ctx.fillStyle = '#3b82f6';
-        ctx.fillText(`V = ${puV.toFixed(3)} pu`, bx+5, by+26);
-        ctx.fillStyle = '#a855f7';
-        ctx.fillText(`I = ${puI.toFixed(3)} pu`, bx+5, by+38);
-        ctx.fillStyle = '#22c55e';
-        ctx.fillText(`Z = ${puZ.toFixed(4)} pu`, bx+5, by+50);
-
-        ctx.font = 'bold 10px Inter, sans-serif';
-        ctx.fillStyle = isDark?'#475569':'#94a3b8';
-        ctx.textAlign = 'left';
-        ctx.fillText('PER-UNIT BASE RELATIONSHIP', 8, 16);
-    }, [isDark,sBase,vBase,zBase,iBase,puV,puI,puZ]);
-    return <canvas ref={canvasRef} className="w-full rounded-xl" style={{height:260, border:isDark?'1px solid rgb(30,41,59)':'1px solid rgb(226,232,240)'}} />;
-};
-
-// ============================== SIMULATOR ==============================
-const SimulatorModule = ({isDark}:{isDark:boolean}) => {
-    const [sBase,setSBase]=useState(100);
-    const [vBase,setVBase]=useState(230);
-    const [actualV,setActualV]=useState(242);
-    const [actualI,setActualI]=useState(280);
-    const [actualZ,setActualZ]=useState(25);
-    const [equipMVA,setEquipMVA]=useState(50);
-    const [equipZ,setEquipZ]=useState(0.15);
-    const [equipV,setEquipV]=useState(230);
-
-    const zBase = (vBase*vBase)/sBase;
-    const iBase = (sBase*1000)/(Math.sqrt(3)*vBase);
-    const puV = actualV/vBase;
-    const puI = actualI/iBase;
-    const puZ = actualZ/zBase;
-    const zConverted = equipZ*(sBase/equipMVA)*((equipV/vBase)**2);
-
-    return (
-        <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
-            <div className={`rounded-2xl border p-4 ${isDark?'bg-slate-900 border-slate-800':'bg-white border-slate-200'}`}>
-                <h3 className="font-bold mb-3 text-sm"><Activity className="w-4 h-4 text-blue-500 inline mr-2"/>Per-Unit Base System</h3>
-                <PUDiagram isDark={isDark} sBase={sBase} vBase={vBase} zBase={zBase} iBase={iBase} puV={puV} puI={puI} puZ={puZ}/>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Base & Conversion */}
-                <div className={`rounded-2xl border p-6 ${isDark?'bg-slate-900 border-slate-800':'bg-white border-slate-200'}`}>
-                    <h3 className="font-bold text-lg mb-4"><Settings className="w-5 h-5 text-blue-500 inline mr-2"/>System Base & Actual Values</h3>
-                    <div className="space-y-6">
-                        <Slider 
-                            label="System S_base" 
-                            unit=" MVA" 
-                            min={10} 
-                            max={500} 
-                            step={10} 
-                            value={sBase} 
-                            onChange={e => setSBase(Number(e.target.value))} 
-                            color="amber" 
-                        />
-                        <Slider 
-                            label="System V_base" 
-                            unit=" kV" 
-                            min={11} 
-                            max={765} 
-                            step={11} 
-                            value={vBase} 
-                            onChange={e => setVBase(Number(e.target.value))} 
-                            color="blue" 
-                        />
-                        <hr className={isDark?'border-slate-800':'border-slate-200'}/>
-                        <div><label className="text-xs font-bold uppercase opacity-60 block">Actual Voltage (kV)</label><input type="number" min="0" value={actualV} onChange={e=>setActualV(+e.target.value)} className={`w-full p-2 rounded-lg border text-sm ${isDark?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`}/></div>
-                        <div><label className="text-xs font-bold uppercase opacity-60 block">Actual Current (A)</label><input type="number" min="0" value={actualI} onChange={e=>setActualI(+e.target.value)} className={`w-full p-2 rounded-lg border text-sm ${isDark?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`}/></div>
-                        <div><label className="text-xs font-bold uppercase opacity-60 block">Actual Impedance (Ω)</label><input type="number" min="0" value={actualZ} onChange={e=>setActualZ(+e.target.value)} className={`w-full p-2 rounded-lg border text-sm ${isDark?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`}/></div>
-                    </div>
-                </div>
-                {/* Results */}
-                <div className="space-y-4">
-                    <div className={`rounded-2xl border p-6 ${isDark?'bg-slate-900 border-slate-800':'bg-white border-slate-200'}`}>
-                        <h3 className="font-bold mb-3"><Calculator className="w-4 h-4 text-emerald-500 inline mr-2"/>Derived Bases & Per-Unit Values</h3>
-                        {[
-                            {l:'Z_base = V²/S',v:`${zBase.toFixed(2)} Ω`,c:''},
-                            {l:'I_base = S/(√3·V)',v:`${iBase.toFixed(1)} A`,c:''},
-                            {l:'V (pu)',v:`${puV.toFixed(4)} pu`,c:Math.abs(puV-1)>0.05?'text-amber-500':'text-emerald-500'},
-                            {l:'I (pu)',v:`${puI.toFixed(4)} pu`,c:puI>1?'text-red-500':'text-emerald-500'},
-                            {l:'Z (pu)',v:`${puZ.toFixed(4)} pu`,c:''},
-                        ].map(r=>(<div key={r.l} className="flex justify-between text-sm py-0.5"><span className="opacity-60">{r.l}</span><span className={`font-mono font-bold ${r.c}`}>{r.v}</span></div>))}
-                    </div>
-                    {/* Base Conversion */}
-                    <div className={`rounded-2xl border p-6 ${isDark?'bg-slate-900 border-slate-800':'bg-white border-slate-200'}`}>
-                        <h3 className="font-bold mb-3"><Zap className="w-4 h-4 text-purple-500 inline mr-2"/>Equipment Z_pu Conversion</h3>
-                        <div className="space-y-2 mb-3">
-                            <div><label className="text-xs font-bold uppercase opacity-60 block">Equipment MVA Rating</label><input type="number" min="0" value={equipMVA} onChange={e=>setEquipMVA(+e.target.value)} className={`w-full p-2 rounded-lg border text-sm ${isDark?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`}/></div>
-                            <div><label className="text-xs font-bold uppercase opacity-60 block">Equipment Z_pu (on own base)</label><input type="number" min="0" value={equipZ} step={0.01} onChange={e=>setEquipZ(+e.target.value)} className={`w-full p-2 rounded-lg border text-sm ${isDark?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`}/></div>
-                            <div><label className="text-xs font-bold uppercase opacity-60 block">Equipment Rated Voltage (kV)</label><input type="number" min="0" value={equipV} onChange={e=>setEquipV(+e.target.value)} className={`w-full p-2 rounded-lg border text-sm ${isDark?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`}/></div>
-                        </div>
-                        <div className={`p-4 rounded-xl ${isDark?'bg-slate-800':'bg-slate-100'}`}>
-                            <p className="text-xs opacity-60 mb-1">Z_new = Z_old × (S_new/S_old) × (V_old/V_new)²</p>
-                            <p className="font-mono font-bold text-lg text-blue-500">{zConverted.toFixed(4)} pu</p>
-                            <p className="text-xs opacity-60 mt-1">= {equipZ} × ({sBase}/{equipMVA}) × ({equipV}/{vBase})²</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// ============================== GUIDE ==============================
-const GuideModule = ({isDark}:{isDark:boolean}) => (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-        <div className="flex items-center gap-3 mb-6"><div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl"><HelpCircle className="w-6 h-6 text-blue-500"/></div><div><h2 className="text-2xl font-black">User Guide</h2><p className="text-sm opacity-60">Per-Unit System Calculator</p></div></div>
-        {[
-            {s:'1',t:'Set System Base',d:'Choose S_base (typically 100 MVA for system studies) and V_base (the nominal voltage at the point of interest). Z_base and I_base are automatically calculated.'},
-            {s:'2',t:'Enter Actual Values',d:'Input the actual voltage (kV), current (A), and impedance (Ω) you want to convert. The calculator shows the per-unit equivalent for each.'},
-            {s:'3',t:'Equipment Conversion',d:'To convert a transformer or generator impedance from its own nameplate base to the system base, enter the equipment rating and its per-unit impedance. The formula Z_new = Z_old × (S_new/S_old) × (V_old/V_new)² is applied automatically.'},
-            {s:'4',t:'Read the Diagram',d:'The diagram shows how the 4 base quantities relate. S_base and V_base are your chosen inputs (amber/blue). Z_base and I_base are derived quantities (green/purple).'},
-        ].map(i=>(<div key={i.s} className={`flex gap-4 p-5 rounded-xl border ${isDark?'bg-slate-900 border-slate-800':'bg-white border-slate-200'}`}><div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-black shrink-0">{i.s}</div><div><h4 className="font-bold">{i.t}</h4><p className="text-sm opacity-70 mt-1">{i.d}</p></div></div>))}
+const BlockMath = ({ children }: { children: React.ReactNode }) => (
+    <div className="py-4 px-6 bg-slate-100/50 dark:bg-slate-800/30 rounded-xl text-center font-serif text-lg overflow-x-auto my-4 text-slate-800 dark:text-slate-200 border border-slate-200/50 dark:border-slate-700/50 flex items-center justify-center gap-2">
+        {children}
     </div>
 );
 
-// ============================== QUIZ ==============================
-const QuizModule = ({isDark}:{isDark:boolean}) => {
-    const [level,setLevel]=useState<'easy'|'medium'|'expert'>('easy');
-    const [cur,setCur]=useState(0);const [score,setScore]=useState(0);
-    const [sel,setSel]=useState<number|null>(null);const [fin,setFin]=useState(false);
-    const qs=QUIZ_DATA[level];const q=qs[cur];
-    const pick=(i:number)=>{if(sel!==null)return;setSel(i);if(i===q.ans)setScore(p=>p+1);setTimeout(()=>{if(cur+1>=qs.length)setFin(true);else{setCur(p=>p+1);setSel(null);}},2500);};
-    const rst=()=>{setCur(0);setScore(0);setSel(null);setFin(false);};
-    return (
-        <div className="max-w-3xl mx-auto p-6 space-y-6">
-            <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl"><Award className="w-6 h-6 text-purple-500"/></div><div><h2 className="text-2xl font-black">Quiz</h2></div></div>
-            <div className={`flex rounded-xl border overflow-hidden ${isDark?'border-slate-800':'border-slate-200'}`}>{(['easy','medium','expert'] as const).map(l=>(<button key={l} onClick={()=>{setLevel(l);rst();}} className={`flex-1 py-3 text-sm font-bold uppercase ${level===l?(l==='easy'?'bg-emerald-600 text-white':l==='medium'?'bg-amber-600 text-white':'bg-red-600 text-white'):isDark?'bg-slate-900 text-slate-400':'bg-slate-50 text-slate-600'}`}>{l}</button>))}</div>
-            {fin?(<div className={`text-center p-8 rounded-2xl border ${isDark?'bg-slate-900 border-slate-800':'bg-white border-slate-200'}`}><div className="text-5xl mb-4">{score>=4?'🏆':'📚'}</div><div className="text-3xl font-black mb-2">{score}/{qs.length}</div><button onClick={rst} className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm">Retry</button></div>):(
-                <div className={`p-6 rounded-2xl border ${isDark?'bg-slate-900 border-slate-800':'bg-white border-slate-200'}`}>
-                    <div className="flex justify-between mb-4"><span className="text-xs opacity-40">Q{cur+1}/{qs.length}</span><span className="text-xs text-emerald-500">Score: {score}</span></div>
-                    <h3 className="text-lg font-bold mb-6">{q.q}</h3>
-                    <div className="space-y-3">{q.opts.map((o,i)=>(<button key={i} onClick={()=>pick(i)} className={`w-full text-left p-4 rounded-xl border text-sm ${sel===null?isDark?'border-slate-700 hover:border-blue-500':'border-slate-200 hover:border-blue-500':i===q.ans?'border-emerald-500 bg-emerald-500/10 text-emerald-500 font-bold':sel===i?'border-red-500 bg-red-500/10 text-red-500':'opacity-40'}`}><span className="font-bold mr-2">{String.fromCharCode(65+i)}.</span>{o}</button>))}</div>
-                    {sel!==null&&<div className={`mt-4 p-4 rounded-xl text-sm ${sel===q.ans?'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400':'bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400'}`}><strong>{sel===q.ans?'✅ Correct!':'❌ Incorrect.'}</strong> {q.why}</div>}
-                </div>
+const Fraction = ({ num, den }: { num: React.ReactNode, den: React.ReactNode }) => (
+    <span className="inline-flex flex-col items-center align-middle mx-1.5">
+        <span className="border-b border-slate-800 dark:border-slate-200 px-1 pb-0.5 leading-none">{num}</span>
+        <span className="px-1 pt-1 leading-none">{den}</span>
+    </span>
+);
+
+// --- THEORY DATA ---
+
+const THEORY_SECTIONS = [
+    {
+        title: 'The Per-Unit System',
+        content: (
+            <div className="space-y-4">
+                <p>The per-unit (pu) system is universally utilized in power system engineering to normalize system variables (voltage, current, power, impedance) against chosen base values. It allows engineers to analyze massive interconnected grids containing multiple voltage levels as if they were a single, uniform circuit.</p>
+                <p>A per-unit value is simply defined as the ratio of an actual quantity to a defined base quantity of the same dimension:</p>
+                
+                <BlockMath>
+                    <InlineMath>Value<sub>pu</sub></InlineMath> = <Fraction num={<InlineMath>Value<sub>actual</sub></InlineMath>} den={<InlineMath>Value<sub>base</sub></InlineMath>} />
+                </BlockMath>
+            </div>
+        )
+    },
+    {
+        title: 'Selecting the Base Quantities',
+        content: (
+            <div className="space-y-4">
+                <p>A complete power system requires four base quantities: Power (<InlineMath>S<sub>base</sub></InlineMath>), Voltage (<InlineMath>V<sub>base</sub></InlineMath>), Current (<InlineMath>I<sub>base</sub></InlineMath>), and Impedance (<InlineMath>Z<sub>base</sub></InlineMath>).</p>
+                <p>By defining <strong>two</strong> independent base quantities (typically Power and Voltage), the remaining two are mathematically fixed by standard electrical laws. The system base power (<InlineMath>S<sub>base</sub></InlineMath>) is conventionally chosen as 100 MVA for transmission studies.</p>
+                <p>For a three-phase system, the derived base current and base impedance are:</p>
+                
+                <BlockMath>
+                    <InlineMath>I<sub>base</sub></InlineMath> = <Fraction num={<InlineMath>S<sub>base</sub></InlineMath>} den={<>&radic;3 &times; <InlineMath>V<sub>base</sub></InlineMath></>} />
+                </BlockMath>
+
+                <BlockMath>
+                    <InlineMath>Z<sub>base</sub></InlineMath> = <Fraction num={<InlineMath>V<sub>base</sub><sup>2</sup></InlineMath>} den={<InlineMath>S<sub>base</sub></InlineMath>} />
+                </BlockMath>
+
+                <p className="text-sm opacity-80 mt-2">*Note: When <InlineMath>V<sub>base</sub></InlineMath> is in kV and <InlineMath>S<sub>base</sub></InlineMath> is in MVA, the formula <InlineMath>V<sup>2</sup>/S</InlineMath> correctly yields <InlineMath>Z<sub>base</sub></InlineMath> in Ohms (&Omega;) without further unit conversions.</p>
+            </div>
+        )
+    },
+    {
+        title: 'The Magic of Transformers',
+        content: (
+            <div className="space-y-4">
+                <p>The primary advantage of the per-unit system is the elimination of ideal transformers from the circuit model. By intentionally defining the voltage bases on either side of a transformer to exactly match its turns ratio, the transformer's per-unit turns ratio becomes 1:1.</p>
+                <p>Consequently, all voltages across a healthy power grid will hover near 1.0 pu, regardless of whether they are physically at 400kV, 132kV, or 11kV. This makes identifying voltage sags or overvoltages instant and intuitive.</p>
+            </div>
+        )
+    },
+    {
+        title: 'Change of Base (Equipment Conversion)',
+        content: (
+            <div className="space-y-4">
+                <p>Manufacturers provide equipment impedances (like a generator's subtransient reactance <InlineMath>X&quot;<sub>d</sub></InlineMath> or a transformer's leakage reactance) in per-unit based on the equipment's <strong>own</strong> nameplate rating.</p>
+                <p>To integrate this equipment into a system-wide study, its impedance must be converted to the common <strong>System Base</strong> using the Change of Base formula:</p>
+                
+                <BlockMath>
+                    <InlineMath>Z<sub>pu,new</sub></InlineMath> = <InlineMath>Z<sub>pu,old</sub></InlineMath> &times; <Fraction num={<InlineMath>S<sub>base,new</sub></InlineMath>} den={<InlineMath>S<sub>base,old</sub></InlineMath>} /> &times; <Fraction num={<><InlineMath>V<sub>base,old</sub></InlineMath><sup>2</sup></>} den={<><InlineMath>V<sub>base,new</sub></InlineMath><sup>2</sup></>} />
+                </BlockMath>
+            </div>
+        )
+    }
+];
+
+// --- QUIZ DATA ---
+const QUIZ_QUESTIONS = [
+    {
+        question: "How many independent base quantities must be chosen to fully define a per-unit system?",
+        options: [
+            "One (Usually Power)",
+            "Two (Usually Power and Voltage)",
+            "Three (Power, Voltage, and Current)",
+            "Four (Power, Voltage, Current, and Impedance)"
+        ],
+        correctAnswer: 1,
+        explanation: "You only need to define two base quantities—almost always S_base (MVA) and V_base (kV). The other two, I_base and Z_base, are derived using standard power equations (S = √3*V*I and V = I*Z)."
+    },
+    {
+        question: "What is the industry standard System Base Power (S_base) typically chosen for transmission grid studies?",
+        options: [
+            "1 MVA",
+            "10 MVA",
+            "100 MVA",
+            "1000 MVA"
+        ],
+        correctAnswer: 2,
+        explanation: "100 MVA is the universally accepted standard base power for large system studies. It provides convenient, intuitive per-unit values for most transmission equipment."
+    },
+    {
+        question: "A generator is rated at 50 MVA and has a subtransient reactance (X\"d) of 0.20 pu. If converted to a 100 MVA system base, what is its new per-unit reactance? (Assume voltage bases match).",
+        options: [
+            "0.10 pu",
+            "0.20 pu",
+            "0.40 pu",
+            "1.00 pu"
+        ],
+        correctAnswer: 2,
+        explanation: "Using the Change of Base formula: Z_new = Z_old * (S_new / S_old). Therefore, 0.20 * (100 / 50) = 0.40 pu. A larger power base results in a larger per-unit impedance."
+    },
+    {
+        question: "How is the Base Impedance (Z_base) calculated for a three-phase system?",
+        options: [
+            "(V_base)² / S_base",
+            "V_base / I_base",
+            "S_base / (V_base)²",
+            "Both A and B are correct"
+        ],
+        correctAnswer: 3,
+        explanation: "Both formulas are correct. Z = V / I is Ohm's law. By substitution, Z_base = (V_base)² / S_base. Conveniently, if V_base is in kV (Line-to-Line) and S_base is in MVA (3-Phase), the formula (V_base)² / S_base directly yields Z_base in Ohms."
+    },
+    {
+        question: "What is the primary advantage of analyzing a power system in per-unit rather than physical units (Volts, Amps, Ohms)?",
+        options: [
+            "It eliminates the need for complex numbers.",
+            "It removes ideal transformers from the analytical model.",
+            "It converts all AC circuits to DC circuits.",
+            "It automatically calculates fault currents."
+        ],
+        correctAnswer: 1,
+        explanation: "By defining the voltage bases across a transformer to equal its turns ratio, the transformer effectively becomes a 1:1 ideal transformer and drops out of the impedance diagram, vastly simplifying grid calculations."
+    },
+    {
+        question: "A 132kV busbar has an actual measured voltage of 125kV. What is its per-unit voltage?",
+        options: [
+            "0.947 pu",
+            "1.056 pu",
+            "1.000 pu",
+            "0.050 pu"
+        ],
+        correctAnswer: 0,
+        explanation: "V_pu = Actual Voltage / Base Voltage = 125kV / 132kV = 0.9469 pu. This indicates the bus is operating approximately 5.3% below nominal voltage."
+    }
+];
+
+// --- UI COMPONENTS ---
+
+const InputField = ({ label, value, onChange, type = "number", step = "1", min, max, suffix = "" }: any) => (
+    <div className="flex flex-col gap-1.5 w-full">
+        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+            {label}
+        </label>
+        <div className="relative">
+            <input
+                type={type}
+                step={step}
+                min={min}
+                max={max}
+                value={value}
+                onChange={e => {
+                    let val = Number(e.target.value);
+                    if (min !== undefined && val < min) val = min;
+                    if (max !== undefined && val > max) val = max;
+                    onChange(val);
+                }}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/50 
+                           bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-sm font-medium
+                           focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all outline-none"
+            />
+            {suffix && (
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold pointer-events-none">
+                    {suffix}
+                </span>
             )}
+        </div>
+    </div>
+);
+
+const SectionHeader = ({ title }: { title: string }) => (
+    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600 dark:text-teal-400 mb-4 border-b border-teal-100 dark:border-teal-500/10 pb-2">
+        {title}
+    </h3>
+);
+
+// --- SVG HUB DIAGRAM ---
+
+const BaseHubDiagram = ({ isDark, sBase, vBase, zBase, iBase }: any) => {
+    const strokeColor = isDark ? '#334155' : '#cbd5e1';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const subTextColor = isDark ? '#94a3b8' : '#64748b';
+
+    return (
+        <div className="relative w-full aspect-square max-w-[340px] mx-auto select-none">
+            <svg viewBox="0 0 400 400" className="w-full h-full drop-shadow-sm">
+                
+                {/* Connecting Lines */}
+                <path d="M 200 200 L 200 60" stroke={strokeColor} strokeWidth="2" strokeDasharray="4 4" />
+                <path d="M 200 200 L 340 200" stroke={strokeColor} strokeWidth="2" strokeDasharray="4 4" />
+                <path d="M 200 200 L 200 340" stroke={strokeColor} strokeWidth="2" strokeDasharray="4 4" />
+                <path d="M 200 200 L 60 200" stroke={strokeColor} strokeWidth="2" strokeDasharray="4 4" />
+
+                {/* Central Hub */}
+                <circle cx="200" cy="200" r="45" fill={isDark ? '#115e59' : '#ccfbf1'} stroke={isDark ? '#14b8a6' : '#0f766e'} strokeWidth="3" />
+                <text x="200" y="196" textAnchor="middle" fill={isDark ? '#ccfbf1' : '#0f766e'} fontSize="14" fontWeight="bold" fontFamily="sans-serif">SYSTEM</text>
+                <text x="200" y="212" textAnchor="middle" fill={isDark ? '#ccfbf1' : '#0f766e'} fontSize="14" fontWeight="bold" fontFamily="sans-serif">BASE</text>
+
+                {/* Top Node: V_base */}
+                <circle cx="200" cy="60" r="40" fill={isDark ? '#1e3a8a' : '#dbeafe'} stroke="#3b82f6" strokeWidth="2" />
+                <text x="200" y="52" textAnchor="middle" fill="#3b82f6" fontSize="12" fontWeight="bold" fontFamily="sans-serif">V_base</text>
+                <text x="200" y="70" textAnchor="middle" fill={textColor} fontSize="15" fontWeight="900" fontFamily="sans-serif">{vBase} kV</text>
+                <text x="200" y="85" textAnchor="middle" fill={subTextColor} fontSize="10" fontFamily="sans-serif">(Defined)</text>
+
+                {/* Right Node: S_base */}
+                <circle cx="340" cy="200" r="40" fill={isDark ? '#78350f' : '#fef3c7'} stroke="#f59e0b" strokeWidth="2" />
+                <text x="340" y="192" textAnchor="middle" fill="#f59e0b" fontSize="12" fontWeight="bold" fontFamily="sans-serif">S_base</text>
+                <text x="340" y="210" textAnchor="middle" fill={textColor} fontSize="15" fontWeight="900" fontFamily="sans-serif">{sBase} MVA</text>
+                <text x="340" y="225" textAnchor="middle" fill={subTextColor} fontSize="10" fontFamily="sans-serif">(Defined)</text>
+
+                {/* Bottom Node: Z_base */}
+                <circle cx="200" cy="340" r="40" fill={isDark ? '#14532d' : '#dcfce3'} stroke="#22c55e" strokeWidth="2" />
+                <text x="200" y="332" textAnchor="middle" fill="#22c55e" fontSize="12" fontWeight="bold" fontFamily="sans-serif">Z_base</text>
+                <text x="200" y="350" textAnchor="middle" fill={textColor} fontSize="15" fontWeight="900" fontFamily="sans-serif">{zBase.toFixed(2)} Ω</text>
+                <text x="200" y="365" textAnchor="middle" fill={subTextColor} fontSize="10" fontFamily="sans-serif">V² / S</text>
+
+                {/* Left Node: I_base */}
+                <circle cx="60" cy="200" r="40" fill={isDark ? '#4c1d95' : '#f3e8ff'} stroke="#a855f7" strokeWidth="2" />
+                <text x="60" y="192" textAnchor="middle" fill="#a855f7" fontSize="12" fontWeight="bold" fontFamily="sans-serif">I_base</text>
+                <text x="60" y="210" textAnchor="middle" fill={textColor} fontSize="15" fontWeight="900" fontFamily="sans-serif">{iBase.toFixed(0)} A</text>
+                <text x="60" y="225" textAnchor="middle" fill={subTextColor} fontSize="10" fontFamily="sans-serif">S / (√3·V)</text>
+
+            </svg>
         </div>
     );
 };
 
-// ============================== MAIN ==============================
+// --- MAIN APP COMPONENT ---
+
 export default function PerUnitCalc() {
-    const [activeTab,setActiveTab]=useState('simulator');
-    const isDark=useThemeObserver();
-    const copyShareLink = () => { const url = window.location.origin + window.location.pathname; navigator.clipboard.writeText(url); alert('Link copied to clipboard!'); };
-    const tabs=[{id:'theory',label:'Reference',icon:<Book className="w-4 h-4"/>},{id:'simulator',label:'Calculator',icon:<MonitorPlay className="w-4 h-4"/>},{id:'guide',label:'Guide',icon:<GraduationCap className="w-4 h-4"/>},{id:'quiz',label:'Quiz',icon:<Award className="w-4 h-4"/>}];
+    const [isDark, setIsDark] = useState(false);
+    const [activeTab, setActiveTab] = useState<TabType>('simulator');
+
+    // System State
+    const [params, setParams] = useState<SystemParams>({
+        sBase: 100,
+        vBase: 132,
+        actualV: 125,
+        actualI: 350,
+        actualZ: 50,
+        equipMVA: 50,
+        equipV: 132,
+        equipZ: 0.12,
+    });
+
+    // Quiz State
+    const [quizStep, setQuizStep] = useState(0);
+    const [quizScore, setQuizScore] = useState(0);
+    const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+    const [showExplanation, setShowExplanation] = useState(false);
+    const [quizFinished, setQuizFinished] = useState(false);
+
+    useEffect(() => {
+        if (isDark) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+    }, [isDark]);
+
+    const update = (key: keyof SystemParams, value: any) => {
+        setParams(prev => ({ ...prev, [key]: value }));
+    };
+
+    // --- ENGINE: Calculations ---
+    const results = useMemo(() => {
+        const { sBase, vBase, actualV, actualI, actualZ, equipMVA, equipV, equipZ } = params;
+        
+        // 1. Derived Bases
+        const zBase = (vBase * vBase) / sBase;
+        const iBase = (sBase * 1000) / (Math.sqrt(3) * vBase);
+
+        // 2. Per-Unit Actuals
+        const puV = actualV / vBase;
+        const puI = actualI / iBase;
+        const puZ = actualZ / zBase;
+
+        // 3. Equipment Conversion
+        const sRatio = sBase / equipMVA;
+        const vRatio = Math.pow(equipV / vBase, 2);
+        const zConverted = equipZ * sRatio * vRatio;
+
+        return {
+            zBase, iBase,
+            puV, puI, puZ,
+            sRatio, vRatio, zConverted
+        };
+    }, [params]);
+
+    // --- QUIZ LOGIC ---
+    const handleAnswer = (index: number) => {
+        if (showExplanation) return;
+        setSelectedAnswer(index);
+        setShowExplanation(true);
+        if (index === QUIZ_QUESTIONS[quizStep].correctAnswer) {
+            setQuizScore(s => s + 1);
+        }
+    };
+
+    const nextQuestion = () => {
+        if (quizStep < QUIZ_QUESTIONS.length - 1) {
+            setQuizStep(s => s + 1);
+            setSelectedAnswer(null);
+            setShowExplanation(false);
+        } else {
+            setQuizFinished(true);
+        }
+    };
+
+    const resetQuiz = () => {
+        setQuizStep(0);
+        setQuizScore(0);
+        setSelectedAnswer(null);
+        setShowExplanation(false);
+        setQuizFinished(false);
+    };
+
     return (
-        <div className={`h-screen flex flex-col font-sans ${isDark?'bg-slate-950 text-slate-200':'bg-slate-50 text-slate-800'}`}>
-            <SEO title="Per-Unit Calculator" description="Per-unit system calculator with base conversion, equipment impedance conversion, and interactive diagram." url="/per-unit"/>
-            <header className={`h-16 border-b shrink-0 flex items-center justify-between px-4 md:px-6 z-20 ${isDark?'bg-slate-900 border-slate-800':'bg-white border-slate-200'}`}>
-                <div className="flex items-center gap-3"><div className="bg-gradient-to-br from-teal-600 to-cyan-600 p-2 rounded-lg text-white shadow-lg shadow-teal-500/20"><Calculator className="w-5 h-5"/></div><div><h1 className={`font-black text-lg ${isDark?'text-white':'text-slate-900'}`}>Per<span className="text-teal-500">Unit</span></h1><span className="text-[10px] font-bold uppercase tracking-widest text-teal-500/80">System Calculator</span></div></div>
-                <div className={`hidden md:flex p-1 rounded-xl border mx-4 ${isDark?'bg-slate-950 border-slate-800':'bg-slate-100 border-slate-200'}`}>{tabs.map(t=>(<button key={t.id} onClick={()=>setActiveTab(t.id)} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold ${activeTab===t.id?(isDark?'bg-slate-800 text-teal-400':'bg-white text-teal-600'):'opacity-60'}`}>{t.icon}<span>{t.label}</span></button>))}</div><button onClick={copyShareLink} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-colors" title="Share Simulation"><Share2 className="w-4 h-4"/>Share</button>
+        <div className={`min-h-screen font-sans transition-colors duration-300 ${isDark ? 'bg-[#0B1121] text-slate-50' : 'bg-slate-50 text-slate-900'}`}>
+            
+            {/* Header */}
+            <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
+                <div className="max-w-7xl mx-auto px-4 py-4 md:px-8 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-gradient-to-br from-teal-500 to-cyan-600 text-white p-2.5 rounded-xl shadow-lg shadow-teal-500/20">
+                            <Calculator className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold tracking-tight leading-none">Per<span className="text-teal-500">Unit</span><span className="opacity-80">Calc</span></h1>
+                            <p className="text-[9px] text-slate-500 font-mono tracking-widest uppercase mt-1">System Engineering Suite</p>
+                        </div>
+                    </div>
+                    
+                    <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                        {isDark ? '☀️' : '🌙'}
+                    </button>
+                </div>
+                
+                {/* Tabs */}
+                <div className="max-w-7xl mx-auto px-4 md:px-8 flex gap-2 sm:gap-6 overflow-x-auto no-scrollbar">
+                    {[
+                        { id: 'simulator', icon: Activity, label: 'Calculator & Simulator' },
+                        { id: 'theory', icon: BookOpen, label: 'Theory Library' },
+                        { id: 'quiz', icon: Award, label: 'Knowledge Quiz' },
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as TabType)}
+                            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+                                activeTab === tab.id 
+                                    ? 'border-teal-500 text-teal-600 dark:text-teal-400' 
+                                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                            }`}
+                        >
+                            <tab.icon className="w-4 h-4" /> {tab.label}
+                        </button>
+                    ))}
+                </div>
             </header>
-            <div className={`md:hidden fixed bottom-0 left-0 right-0 h-16 border-t z-50 flex justify-around items-center ${isDark?'bg-slate-900 border-slate-800':'bg-white border-slate-200'}`}>{tabs.map(t=>(<button key={t.id} onClick={()=>setActiveTab(t.id)} className={`flex flex-col items-center w-full h-full gap-1 justify-center text-[10px] font-bold ${activeTab===t.id?(isDark?'text-teal-400':'text-teal-600'):'opacity-50'}`}>{t.icon}<span>{t.label}</span></button>))}</div>
-            <div className="flex-1 overflow-hidden relative pb-16 md:pb-0">
-                {activeTab==='theory'&&<TheoryLibrary title="Per-Unit System Handbook" description="Comprehensive guide to the per-unit system used in power system analysis, base conversions, and impedance normalization." sections={PER_UNIT_THEORY_CONTENT}/>}
-                <div className={activeTab==='simulator'?'block h-full overflow-y-auto':'hidden'}><SimulatorModule isDark={isDark}/></div>
-                {activeTab==='guide'&&<div className="h-full overflow-y-auto"><GuideModule isDark={isDark}/></div>}
-                {activeTab==='quiz'&&<div className="h-full overflow-y-auto"><QuizModule isDark={isDark}/></div>}
-            </div>
+
+            <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+                <AnimatePresence mode="wait">
+                    
+                    {/* ========================================================= */}
+                    {/* TAB: CALCULATOR & SIMULATOR */}
+                    {/* ========================================================= */}
+                    {activeTab === 'simulator' && (
+                        <motion.div 
+                            key="simulator"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="grid grid-cols-1 xl:grid-cols-12 gap-8 xl:gap-12"
+                        >
+                            {/* --- LEFT PANEL: INPUTS --- */}
+                            <div className="xl:col-span-4 space-y-6">
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/20 dark:shadow-none h-full relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-48 h-48 bg-teal-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                                    
+                                    <div className="flex items-center justify-between mb-8 relative z-10">
+                                        <h2 className="text-sm font-bold uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                            <Settings className="w-4 h-4 text-teal-500" /> Parameters
+                                        </h2>
+                                    </div>
+
+                                    <div className="space-y-8 relative z-10">
+                                        {/* System Base */}
+                                        <div>
+                                            <SectionHeader title="1. System Base Quantities" />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <InputField label="Base Power (S_base)" type="number" step="10" min={10} value={params.sBase} onChange={(v: number) => update('sBase', v)} suffix="MVA" />
+                                                <InputField label="Base Volts (V_base)" type="number" step="11" min={0.4} value={params.vBase} onChange={(v: number) => update('vBase', v)} suffix="kV" />
+                                            </div>
+                                        </div>
+
+                                        {/* Actual Physical Values */}
+                                        <div>
+                                            <SectionHeader title="2. Actual Measured Values" />
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <InputField label="Actual Voltage" step="1" min={0} value={params.actualV} onChange={(v: number) => update('actualV', v)} suffix="kV" />
+                                                    <InputField label="Actual Current" step="1" min={0} value={params.actualI} onChange={(v: number) => update('actualI', v)} suffix="A" />
+                                                </div>
+                                                <InputField label="Actual Impedance" step="1" min={0} value={params.actualZ} onChange={(v: number) => update('actualZ', v)} suffix="Ω" />
+                                            </div>
+                                        </div>
+
+                                        {/* Equipment Plate */}
+                                        <div>
+                                            <SectionHeader title="3. Equipment Conversion" />
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <InputField label="Nameplate MVA" step="1" min={1} value={params.equipMVA} onChange={(v: number) => update('equipMVA', v)} suffix="MVA" />
+                                                    <InputField label="Nameplate kV" step="1" min={0.4} value={params.equipV} onChange={(v: number) => update('equipV', v)} suffix="kV" />
+                                                </div>
+                                                <InputField label="Nameplate Z_pu" step="0.01" min={0} value={params.equipZ} onChange={(v: number) => update('equipZ', v)} suffix="pu" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* --- RIGHT PANEL: RESULTS & SIMULATOR --- */}
+                            <div className="xl:col-span-8 space-y-6 flex flex-col">
+                                
+                                {/* Dynamic SVG Hub */}
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-center">
+                                    <BaseHubDiagram isDark={isDark} sBase={params.sBase} vBase={params.vBase} zBase={results.zBase} iBase={results.iBase} />
+                                </div>
+
+                                {/* Results Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                                    
+                                    {/* PU Values */}
+                                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-center">
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-teal-600 dark:text-teal-400 mb-6 flex items-center gap-2">
+                                            <Activity className="w-4 h-4" /> Normalized Quantities
+                                        </h3>
+                                        
+                                        <div className="space-y-5">
+                                            <div className="flex justify-between items-end border-b border-slate-100 dark:border-slate-800 pb-2">
+                                                <div>
+                                                    <div className="text-[10px] font-bold uppercase text-slate-400">Voltage (pu)</div>
+                                                    <div className="text-xs text-slate-500 font-mono mt-0.5">{params.actualV} kV / {params.vBase} kV</div>
+                                                </div>
+                                                <div className={`text-2xl font-black font-mono ${Math.abs(results.puV - 1) > 0.05 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                                    {results.puV.toFixed(4)}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-between items-end border-b border-slate-100 dark:border-slate-800 pb-2">
+                                                <div>
+                                                    <div className="text-[10px] font-bold uppercase text-slate-400">Current (pu)</div>
+                                                    <div className="text-xs text-slate-500 font-mono mt-0.5">{params.actualI} A / {results.iBase.toFixed(0)} A</div>
+                                                </div>
+                                                <div className={`text-2xl font-black font-mono ${results.puI > 1 ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                    {results.puI.toFixed(4)}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-between items-end pb-2">
+                                                <div>
+                                                    <div className="text-[10px] font-bold uppercase text-slate-400">Impedance (pu)</div>
+                                                    <div className="text-xs text-slate-500 font-mono mt-0.5">{params.actualZ} Ω / {results.zBase.toFixed(1)} Ω</div>
+                                                </div>
+                                                <div className="text-2xl font-black font-mono text-indigo-500 dark:text-indigo-400">
+                                                    {results.puZ.toFixed(4)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Base Conversion */}
+                                    <div className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-3xl p-6 md:p-8 border border-teal-200 dark:border-teal-800/50 shadow-sm relative overflow-hidden flex flex-col justify-center">
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-teal-700 dark:text-teal-400 mb-6 flex items-center gap-2">
+                                            <RefreshCw className="w-4 h-4" /> Equipment Base Conversion
+                                        </h3>
+                                        
+                                        <div className="text-center mb-6">
+                                            <div className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-2">New System Per-Unit Impedance</div>
+                                            <div className="text-4xl md:text-5xl font-black font-mono text-teal-600 dark:text-teal-400 tracking-tight drop-shadow-sm">
+                                                {results.zConverted.toFixed(4)}<span className="text-xl text-teal-500/50 ml-2">pu</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white/60 dark:bg-slate-900/60 p-4 rounded-2xl border border-white/50 dark:border-slate-700/50 backdrop-blur-sm space-y-3 text-sm">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-500 dark:text-slate-400 font-medium text-xs">Original Z_pu</span>
+                                                <span className="font-mono font-bold text-slate-700 dark:text-slate-200">{params.equipZ.toFixed(4)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-500 dark:text-slate-400 font-medium text-xs">Power Multiplier (S_sys / S_eq)</span>
+                                                <span className="font-mono font-bold text-slate-700 dark:text-slate-200">× {results.sRatio.toFixed(3)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-500 dark:text-slate-400 font-medium text-xs">Voltage Multiplier (V_eq / V_sys)²</span>
+                                                <span className="font-mono font-bold text-slate-700 dark:text-slate-200">× {results.vRatio.toFixed(3)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* ========================================================= */}
+                    {/* TAB: THEORY LIBRARY */}
+                    {/* ========================================================= */}
+                    {activeTab === 'theory' && (
+                        <motion.div key="theory" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="max-w-4xl mx-auto space-y-8">
+                            <div className="text-center mb-10 pt-4">
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400 mb-6 shadow-inner">
+                                    <BookOpen className="w-8 h-8" />
+                                </div>
+                                <h2 className="text-3xl font-black mb-4">Per-Unit Theory Library</h2>
+                                <p className="text-slate-500 dark:text-slate-400 max-w-2xl mx-auto text-lg">
+                                    Comprehensive engineering reference material for power system normalization, derived from universally accepted power analysis principles.
+                                </p>
+                            </div>
+
+                            {THEORY_SECTIONS.map((section, idx) => (
+                                <div key={idx} className="bg-white dark:bg-slate-900 p-8 md:p-10 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-slate-100 dark:bg-slate-800 rounded-bl-[100px] -z-10 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/20 transition-colors duration-500" />
+                                    
+                                    <h3 className="text-2xl font-bold mb-6 flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center text-lg font-black shadow-inner shrink-0">
+                                            {idx + 1}
+                                        </div>
+                                        {section.title}
+                                    </h3>
+                                    <div className="text-[15.5px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                        {section.content}
+                                    </div>
+                                </div>
+                            ))}
+                        </motion.div>
+                    )}
+
+                    {/* ========================================================= */}
+                    {/* TAB: KNOWLEDGE QUIZ */}
+                    {/* ========================================================= */}
+                    {activeTab === 'quiz' && (
+                        <motion.div key="quiz" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="max-w-3xl mx-auto">
+                            
+                            {!quizFinished ? (
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+                                    {/* Progress Bar */}
+                                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-2">
+                                        <div 
+                                            className="bg-teal-500 h-full transition-all duration-500"
+                                            style={{ width: `${((quizStep) / QUIZ_QUESTIONS.length) * 100}%` }}
+                                        />
+                                    </div>
+
+                                    <div className="p-8 md:p-12">
+                                        <div className="flex justify-between items-center mb-8">
+                                            <span className="text-xs font-black uppercase tracking-widest text-slate-400">Question {quizStep + 1} of {QUIZ_QUESTIONS.length}</span>
+                                            <span className="text-xs font-black uppercase tracking-widest text-teal-600 bg-teal-50 dark:bg-teal-500/10 px-3 py-1 rounded-full">Score: {quizScore}</span>
+                                        </div>
+
+                                        <h3 className="text-xl md:text-2xl font-bold mb-8 leading-tight">
+                                            {QUIZ_QUESTIONS[quizStep].question}
+                                        </h3>
+
+                                        <div className="space-y-4 mb-8">
+                                            {QUIZ_QUESTIONS[quizStep].options.map((option, idx) => {
+                                                const isSelected = selectedAnswer === idx;
+                                                const isCorrect = idx === QUIZ_QUESTIONS[quizStep].correctAnswer;
+                                                
+                                                let stateClass = "border-slate-200 dark:border-slate-700 hover:border-teal-500 dark:hover:border-teal-400 hover:bg-teal-50 dark:hover:bg-teal-500/5";
+                                                
+                                                if (showExplanation) {
+                                                    if (isCorrect) stateClass = "bg-emerald-50 border-emerald-500 text-emerald-900 dark:bg-emerald-500/10 dark:border-emerald-500/50 dark:text-emerald-100";
+                                                    else if (isSelected) stateClass = "bg-rose-50 border-rose-500 text-rose-900 dark:bg-rose-500/10 dark:border-rose-500/50 dark:text-rose-100";
+                                                    else stateClass = "opacity-50 border-slate-200 dark:border-slate-800";
+                                                }
+
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        disabled={showExplanation}
+                                                        onClick={() => handleAnswer(idx)}
+                                                        className={`w-full text-left p-4 rounded-xl border-2 transition-all font-medium ${stateClass} flex items-start gap-4`}
+                                                    >
+                                                        <div className={`w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center text-xs font-bold mt-0.5 ${showExplanation && isCorrect ? 'border-emerald-500 text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50' : showExplanation && isSelected ? 'border-rose-500 text-rose-600 bg-rose-100 dark:bg-rose-900/50' : 'border-slate-300 dark:border-slate-600'}`}>
+                                                            {String.fromCharCode(65 + idx)}
+                                                        </div>
+                                                        <span className="leading-snug">{option}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <AnimatePresence>
+                                            {showExplanation && (
+                                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-8">
+                                                    <div className={`p-5 rounded-2xl ${selectedAnswer === QUIZ_QUESTIONS[quizStep].correctAnswer ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-amber-50 dark:bg-amber-900/20'}`}>
+                                                        <h4 className={`text-sm font-bold uppercase mb-2 ${selectedAnswer === QUIZ_QUESTIONS[quizStep].correctAnswer ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                                                            {selectedAnswer === QUIZ_QUESTIONS[quizStep].correctAnswer ? 'Correct!' : 'Incorrect'}
+                                                        </h4>
+                                                        <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
+                                                            {QUIZ_QUESTIONS[quizStep].explanation}
+                                                        </p>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+
+                                        {showExplanation && (
+                                            <button onClick={nextQuestion} className="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
+                                                {quizStep === QUIZ_QUESTIONS.length - 1 ? 'Finish Quiz' : 'Next Question'} <ArrowRight className="w-5 h-5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl p-12 text-center">
+                                    <div className="w-24 h-24 bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Award className="w-12 h-12" />
+                                    </div>
+                                    <h2 className="text-3xl font-black mb-2">Quiz Complete!</h2>
+                                    <p className="text-slate-500 dark:text-slate-400 mb-8">You scored {quizScore} out of {QUIZ_QUESTIONS.length}.</p>
+                                    
+                                    <div className="flex justify-center gap-4">
+                                        <button onClick={resetQuiz} className="px-6 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-bold transition-colors flex items-center gap-2">
+                                            <RefreshCw className="w-4 h-4" /> Retake Quiz
+                                        </button>
+                                        <button onClick={() => setActiveTab('simulator')} className="px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors">
+                                            Back to Simulator
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                        </motion.div>
+                    )}
+
+                </AnimatePresence>
+            </main>
         </div>
     );
 }
