@@ -10,6 +10,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, ReferenceDot, Area, AreaChart 
 } from 'recharts';
+import PageSEO from '../components/SEO/PageSEO';
 
 // ============================== CORE 87L ENGINE ==============================
 // Perfect IEEE C37.243 / IEC 60255 compliant mathematical engine
@@ -106,7 +107,7 @@ const QUIZ_DATA = [
 ];
 
 // ============================== REUSABLE UI COMPONENTS ==============================
-const Card = ({ children, className = "", title, icon: Icon, action }) => (
+const Card = ({ children, className = "", title, icon: Icon, action }: { children: any; className?: string; title?: any; icon?: any; action?: any }) => (
   <div className={`bg-slate-900/60 border border-slate-700/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl ${className}`}>
     {(title || Icon) && (
       <div className="flex items-center justify-between p-4 border-b border-slate-800/80 bg-slate-800/20">
@@ -384,7 +385,6 @@ const CharacteristicChart = ({ Irestraint, Idiff, slope1, slope2, breakpoint, mi
             fill={tripState === 'TRIP' ? '#ef4444' : '#10b981'} 
             stroke="#ffffff"
             strokeWidth={2}
-            isFront={true}
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -683,9 +683,9 @@ const QuizView = () => {
         <AnimatePresence>
           {selected !== null && (
             <motion.div 
-              initial={{ opacity: 0, height: 0, mt: 0 }} 
-              animate={{ opacity: 1, height: 'auto', mt: 24 }}
-              className={`p-4 rounded-xl border ${selected === q.ans ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}
+              initial={{ opacity: 0, height: 0 }} 
+              animate={{ opacity: 1, height: 'auto' }}
+              className={`p-4 mt-6 rounded-xl border ${selected === q.ans ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}
             >
               <div className="flex gap-3">
                 <Info className={`w-5 h-5 shrink-0 ${selected === q.ans ? 'text-emerald-400' : 'text-amber-400'}`} />
@@ -711,6 +711,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-slate-950 text-slate-200 selection:bg-cyan-500/30">
+      <PageSEO 
+        title="Line Differential Protection Simulator (ANSI 87L) | RelaySchool"
+        description="Interactive IEEE C37.243 compliant 87L simulator. Master dual-slope restraint, KCL, and communication channel delay compensation."
+        url="/linediffsim"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "RelaySchool DiffPro 87L",
+          "applicationCategory": "EducationalApplication",
+          "description": "High-fidelity line differential protection simulator for power system engineers."
+        }}
+      />
       
       {/* HEADER */}
       <header className="h-16 md:h-20 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-4 md:px-8 flex items-center justify-between">

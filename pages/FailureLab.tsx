@@ -6,6 +6,7 @@ import {
   CheckCircle2, XCircle, FileText, Magnet, Flame, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PageSEO from '../components/SEO/PageSEO';
 
 // ============================== CORE MATH ENGINE (IEEE C37.110 / IEC 61869-2) ==============================
 const MathEngine = {
@@ -160,7 +161,7 @@ const EXAM_DATA = [
 ];
 
 // ============================== REUSABLE UI COMPONENTS ==============================
-const Card = ({ children, className = "", title, icon: Icon, action }) => (
+const Card = ({ children, className = "", title, icon: Icon, action }: { children: any; className?: string; title?: any; icon?: any; action?: any }) => (
   <div className={`bg-slate-900/60 border border-slate-700/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl ${className}`}>
     {(title || Icon) && (
       <div className="flex items-center justify-between p-4 border-b border-slate-800/80 bg-slate-800/20">
@@ -300,7 +301,8 @@ const SimulationView = () => {
   const [remFlux, setRemFlux] = useState(0); 
 
   const [simData, setSimData] = useState({ data: [], harmonics: [], maxFlux: 1 });
-  const [stats, setStats] = useState({ ks: 0, ktd: 0, required: 0, status: 'PASS' });
+  interface CTStats { ks: number; ktd: number; kr: number; required: number; status: string; }
+  const [stats, setStats] = useState<CTStats>({ ks: 0, ktd: 0, kr: 0, required: 0, status: 'PASS' });
   const [activeView, setActiveView] = useState('WAVEFORM');
 
   const handleReset = () => {
@@ -322,7 +324,7 @@ const SimulationView = () => {
     const isMarginal = Ks >= DimensioningRequired && Ks < (DimensioningRequired * 1.5);
 
     setStats({
-      ks: Ks.toFixed(1), ktd: Ktd_offset.toFixed(1), kr: Kr.toFixed(1), required: DimensioningRequired.toFixed(1),
+      ks: Number(Ks.toFixed(1)), ktd: Number(Ktd_offset.toFixed(1)), kr: Number(Kr.toFixed(1)), required: Number(DimensioningRequired.toFixed(1)),
       status: isSaturated ? 'FAIL' : isMarginal ? 'WARN' : 'PASS'
     });
   }, [magnitude, burden, kneePoint, xOverR, remFlux]);
@@ -543,7 +545,7 @@ const ExamView = () => {
 
         <AnimatePresence>
           {selected !== null && (
-            <motion.div key="explanation" initial={{ opacity: 0, height: 0, mt: 0 }} animate={{ opacity: 1, height: 'auto', mt: 24 }} className={`p-4 rounded-xl border ${selected === q.ans ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
+            <motion.div key="explanation" initial={{ opacity: 0, height: 0, marginTop: 0 }} animate={{ opacity: 1, height: 'auto', marginTop: 24 }} className={`p-4 rounded-xl border ${selected === q.ans ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
               <div className="flex gap-3">
                 <Info className={`w-5 h-5 shrink-0 ${selected === q.ans ? 'text-emerald-400' : 'text-amber-400'}`} />
                 <p className="text-sm text-slate-300"><strong>Explanation:</strong> {q.why}</p>
@@ -562,6 +564,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-slate-950 text-slate-200 selection:bg-red-500/30">
+      <PageSEO 
+          title="GridGuard Failure Lab: CT Saturation Simulator | RelaySchool"
+          description="Interactive lab for simulating CT saturation and transient errors. Master IEEE C37.110 dimensioning and X/R effects."
+          url="/failurelab"
+          schema={{
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "RelaySchool GridGuard LAB",
+              "applicationCategory": "EducationalApplication",
+              "description": "High-fidelity CT saturation and transient performance simulator."
+          }}
+      />
       <header className="h-16 md:h-20 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-4 md:px-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="bg-gradient-to-br from-red-600 to-orange-600 p-2 md:p-2.5 rounded-xl shadow-lg shadow-red-500/20">

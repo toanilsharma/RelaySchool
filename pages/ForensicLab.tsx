@@ -680,7 +680,18 @@ export default function ForensicLabApp() {
 
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
-            <PageSEO title="Forensic Lab" description="Interactive Power System simulation and engineering tool: Forensic Lab." url="/forensiclab" />
+            <PageSEO 
+                title="Forensic Lab: Symmetrical Components Simulator | RelaySchool"
+                description="Power system fault analysis lab using Symmetrical Components (Fortescue). Analyze IA/IB/IC and VA/VB/VC phasors in real-time."
+                url="/forensiclab"
+                schema={{
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "RelaySchool Forensic Lab",
+                    "applicationCategory": "EducationalApplication",
+                    "description": "Interactive oscillography and phasorial analysis tool for substation fault diagnostics."
+                }}
+            />
 
 
             {/* Header */}

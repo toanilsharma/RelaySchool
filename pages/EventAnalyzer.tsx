@@ -8,6 +8,7 @@ import {
     PlayCircle, StopCircle, Info, BookText, TrendingUp, Wrench
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
+import PageSEO from '../components/SEO/PageSEO';
 
 // --- INDUSTRIAL STANDARDS & CONSTANTS ---
 const ANSI_CODES = {
@@ -438,6 +439,18 @@ export default function App() {
 
     return (
         <div className="bg-slate-950 min-h-screen text-slate-100 font-sans flex flex-col selection:bg-blue-900 selection:text-white overflow-x-hidden">
+            <PageSEO 
+                title="COMTRADE Event Analyzer & Fault Recorder | RelaySchool"
+                description="Professional fault record analysis tool. Visualize transient oscillography, phasors, and protection element performance."
+                url="/eventanalyzer"
+                schema={{
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "RelaySchool EventPRO",
+                    "applicationCategory": "EducationalApplication",
+                    "description": "Diagnostic tool for power system fault record analysis and protection validation."
+                }}
+            />
             
             {/* --- TOP NAVBAR --- */}
             <header className="bg-slate-900 border-b border-slate-800 shadow-xl z-50">
@@ -522,9 +535,9 @@ export default function App() {
                                     {/* Controls */}
                                     <div className="flex gap-4">
                                         <div className="grid grid-cols-3 gap-1.5 p-3 bg-slate-300 rounded-lg border border-slate-400 shadow-[inset_0_2px_5px_rgba(0,0,0,0.1)] flex-1">
-                                            <div></div><KeyBtn icon={<ChevronUp/>} onClick={()=>handleHmiKey('UP')} /><div></div>
-                                            <KeyBtn icon={<ChevronLeft/>} onClick={()=>handleHmiKey('ESC')} /><KeyBtn label="ENT" color="blue" onClick={()=>handleHmiKey('ENT')} /><KeyBtn icon={<ChevronRight/>} onClick={()=>handleHmiKey('ENT')} />
-                                            <div></div><KeyBtn icon={<ChevronDown/>} onClick={()=>handleHmiKey('DOWN')} /><div></div>
+                                            <div></div><KeyBtn label="UP" color="default" icon={<ChevronUp/>} onClick={()=>handleHmiKey('UP')} /><div></div>
+                                            <KeyBtn label="ESC" color="default" icon={<ChevronLeft/>} onClick={()=>handleHmiKey('ESC')} /><KeyBtn label="ENT" color="blue" onClick={()=>handleHmiKey('ENT')} /><KeyBtn label="ENT" color="default" icon={<ChevronRight/>} onClick={()=>handleHmiKey('ENT')} />
+                                            <div></div><KeyBtn label="DOWN" color="default" icon={<ChevronDown/>} onClick={()=>handleHmiKey('DOWN')} /><div></div>
                                         </div>
                                         <div className="flex flex-col gap-2 w-16">
                                             <CmdBtn label="TARGET RESET" icon={<RotateCcw className="w-4 h-4"/>} onClick={resetTargets} disabled={autoState.active} />
@@ -977,7 +990,7 @@ const StatusLED = ({ label, color, active, blink = false }) => {
     );
 };
 
-const KeyBtn = ({ icon, label, onClick, color }) => (
+const KeyBtn = ({ icon, label, onClick, color = "default" }: { icon?: any; label?: string; onClick: any; color?: string }) => (
     <button 
         onClick={onClick} 
         className={`w-full h-10 rounded-md flex items-center justify-center shadow-[0_2px_0_rgba(0,0,0,0.2)] active:translate-y-[2px] active:shadow-none transition-all ${
@@ -989,7 +1002,7 @@ const KeyBtn = ({ icon, label, onClick, color }) => (
     </button>
 );
 
-const CmdBtn = ({ label, icon, onClick, active = false, color="default", disabled=false }) => {
+const CmdBtn = ({ label, icon, onClick, active = false, color="default", disabled=false }: { label: string; icon?: any; onClick: any; active?: boolean; color?: string; disabled?: boolean }) => {
     let bgClass = active ? 'bg-emerald-500 text-white border-emerald-700' : 'bg-slate-700 text-slate-300 border-slate-900 hover:bg-slate-600';
     if (color === 'red' && active) bgClass = 'bg-red-600 text-white border-red-800';
     if (disabled) bgClass = 'bg-slate-800 text-slate-500 opacity-50 cursor-not-allowed border-slate-900';

@@ -5,9 +5,10 @@ import {
     AlertTriangle, Battery, ChevronDown, ChevronUp, Box, ArrowDownToLine, Waves,
     Plug, Fan, Triangle, Magnet
 } from 'lucide-react';
+import PageSEO from '../components/SEO/PageSEO';
 
 // --- INLINED COMPONENTS ---
-const SEO = () => null; 
+
 
 const Slider = ({ label, unit, min, max, step, value, onChange, color }) => {
     const colorMap = {
@@ -120,8 +121,8 @@ const CurveMatcher = ({ idx }) => {
     const selected = source === 'IEC' ? IEC_OPTS.find(o => o.id === curve) : ANSI_OPTS.find(o => o.id === curve);
 
     const steps = source === 'IEC' 
-        ? [`k = ${selected.k}`, `α = ${selected.a}`, `Note: IEC limits are based on cold curves.`]
-        : [`A = ${selected.A}`, `B = ${selected.B}`, `P = ${selected.P}`, `Matches IEEE C37.112 specification.`];
+        ? [`k = ${(selected as any).k}`, `α = ${(selected as any).a}`, `Note: IEC limits are based on cold curves.`]
+        : [`A = ${(selected as any).A}`, `B = ${(selected as any).B}`, `P = ${(selected as any).P}`, `Matches IEEE C37.112 specification.`];
 
     return (
         <CalcCard title="Curve Matcher" icon={ArrowLeftRight} colorClass="bg-blue-100 dark:bg-blue-900/30 text-blue-600" delayIndex={idx}
@@ -142,7 +143,7 @@ const CurveMatcher = ({ idx }) => {
 
             <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 text-center mt-auto">
                 <div className="text-xs text-slate-500 uppercase mb-1">Closest Equivalent</div>
-                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{selected?.match}</div>
+                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{(selected as any)?.match}</div>
             </div>
         </CalcCard>
     );
@@ -381,7 +382,7 @@ const PowerCalc = ({ idx }) => {
                     <input type="number" min="0" value={amps} onChange={(e) => setAmps(Number(e.target.value))} className="w-full mt-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1.5 text-sm"/>
                 </div>
             </div>
-            <Slider label="Power Factor" min={0.1} max={1.0} step={0.01} value={pf} onChange={e => setPf(Number(e.target.value))} color="indigo" />
+            <Slider label="Power Factor" unit="" min={0.1} max={1.0} step={0.01} value={pf} onChange={e => setPf(Number(e.target.value))} color="indigo" />
 
             <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800 grid grid-cols-3 gap-2 mt-auto">
                 <div className="text-center">
@@ -583,7 +584,7 @@ const TimeConverter = ({ idx }) => {
                 <button onClick={() => setFreq(60)} className={`flex-1 py-1 text-xs font-bold rounded ${freq === 60 ? 'bg-white dark:bg-slate-700 shadow text-cyan-600 dark:text-white' : 'text-slate-500'}`}>60 Hz</button>
             </div>
 
-            <Slider label="Cycles" min={0.5} max={60} step={0.5} value={cycles} onChange={e => setCycles(Number(e.target.value))} color="cyan" />
+            <Slider label="Cycles" unit=" cyc" min={0.5} max={60} step={0.5} value={cycles} onChange={e => setCycles(Number(e.target.value))} color="cyan" />
 
             <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 text-center mt-auto">
                 <div className="text-xs text-slate-500 uppercase mb-1">Duration</div>
@@ -884,9 +885,21 @@ const BusbarForce = ({ idx }) => {
 
 // --- MAIN APP ---
 export default function App() {
+    const isDark = useThemeObserver();
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 font-sans text-slate-900 dark:text-slate-100 selection:bg-blue-500/30">
-            <SEO />
+        <div className={`min-h-screen font-sans flex flex-col transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}`}>
+            <PageSEO 
+                title="Power Engineer's Digital Toolkit | RelaySchool"
+                description="Comprehensive calculation suite for protection engineers. CT burden, fault levels, voltage drop, and cable sizing tools."
+                url="/engineertoolkit"
+                schema={{
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "RelaySchool Engineer Toolkit",
+                    "applicationCategory": "EducationalApplication",
+                    "description": "Multi-function calculator suite for substation and protection engineering."
+                }}
+            />
             <div className="space-y-8 max-w-[1600px] mx-auto pb-12">
                 
                 {/* Header with entrance animation */}

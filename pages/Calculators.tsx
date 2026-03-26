@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Calculator, ArrowRight, Zap, RefreshCw, Equal } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
-import SEO from "../components/SEO";
+import PageSEO from "../components/SEO/PageSEO";
 
 // Complex Number Helper
 class Complex {
@@ -190,7 +190,18 @@ const ImpedanceBaseConversion = () => {
 export default function Calculators() {
     return (
         <div className="space-y-8 animate-fade-in max-w-5xl mx-auto pb-12">
-<SEO title="Calculators" description="Interactive Power System simulation and engineering tool: Calculators." url="/calculators" />
+            <PageSEO 
+                title="Engineering Mathematical Solvers | RelaySchool"
+                description="Interactive solvers for symmetrical components, impedance base conversion, and complex power system calculations."
+                url="/calculators"
+                schema={{
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "RelaySchool Engineering Calculators",
+                    "applicationCategory": "EngineeringApplication",
+                    "description": "A suite of professional calculators for relay protection and power system engineering."
+                }}
+            />
 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
                 <div>

@@ -11,6 +11,14 @@ import { useThemeObserver } from '../hooks/useThemeObserver';
 import Slider from '../components/Slider';
 import { PageSEO } from "../components/SEO/PageSEO";
 
+const vectorSchema: Record<string, any> = {
+    "@type": "WebApplication",
+    "name": "Vector Lab — Phasor Analysis Suite",
+    "description": "Interactive phasor analysis tool for power system engineers. Calculate symmetrical components, power factor, and visualize 3-phase vector rotations.",
+    "applicationCategory": "EngineeringApplication",
+    "operatingSystem": "WebBrowser",
+};
+
 // --- MATH HELPERS ---
 const toRad = (deg) => deg * (Math.PI / 180);
 const toDeg = (rad) => rad * (180 / Math.PI);
@@ -709,7 +717,13 @@ export default function VectorLab() {
 
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
-            <PageSEO title="Vector Lab" description="Interactive Power System simulation and engineering tool: Vector Lab." url="/vectorlab" />
+            <PageSEO 
+                title="Vector Lab | Phasor & Symmetrical Components Simulator" 
+                description="Master phasor diagrams and symmetrical components with our interactive Vector Lab. Simulate A-G, B-C, and LLG faults with real-time vector visualization." 
+                url="/vectors" 
+                schema={vectorSchema}
+                keywords={["phasor diagram", "symmetrical components", "vector lab", "power system analysis", "IEEE C37.112"]}
+            />
 
 
             {/* Header */}

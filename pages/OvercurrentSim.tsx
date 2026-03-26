@@ -7,6 +7,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { BlockMath, InlineMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
+import PageSEO from '../components/SEO/PageSEO';
 
 // ============================== IEEE & IEC MATH & CONSTANTS ==============================
 // Commercial-grade IEEE C37.112 & IEC 60255-151 standard curves
@@ -261,7 +262,7 @@ const SimulatorModule = () => {
 
   // Group curves for the dropdown
   const groupedCurves = useMemo(() => {
-    const groups = {};
+    const groups: Record<string, any[]> = {};
     Object.entries(RELAY_CURVES).forEach(([k, v]) => {
       if (!groups[v.group]) groups[v.group] = [];
       groups[v.group].push({ id: k, ...v });
@@ -678,6 +679,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
+      <PageSEO 
+        title="Overcurrent Protection Simulator (ANSI 50/51) | RelaySchool"
+        description="Learn and simulate IEEE C37.112 and IEC 60255 overcurrent protection curves. Interactive TCC plotting and fault injection."
+        url="/overcurrentsim"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "RelaySchool OCGuard Pro",
+          "applicationCategory": "EducationalApplication",
+          "description": "Interactive overcurrent relay simulation with standard IEEE and IEC curve modeling."
+        }}
+      />
 
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 shadow-lg">

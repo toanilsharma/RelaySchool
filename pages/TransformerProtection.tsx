@@ -5,6 +5,15 @@ import {
     ShieldCheck, Award, GitMerge, Share2, ChevronRight, Scale, CheckCircle, ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PageSEO } from "../components/SEO/PageSEO";
+
+const transformerSchema: Record<string, any> = {
+    "@type": "WebApplication",
+    "name": "Transformer Differential Protection Simulator (87T)",
+    "description": "Interactive simulator for transformer differential protection. Visualize vector group compensation, inrush blocking, and internal fault detection.",
+    "applicationCategory": "EngineeringApplication",
+    "operatingSystem": "WebBrowser",
+};
 
 // ============================== HOOKS & UTILS ==============================
 const useThemeObserver = () => {
@@ -787,8 +796,6 @@ export default function TransformerProtection() {
     const [activeTab, setActiveTab] = useState('simulator');
     const isDark = useThemeObserver();
     
-    useEffect(() => { document.title = "87T Pro | Protection Simulator"; }, []);
-
     const copyShareLink = () => { 
         navigator.clipboard.writeText(window.location.href); 
     };
@@ -802,6 +809,13 @@ export default function TransformerProtection() {
 
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-500 overflow-hidden relative ${isDark ? 'bg-[#030712] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+            <PageSEO 
+                title="Transformer Protection Simulator (87T)"
+                description="Master transformer differential protection with our interactive 87T simulator. Learn about vector groups, inrush harmonics, and slope characteristics."
+                url="/transformer-prot"
+                schema={transformerSchema}
+                keywords={["transformer protection", "87T differential", "vector group compensation", "inrush harmonics", "relay testing"]}
+            />
             
             {/* World-Class Animated Background */}
             <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">

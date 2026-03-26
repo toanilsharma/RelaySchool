@@ -6,6 +6,7 @@ import {
   XCircle, Timer, FileText, BatteryWarning, ServerCrash
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PageSEO } from "../components/SEO/PageSEO";
 
 // ============================== CONSTANTS & DATA ==============================
 const UFLS_STAGES = [
@@ -60,7 +61,7 @@ const QUIZ_DATA = [
 ];
 
 // ============================== REUSABLE UI COMPONENTS ==============================
-const Card = ({ children, className = "", title, icon: Icon, action }) => (
+const Card = ({ children, className = "", title = null, icon: Icon = null, action = null }) => (
   <div className={`bg-slate-900/60 border border-slate-700/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl ${className}`}>
     {(title || Icon) && (
       <div className="flex items-center justify-between p-4 border-b border-slate-800/80 bg-slate-800/20">
@@ -678,7 +679,7 @@ const QuizView = () => {
 
         <AnimatePresence>
           {selected !== null && (
-            <motion.div key="explanation" initial={{ opacity: 0, height: 0, mt: 0 }} animate={{ opacity: 1, height: 'auto', mt: 24 }} className={`p-4 rounded-xl border ${selected === q.ans ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
+            <motion.div key="explanation" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className={`p-4 rounded-xl border mt-6 ${selected === q.ans ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
               <div className="flex gap-3">
                 <Info className={`w-5 h-5 shrink-0 ${selected === q.ans ? 'text-emerald-400' : 'text-amber-400'}`} />
                 <p className="text-sm text-slate-300"><strong>Explanation:</strong> {q.why}</p>
@@ -703,6 +704,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-slate-950 text-slate-200 selection:bg-red-500/30">
+      <PageSEO 
+        title="Frequency Protection & UFLS Simulator (ANSI 81) | RelaySchool"
+        description="Explore Under-Frequency Load Shedding (UFLS) logic and the Swing Equation. Simulate grid disturbances, ROCOF, and inertia effects on power system stability."
+        url="/frequencyprotection"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "RelaySchool FreqGuard PRO",
+          "applicationCategory": "EducationalApplication",
+          "description": "Interactive power grid stability and frequency protection relay simulator."
+        }}
+      />
       
       {/* HEADER */}
       <header className="h-16 md:h-20 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-4 md:px-8 flex items-center justify-between">

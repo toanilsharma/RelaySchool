@@ -9,13 +9,11 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     ReferenceDot, ReferenceLine, Label, Legend, Area, AreaChart 
 } from 'recharts';
+import PageSEO from '../components/SEO/PageSEO';
 
 // ============================== UTILITIES & HOOKS ==============================
 
-const SEO = ({ title }) => {
-    useEffect(() => { document.title = title; }, [title]);
-    return null;
-};
+
 
 const useThemeObserver = () => {
     const [isDark, setIsDark] = useState(true);
@@ -68,7 +66,7 @@ const Frac = ({ num, den }) => (
     </div>
 );
 
-const Var = ({ base, sub, sup }) => (
+const Var = ({ base, sub, sup }: { base: any; sub?: any; sup?: any }) => (
     <span className="italic mx-0.5 relative inline-block">
         {base}
         {sub && <sub className="text-[0.6em] not-italic ml-0.5 -bottom-2 relative">{sub}</sub>}
@@ -98,7 +96,7 @@ const QUIZ_DATA = {
 
 // ============================== THEORY MODULE ==============================
 
-const TheoryLibrary = () => {
+const TheoryLibrary = ({ isDark }: { isDark: boolean }) => {
     return (
         <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8">
             
@@ -253,7 +251,7 @@ const TheoryLibrary = () => {
 
 // ============================== SIMULATOR (RECHARTS INTEGRATION) ==============================
 
-const SimulatorModule = ({ isDark }) => {
+const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
     const [standard, setStandard] = useState('IEEE'); 
     
     // Core Parameters
@@ -573,7 +571,7 @@ const SimulatorModule = ({ isDark }) => {
 };
 
 // ============================== QUIZ MODULE ==============================
-const QuizModule = ({ isDark }) => {
+const QuizModule = ({ isDark }: { isDark: boolean }) => {
     const [level, setLevel] = useState('easy');
     const [cur, setCur] = useState(0);
     const [score, setScore] = useState(0);
@@ -658,7 +656,18 @@ export default function CTVTCalculator() {
 
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
-            <SEO title="CT/VT Sizing Pro - Industrial Grade" />
+            <PageSEO 
+                title="CT/VT Sizing & Accuracy Calculator | RelaySchool"
+                description="Professional instrument transformer sizing tool. Compliant with IEEE C57.13 and IEC 61869-2. Calculate knee voltage and transient saturation."
+                url="/ctvtcalculator"
+                schema={{
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "RelaySchool CT/VT PRO",
+                    "applicationCategory": "EducationalApplication",
+                    "description": "Industrial grade instrument transformer sizing and saturation analysis tool."
+                }}
+            />
             
             {/* Top Navbar */}
             <header className={`h-20 border-b shrink-0 flex items-center justify-between px-6 md:px-10 z-20 shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>

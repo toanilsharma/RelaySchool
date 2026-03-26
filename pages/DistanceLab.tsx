@@ -16,6 +16,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageSEO } from "../components/SEO/PageSEO";
 import Odometer from '../components/Odometer';
 
+const distanceSchema: Record<string, any> = {
+    "@type": "WebApplication",
+    "name": "Distance Lab — Relay Simulation Ultra",
+    "description": "Professional distance protection (ANSI 21) simulator. Explore R-X diagrams, Mho and Quadrilateral characteristics, and zone coordination.",
+    "applicationCategory": "EngineeringApplication",
+    "operatingSystem": "WebBrowser",
+};
+
 // --- Engineering Constants ---
 const SCALE = 12; // Pixels per Ohm
 const CANVAS_SIZE = 500;
@@ -474,7 +482,13 @@ export default function RelaySimUltra() {
 
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans flex flex-col overflow-hidden">
-            <PageSEO title="Distance Lab" description="Interactive Power System simulation and engineering tool: Distance Lab." url="/distancelab" />
+            <PageSEO 
+                title="Distance Lab | ANSI 21 Impedance Protection Simulator" 
+                description="Master distance protection (ANSI 21) with our interactive R-X diagram simulator. Test Mho & Quad characteristics, line backup, and load encroachment." 
+                url="/distance" 
+                schema={distanceSchema}
+                keywords={["distance protection", "ANSI 21", "R-X diagram", "Mho characteristic", "quadrilateral relay", "power system protection"]}
+            />
 
 
             {/* --- Professional Header --- */}

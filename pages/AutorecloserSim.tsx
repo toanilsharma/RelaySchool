@@ -4,6 +4,9 @@ import {
     Book, AlertTriangle, Settings, MonitorPlay, GraduationCap,
     ShieldCheck, Lock, Power, Cpu, Radio, Hash, LineChart, BarChart
 } from 'lucide-react';
+import { PageSEO } from "../components/SEO/PageSEO";
+
+
 
 // ========================= HOOKS =========================
 const useThemeObserver = () => {
@@ -11,7 +14,6 @@ const useThemeObserver = () => {
     // Locked to dark mode for SCADA realism, but kept hook for structure
     useEffect(() => {
         document.body.style.backgroundColor = '#020617'; 
-        document.title = "GridGuard | ANSI 79 SCADA Interface";
     }, []);
     return isDark;
 };
@@ -413,8 +415,8 @@ const SimulatorModule = () => {
         lastTimeRef.current = undefined;
     };
 
-    const requestRef = useRef();
-    const lastTimeRef = useRef();
+    const requestRef = useRef<number>();
+    const lastTimeRef = useRef<number>();
 
     // The Master Engine Loop (60fps)
     const updatePhysics = useCallback((timestamp) => {
@@ -766,6 +768,18 @@ export default function App() {
 
     return (
         <div className="h-screen flex flex-col font-sans bg-[#020617] text-slate-200 selection:bg-blue-500/30">
+            <PageSEO 
+                title="Autorecloser SCADA Simulator (ANSI 79) | RelaySchool"
+                description="Interactive SCADA simulator for autorecloser protection. Visualize shot sequences, dead times, and reclaim timers for power grid stability."
+                url="/autorecloser"
+                schema={{
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "RelaySchool Autorecloser Simulator",
+                    "applicationCategory": "ScadaApplication",
+                    "description": "Professional-grade autorecloser protection (ANSI 79) coordination and sequence simulator."
+                }}
+            />
             
             <header className="h-16 border-b shrink-0 flex items-center justify-between px-6 z-20 bg-slate-950/80 backdrop-blur-xl border-slate-800">
                 <div className="flex items-center gap-4">

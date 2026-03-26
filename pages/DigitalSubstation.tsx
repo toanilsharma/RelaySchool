@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Network, Activity, Clock, Server, AlertTriangle, ShieldAlert, Zap, Settings, Play, RotateCcw, AlertOctagon, Info, CheckCircle, XCircle, Share2, Layers, Cpu, HelpCircle } from 'lucide-react';
 import Slider from '../components/Slider';
 import { motion, AnimatePresence } from 'framer-motion';
-import SEO from "../components/SEO";
+import PageSEO from '../components/SEO/PageSEO';
 
 // --- TYPES & INTERFACES ---
 
@@ -366,7 +366,18 @@ const DigitalSubstation = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 p-4 font-sans animate-fade-in flex flex-col gap-4">
-<SEO title="Digital Substation" description="Interactive Power System simulation and engineering tool: Digital Substation." url="/digitalsubstation" />
+            <PageSEO 
+                title="Digital Substation (IEC 61850) Simulator | RelaySchool"
+                description="Interactive IEC 61850 process bus simulator. Visualize GOOSE storms, PTP drift, and Sampled Values (SV) integrity."
+                url="/digitalsubstation"
+                schema={{
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "RelaySchool ProcessBus PRO",
+                    "applicationCategory": "EducationalApplication",
+                    "description": "Simulation platform for IEC 61850 digital substation architectures."
+                }}
+            />
 
             
             {/* --- HEADER --- */}

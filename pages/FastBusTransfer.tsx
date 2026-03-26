@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeObserver } from '../hooks/useThemeObserver';
-import SEO from "../components/SEO";
+import { PageSEO } from "../components/SEO/PageSEO";
 
 // --- 1. ENGINEERING CONSTANTS & PHYSICS ---
 const NOMINAL_FREQ = 60; // Hz
@@ -956,7 +956,18 @@ export default function FastBusTransferApp() {
 
   return (
     <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
-<SEO title="Fast Bus Transfer" description="Interactive Power System simulation and engineering tool: Fast Bus Transfer." url="/fastbustransfer" />
+      <PageSEO 
+        title="Fast Bus Transfer (FBT) Simulator | RelaySchool"
+        description="Comprehensive motor bus transfer (ANSI 50BT) simulator. Explore fast, in-phase, and residual transfer modes for industrial power system continuity."
+        url="/fastbustransfer"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "RelaySchool Fast Bus Transfer Lab",
+          "applicationCategory": "IndustrialApplication",
+          "description": "High-fidelity FBT simulator complying with IEEE C37.96 and ANSI C50.41 standards."
+        }}
+      />
 
       {/* Header */}
       <header className={`h-16 border-b shrink-0 flex items-center justify-between px-6 z-20 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>

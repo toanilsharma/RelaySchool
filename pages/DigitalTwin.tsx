@@ -7,6 +7,15 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
+import { PageSEO } from "../components/SEO/PageSEO";
+
+const twinSchema: Record<string, any> = {
+    "@type": "WebApplication",
+    "name": "Digital Twin — GridMaster Pro",
+    "description": "Real-time substation digital twin simulator. Visualize load flow, fault propagation, and IED logic across a 132/33kV mesh network.",
+    "applicationCategory": "EngineeringApplication",
+    "operatingSystem": "WebBrowser",
+};
 
 // ==============================
 // UTILS & EXPORT
@@ -31,6 +40,29 @@ const downloadTextFile = (content, filename) => {
 const NODE_TYPES = {
   GRID: 'GRID', BUS: 'BUS', BREAKER: 'BREAKER', TRANSFORMER: 'TRANSFORMER', LOAD: 'LOAD', TIE: 'TIE'
 };
+
+interface Node {
+  id: string;
+  type: string;
+  x: number;
+  y: number;
+  label: string;
+  voltagekV: number;
+  status?: string;
+  ratingAmps?: number;
+  ansi?: string[];
+  settings?: {
+    pickup51Mult: number;
+    td51: number;
+    pickup50Mult: number;
+  };
+  vector?: string;
+  width?: number;
+  loadMW?: number;
+  faulted?: boolean;
+  faultType?: string;
+  stress?: number;
+}
 
 const DEFAULT_SETTINGS = { pickup51Mult: 1.05, td51: 0.5, pickup50Mult: 5.0 };
 
@@ -104,6 +136,13 @@ const SCENARIOS = {
 // ==============================
 // ADVANCED DETERMINISTIC PHYSICS
 // ==============================
+
+const calculateThermalTripTime = (current, pickup, td) => {
+  const M = current / pickup;
+  if (M <= 1.0) return 9999;
+  // IEEE Extremely Inverse: t = TD * ( (28.2 / (M^2 - 1)) + 0.1217 )
+  return td * ((28.2 / (Math.pow(M, 2) - 1)) + 0.1217);
+};
 
 const calculateMeshPhysics = (nodes) => {
   const c = {}; // Currents
@@ -348,7 +387,14 @@ const TheoryHub = () => (
 // GLOBAL OVERVIEW COMPONENT
 // ==============================
 
-const GlobalOverviewPanel = ({ nodes, scenarios, loadScenario, activeScenario }) => {
+interface Scenario {
+  id: string;
+  name: string;
+  load: number[];
+  fault: string | null;
+}
+
+const GlobalOverviewPanel = ({ nodes, scenarios, loadScenario, activeScenario }: { nodes: any[], scenarios: Record<string, Scenario>, loadScenario: (id: string) => void, activeScenario: string }) => {
   const totalLoad = nodes.filter(n => n.type === 'LOAD').reduce((s, n) => s + (n.loadMW || 0), 0);
   const activeFaults = nodes.filter(n => n.faulted).length;
   const trippedBreakers = nodes.filter(n => n.status === 'TRIPPED').length;
@@ -407,8 +453,8 @@ const GlobalOverviewPanel = ({ nodes, scenarios, loadScenario, activeScenario })
 // ==============================
 
 export default function App() {
-  const [nodes, setNodes] = useState(INITIAL_NODES);
-  const [physics, setPhysics] = useState({ energized: new Set(['grid_a', 'grid_b']), currents: {}, flows: {} });
+  const [nodes, setNodes] = useState<Node[]>(INITIAL_NODES as Node[]);
+  const [physics, setPhysics] = useState<any>({ energized: new Set<string>(['grid_a', 'grid_b']), currents: {}, flows: {} });
   const [selectedId, setSelectedId] = useState(null);
   const [isRunning, setIsRunning] = useState(true);
   const [logs, setLogs] = useState([]);
@@ -503,7 +549,7 @@ export default function App() {
   const loadScenario = (key) => {
     const scen = SCENARIOS[key];
     setNodes(INITIAL_NODES.map(n => {
-      let overrides = { status: n.type === NODE_TYPES.BREAKER ? 'CLOSED' : n.status, faulted: false, stress: 0, faultType: n.faultType || 'LLL' };
+      let overrides: any = { status: n.type === NODE_TYPES.BREAKER ? 'CLOSED' : (n as any).status, faulted: false, stress: 0, faultType: (n as any).faultType || 'LLL' };
       if (n.id === 'load1') overrides.loadMW = scen.load[0];
       if (n.id === 'load2') overrides.loadMW = scen.load[1];
       if (n.id === 'load3') overrides.loadMW = scen.load[2];
@@ -520,6 +566,13 @@ export default function App() {
 
   return (
     <div className="h-screen bg-[#020617] text-slate-200 font-sans overflow-hidden flex flex-col selection:bg-cyan-500/30">
+      <PageSEO 
+        title="Digital Twin | Substation Automation & Mesh Network Simulator"
+        description="Interact with a live digital twin of a 132/33kV substation. Simulate bus faults, ring network load sharing, and IEC 61850 GOOSE communications."
+        url="/twin"
+        schema={twinSchema}
+        keywords={["digital twin", "substation automation", "load flow simulation", "IEC 61850", "GOOSE messages", "mesh network"]}
+      />
       
       {/* HEADER */}
       <header className="h-16 shrink-0 bg-[#0a0f1c] border-b border-cyan-900/50 flex items-center justify-between px-6 z-40 relative shadow-2xl">
@@ -583,7 +636,7 @@ export default function App() {
                     if (link.id === 'l_tie_a' || link.id === 'l_tie_b') { current = Math.abs(physics.flows.iTie || 0); flowDirection = (physics.flows.iTie > 0) ? 1 : -1; }
                     if (link.id === 'l_ring_a' || link.id === 'l_ring_b') { current = Math.abs(physics.flows.iRing || 0); flowDirection = (physics.flows.iRing > 0) ? 1 : -1; }
 
-                    const overload = current / (link.ratingAmps || 1000);
+                    const overload = current / ((link as any).ratingAmps || 1000);
                     let stroke = '#1e293b';
                     if (isEnergized) { stroke = overload > 1.2 ? '#ef4444' : overload > 0.9 ? '#f59e0b' : '#0ea5e9'; }
 

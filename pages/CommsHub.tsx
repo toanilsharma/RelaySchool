@@ -322,7 +322,18 @@ const CommsHub = () => {
 
     return (
         <div className="flex flex-col space-y-6 animate-fade-in max-w-7xl mx-auto pb-12 min-h-screen">
-            <PageSEO title="Comms Hub" description="Interactive Power System simulation and engineering tool: Comms Hub." url="/commshub" />
+                        <PageSEO 
+                title="Industrial Ethernet & IEC 61850 Simulator | RelaySchool"
+                description="Interactive simulator for digital substation communications. Analyze GOOSE, SV, and MMS protocol performance and cybersecurity scenarios."
+                url="/commshub"
+                schema={{
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "RelaySchool CommsHub",
+                    "applicationCategory": "CommunicationApplication",
+                    "description": "Professional-grade IEC 61850 network and cybersecurity simulator for power system engineers."
+                }}
+            />
 
 
             {/* HEADER */}

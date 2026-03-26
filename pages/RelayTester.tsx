@@ -12,7 +12,7 @@ import { useThemeObserver } from '../hooks/useThemeObserver';
 import TheoryLibrary from '../components/TheoryLibrary';
 import Slider from '../components/Slider';
 import { RELAY_TESTER_THEORY_CONTENT } from '../data/learning-modules/relay-tester';
-import SEO from "../components/SEO";
+import PageSEO from "../components/SEO/PageSEO";
 
 // --- 1. MATH ENGINE (IEC 60255) ---
 const calculateTripTime = (current: number, pickup: number, tms: number, curveType: string) => {
@@ -734,7 +734,19 @@ export default function RelayTesterApp() {
 
     return (
         <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
-<SEO title="Relay Tester" description="Interactive Power System simulation and engineering tool: Relay Tester." url="/relaytester" />
+<PageSEO 
+    title="Relay Tester (ANSI 51) | RelaySchool" 
+    description="Professional relay testing simulator (IEC 60255 / IEEE C37.90). Test pickup, timing, and harmonic blocking for protective relays." 
+    url="/relaytester"
+    schema={{
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "RelaySchool Relay Tester",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "description": "Interactive relay commissioning and testing laboratory for power system engineers."
+    }}
+/>
 
 
             {/* Header */}

@@ -5,6 +5,7 @@ import {
     Zap, Timer, ToggleRight, ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PageSEO from '../components/SEO/PageSEO';
 
 // --- TYPE DEFINITIONS ---
 
@@ -346,7 +347,7 @@ export default function LogicSandbox() {
     // --- CANVAS INTERACTIONS ---
     const handlePointerMove = (e: React.PointerEvent) => {
         if (!svgRef.current) return;
-        const pt = DOMPoint.fromPoint(e);
+        const pt = { x: e.clientX, y: e.clientY };
         const rect = svgRef.current.getBoundingClientRect();
         const x = pt.x - rect.left;
         const y = pt.y - rect.top;
@@ -488,7 +489,19 @@ export default function LogicSandbox() {
 
 
     return (
-        <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#0B1121] text-slate-50' : 'bg-slate-50 text-slate-900'}`}>
+        <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#0B1121]' : 'bg-slate-50'} text-slate-900`}>
+            <PageSEO 
+                title="Logic Sandbox & PLC Simulator | RelaySchool"
+                description="Interactive IEC 61131-3 Function Block Diagram (FBD) simulator. Design and test industrial control logic, timers, and latches."
+                url="/logicsandbox"
+                schema={{
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "RelaySchool LogicSandbox PRO",
+                    "applicationCategory": "EducationalApplication",
+                    "description": "Web-based industrial logic simulator for FBD (Function Block Diagram) design and testing."
+                }}
+            />
             
             {/* Header */}
             <header className="shrink-0 w-full bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 z-50">

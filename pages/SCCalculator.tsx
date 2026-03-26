@@ -8,6 +8,15 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
     ResponsiveContainer, ReferenceLine 
 } from 'recharts';
+import { PageSEO } from "../components/SEO/PageSEO";
+
+const scSchema: Record<string, any> = {
+    "@type": "WebApplication",
+    "name": "IEC 60909 Short Circuit Calculator",
+    "description": "Calculate 3-phase, 2-phase, and 1-phase short circuit currents according to IEC 60909. Analyze peak currents and asymmetric waveforms.",
+    "applicationCategory": "EngineeringApplication",
+    "operatingSystem": "WebBrowser",
+};
 
 // --- TYPE DEFINITIONS ---
 
@@ -361,6 +370,13 @@ export default function ShortCircuitCalc() {
 
     return (
         <div className={`min-h-screen font-sans transition-colors duration-300 ${isDark ? 'bg-[#0B1121] text-slate-50' : 'bg-slate-50 text-slate-900'}`}>
+            <PageSEO 
+                title="Short Circuit Calculator (IEC 60909)"
+                description="Professional IEC 60909 short circuit analysis tool. Calculate Ik', ip, and sequence impedances for MV/LV power systems."
+                url="/sc-calc"
+                schema={scSchema}
+                keywords={["short circuit calculator", "IEC 60909", "fault current analysis", "power system protection"]}
+            />
             
             {/* Header */}
             <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
