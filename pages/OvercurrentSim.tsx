@@ -2,15 +2,22 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Zap, Settings, Share2, Activity, ShieldCheck,
   RotateCcw, AlertTriangle, TrendingUp, Book, MonitorPlay,
-  GraduationCap, Award, PlayCircle, CheckCircle2, Power, CircuitBoard
+  GraduationCap, Award, PlayCircle, CheckCircle2, Power, CircuitBoard,
+  Info, Shield, Sliders, Timer, History, Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BlockMath, InlineMath } from 'react-katex';
-import 'katex/dist/katex.min.css';
-import PageSEO from '../components/SEO/PageSEO';
+import { useThemeObserver } from '../hooks/useThemeObserver';
+import { Card } from '../components/UI/Card';
+import { Slider } from '../components/UI/Slider';
+import { LaTeX } from '../components/UI/LaTeX';
+import { JargonTooltip } from '../components/UI/JargonTooltip';
+import { PageSEO } from "../components/SEO/PageSEO";
+import { usePersistentState } from "../hooks/usePersistentState";
+import { useTripFeedback } from "../hooks/useTripFeedback";
+import { AICopyButton } from "../components/UI/AICopyButton";
+import Odometer from '../components/Odometer';
 
 // ============================== IEEE & IEC MATH & CONSTANTS ==============================
-// Commercial-grade IEEE C37.112 & IEC 60255-151 standard curves
 const RELAY_CURVES = {
   'IEC_SI': { group: 'IEC 60255', A: 0.14, B: 0, P: 0.02, label: 'Standard Inverse (SI)' },
   'IEC_VI': { group: 'IEC 60255', A: 13.5, B: 0, P: 1.0, label: 'Very Inverse (VI)' },
@@ -21,67 +28,17 @@ const RELAY_CURVES = {
   'IEEE_EI': { group: 'IEEE C37.112', A: 28.2, B: 0.1217, P: 2.0, label: 'Extremely Inverse (EI)' },
 };
 
-const calcTripTime = (I, Ip, tms, curveKey) => {
+const calcTripTime = (I: number, Ip: number, tms: number, curveKey: string) => {
   if (I <= Ip) return null;
-  const c = RELAY_CURVES[curveKey];
+  const c = (RELAY_CURVES as any)[curveKey];
   if (!c) return null;
   const M = I / Ip;
   const time = tms * (c.A / (Math.pow(M, c.P) - 1) + c.B);
   return Math.max(0.02, time); // 20ms mechanical minimum limit
 };
 
-// ============================== CUSTOM HOOKS ==============================
-// Smooths out fast value changes for UI (like sliders dragging)
-const useSmoothedValue = (value, speed = 0.15) => {
-  const [smoothed, setSmoothed] = useState(value);
-  useEffect(() => {
-    let animationFrameId;
-    const update = () => {
-      setSmoothed(prev => {
-        const diff = value - prev;
-        if (Math.abs(diff) < 0.001) return value;
-        return prev + diff * speed;
-      });
-      animationFrameId = requestAnimationFrame(update);
-    };
-    update();
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [value, speed]);
-  return smoothed;
-};
-
-// ============================== UI COMPONENTS ==============================
-const Slider = ({ label, unit = '', min, max, step, value, onChange, color, disabled }) => {
-  const colorClasses = {
-    blue: 'accent-sky-500 focus:ring-sky-500',
-    red: 'accent-red-500 focus:ring-red-500',
-    amber: 'accent-amber-500 focus:ring-amber-500',
-  };
-
-  return (
-    <div className={`flex flex-col space-y-2 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
-      <div className="flex justify-between items-center">
-        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</label>
-        <span className="font-mono text-sm font-bold text-white bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-md shadow-inner">
-          {value}{unit}
-        </span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        className={`w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer ${colorClasses[color]}`}
-      />
-    </div>
-  );
-};
-
 // ============================== SVG TCC CHART ==============================
-const TCCChart = ({ pickup51, tms, curveType, pickup50, faultCurrent, tripTime }) => {
+const TCCChart = ({ pickup51, tms, curveType, pickup50, faultCurrent, tripTime }: any) => {
   const width = 600;
   const height = 400;
   const padding = { top: 20, right: 30, bottom: 40, left: 50 };
@@ -95,8 +52,8 @@ const TCCChart = ({ pickup51, tms, curveType, pickup50, faultCurrent, tripTime }
   const logMinI = Math.log10(minI), logMaxI = Math.log10(maxI);
   const logMinT = Math.log10(minT), logMaxT = Math.log10(maxT);
 
-  const mapX = (I) => padding.left + ((Math.log10(I) - logMinI) / (logMaxI - logMinI)) * innerWidth;
-  const mapY = (T) => padding.top + innerHeight - ((Math.log10(T) - logMinT) / (logMaxT - logMinT)) * innerHeight;
+  const mapX = (I: number) => padding.left + ((Math.log10(I) - logMinI) / (logMaxI - logMinI)) * innerWidth;
+  const mapY = (T: number) => padding.top + innerHeight - ((Math.log10(T) - logMinT) / (logMaxT - logMinT)) * innerHeight;
 
   // Minor and Major Grid arrays for professional TCC paper look
   const minorX = [0.6, 0.7, 0.8, 0.9, 2, 3, 4, 5, 6, 7, 8, 9, 20, 30, 40, 50, 60, 70, 80, 90];
@@ -131,10 +88,10 @@ const TCCChart = ({ pickup51, tms, curveType, pickup50, faultCurrent, tripTime }
   const yFault = tripTime ? mapY(tripTime) : null;
 
   return (
-    <div className="w-full overflow-hidden bg-[#0a0f18] rounded-xl border border-slate-800 relative shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto drop-shadow-xl">
+    <div className="w-full overflow-hidden bg-[#0a0f18] rounded-2xl border border-slate-800 relative shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
         {/* Minor Grid Lines */}
-        <g className="text-slate-800/40" strokeWidth="0.5" stroke="currentColor">
+        <g className="text-slate-800/60" strokeWidth="0.5" stroke="currentColor">
           {minorX.map(v => (
             <line key={`mx-${v}`} x1={mapX(v)} y1={padding.top} x2={mapX(v)} y2={padding.top + innerHeight} />
           ))}
@@ -164,12 +121,7 @@ const TCCChart = ({ pickup51, tms, curveType, pickup50, faultCurrent, tripTime }
           {majorX.map(v => (
             <text key={`lx-${v}`} x={mapX(v)} y={padding.top + innerHeight + 15}>{v}</text>
           ))}
-          {/* Highlight multiples */}
-          {[2, 5, 20, 50].map(v => (
-            <text key={`lxm-${v}`} x={mapX(v)} y={padding.top + innerHeight + 15} fontSize="8" fill="#64748b">{v}</text>
-          ))}
           <text x={width - 20} y={padding.top + innerHeight + 15} fontWeight="bold" fill="#0ea5e9">× Ip</text>
-
           <g textAnchor="end">
             {majorY.map(v => (
               <text key={`ly-${v}`} x={padding.left - 5} y={mapY(v) + 4}>{v}s</text>
@@ -177,90 +129,55 @@ const TCCChart = ({ pickup51, tms, curveType, pickup50, faultCurrent, tripTime }
           </g>
         </g>
 
-        {/* 51 Curve with Commercial Glow */}
+        {/* 51 Curve */}
         <motion.path
           d={curvePath}
           fill="none"
           stroke="#0ea5e9"
-          strokeWidth="2.5"
+          strokeWidth="3"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
           transition={{ duration: 1.2, ease: "easeInOut" }}
-          style={{ filter: 'drop-shadow(0 0 6px rgba(14, 165, 233, 0.8))' }}
+          style={{ filter: 'drop-shadow(0 0 8px rgba(14, 165, 233, 0.6))' }}
         />
 
         {/* 50 Instantaneous Line */}
         {x50 >= padding.left && x50 <= padding.left + innerWidth && (
-          <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-            <line x1={x50} y1={padding.top} x2={x50} y2={padding.top + innerHeight} stroke="#ef4444" strokeWidth="2" strokeDasharray="6,4" />
-            <rect x={x50 - 28} y={padding.top + 8} width="56" height="18" rx="4" fill="#ef4444" opacity="0.9" />
-            <text x={x50} y={padding.top + 20} fill="white" fontSize="9" fontWeight="bold" textAnchor="middle" letterSpacing="1">50 INST</text>
-          </motion.g>
+          <g>
+            <line x1={x50} y1={padding.top} x2={x50} y2={padding.top + innerHeight} stroke="#ef4444" strokeWidth="2.5" strokeDasharray="6,4" />
+            <rect x={x50 - 30} y={padding.top + 10} width="60" height="20" rx="6" fill="#ef4444" />
+            <text x={x50} y={padding.top + 24} fill="currentColor" fontSize="9" fontWeight="900" textAnchor="middle" className="text-white">50 INST</text>
+          </g>
         )}
 
-        {/* Operating Point & Crosshairs */}
-        {xFault && xFault >= padding.left && xFault <= padding.left + innerWidth && (
-          <motion.g
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", damping: 15 }}
-          >
-            {/* Guide lines to operating point */}
-            {yFault && (
-              <>
-                <line x1={padding.left} y1={yFault} x2={xFault} y2={yFault} stroke="#f59e0b" strokeWidth="1" strokeDasharray="3,3" opacity="0.8" />
-                <line x1={xFault} y1={padding.top + innerHeight} x2={xFault} y2={yFault} stroke="#f59e0b" strokeWidth="1" strokeDasharray="3,3" opacity="0.8" />
-
-                {/* Glowing Dot - Commercial Style */}
-                <circle cx={xFault} cy={yFault} r="5" fill="#0f172a" stroke={faultCurrent >= pickup50 ? "#ef4444" : "#f59e0b"} strokeWidth="3" />
-                <circle cx={xFault} cy={yFault} r="14" fill={faultCurrent >= pickup50 ? "#ef4444" : "#f59e0b"} opacity="0.25" className="animate-ping" />
-
-                {/* Tooltip near the point */}
-                <rect x={xFault + 10} y={yFault - 35} width="85" height="30" rx="4" fill="#0f172a" stroke="#334155" opacity="0.9" />
-                <text x={xFault + 15} y={yFault - 22} fill="#94a3b8" fontSize="9" fontFamily="monospace">t: <tspan fill="#fff" fontWeight="bold">{tripTime.toFixed(3)}s</tspan></text>
-                <text x={xFault + 15} y={yFault - 10} fill="#94a3b8" fontSize="9" fontFamily="monospace">I: <tspan fill="#fff" fontWeight="bold">{mFault.toFixed(1)}x</tspan></text>
-              </>
-            )}
-            {!yFault && (
-              <circle cx={xFault} cy={padding.top + innerHeight} r="6" fill="#ef4444" />
-            )}
+        {/* Operating Point */}
+        {xFault && xFault >= padding.left && xFault <= padding.left + innerWidth && yFault && (
+          <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}>
+            <line x1={padding.left} y1={yFault} x2={xFault} y2={yFault} stroke="#6366f1" strokeWidth="1" strokeDasharray="4,4" />
+            <line x1={xFault} y1={padding.top + innerHeight} x2={xFault} y2={yFault} stroke="#6366f1" strokeWidth="1" strokeDasharray="4,4" />
+            <circle cx={xFault} cy={yFault} r="6" fill={faultCurrent >= pickup50 ? "#ef4444" : "#0ea5e9"} stroke="#fff" strokeWidth="2" />
+            <circle cx={xFault} cy={yFault} r="15" fill={faultCurrent >= pickup50 ? "#ef4444" : "#0ea5e9"} fillOpacity="0.2" className="animate-ping" />
           </motion.g>
         )}
       </svg>
-
-      {/* Legend Overlay */}
-      <div className="absolute top-4 left-16 bg-slate-900/90 backdrop-blur border border-slate-700 p-3 rounded-lg pointer-events-none shadow-lg">
-        <div className="text-[10px] font-bold text-slate-400 mb-1 tracking-wider uppercase">Active Parameters</div>
-        <div className="text-xs font-mono text-slate-200">Curve: <span className="text-sky-400 font-bold">{RELAY_CURVES[curveType]?.label || curveType}</span></div>
-        <div className="text-xs font-mono text-slate-200 mt-1">TD/TMS: <span className="text-sky-400 font-bold">{tms.toFixed(2)}</span></div>
-        <div className="text-xs font-mono text-slate-200 mt-1">51 P.U.: <span className="text-sky-400 font-bold">{pickup51.toFixed(1)} A</span></div>
-      </div>
     </div>
   );
 };
 
-
 // ============================== SIMULATOR MODULE ==============================
-const SimulatorModule = () => {
-  const [pickup51, setPickup51] = useState(400);
-  const sPickup51 = useSmoothedValue(pickup51);
-  const [tms, setTms] = useState(0.3);
-  const sTms = useSmoothedValue(tms);
-  const [curveType, setCurveType] = useState('IEC_SI');
-  const [pickup50, setPickup50] = useState(4000);
-  const sPickup50 = useSmoothedValue(pickup50);
-  const [faultCurrent, setFaultCurrent] = useState(0);
-
+const SimulatorModule = ({ 
+  isDark, pickup51, setPickup51, tms, setTms, curveType, setCurveType, 
+  pickup50, setPickup50, faultCurrent, setFaultCurrent, triggerTrip 
+}: any) => {
   const [running, setRunning] = useState(false);
   const [breakerOpen, setBreakerOpen] = useState(false);
-  const [phase, setPhase] = useState('SYSTEM NORMAL');
+  const [phase, setPhase] = useState('MONITORING');
   const [elapsed, setElapsed] = useState(0);
-  const [events, setEvents] = useState([]);
-  const timerRef = useRef(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const timerRef = useRef<any>(null);
 
   const tripTime = useMemo(() => calcTripTime(faultCurrent, pickup51, tms, curveType), [faultCurrent, pickup51, tms, curveType]);
 
-  // Group curves for the dropdown
   const groupedCurves = useMemo(() => {
     const groups: Record<string, any[]> = {};
     Object.entries(RELAY_CURVES).forEach(([k, v]) => {
@@ -270,7 +187,7 @@ const SimulatorModule = () => {
     return groups;
   }, []);
 
-  const addEvent = (msg, type) => {
+  const addEvent = (msg: string, type: string) => {
     setEvents(prev => [{ id: Math.random(), time: elapsed, msg, type }, ...prev].slice(0, 15));
   };
 
@@ -279,322 +196,213 @@ const SimulatorModule = () => {
     setRunning(true);
     setBreakerOpen(false);
     setElapsed(0);
-    setPhase('FAULT DETECTED');
-    setEvents([{ id: Math.random(), time: 0, msg: `⚡ Fault injected: ${faultCurrent}A`, type: 'fault' }]);
-
-    if (faultCurrent < pickup51) {
-      setPhase('BELOW PICKUP');
-      addEvent(`Current ${faultCurrent}A < Pickup ${pickup51}A — No operation`, 'info');
-      setRunning(false);
-      return;
-    }
+    setPhase('FAULT');
+    setEvents([{ id: Math.random(), time: 0, msg: `⚡ Fault Injection: ${faultCurrent}A`, type: 'fault' }]);
 
     const is50Trip = faultCurrent >= pickup50;
     const t51 = calcTripTime(faultCurrent, pickup51, tms, curveType) || 999;
-    const opTime = is50Trip ? 0.03 : t51; // 50 trips in ~30ms commercially
+    const opTime = is50Trip ? 0.03 : t51;
 
     const startTime = performance.now();
-
-    const updateTimer = () => {
+    const update = () => {
       const now = performance.now();
-      const currentElapsed = (now - startTime) / 1000;
-      setElapsed(currentElapsed);
+      const curElapsed = (now - startTime) / 1000;
+      setElapsed(curElapsed);
 
-      if (is50Trip && currentElapsed >= 0.015 && phase !== '50_TRIP') {
-        setPhase('50_TRIP');
-        addEvent(`🔴 ANSI 50 INSTANTANEOUS TRIP SIGNAL (> ${pickup50}A)`, 'trip');
-      } else if (!is50Trip && currentElapsed >= 0.1 && phase !== '51_TIMING') {
-        setPhase('51_TIMING');
-        addEvent(`⏱ ANSI 51 timing: ${curveType.split('_')[1]} curve, Target: ${t51.toFixed(3)}s`, 'info');
-      }
-
-      if (currentElapsed >= opTime) {
+      if (curElapsed >= opTime) {
         setElapsed(opTime);
-        setPhase(is50Trip ? 'LOCKOUT (50)' : 'LOCKOUT (51)');
         setBreakerOpen(true);
-        addEvent(`✅ Breaker 52 Open. Total clear time: ${opTime.toFixed(3)}s`, 'success');
         setRunning(false);
+        setPhase('TRIPPED');
+        triggerTrip();
+        addEvent(`✅ ANSI ${is50Trip ? '50' : '51'} Trip at ${opTime.toFixed(3)}s`, 'success');
         cancelAnimationFrame(timerRef.current);
       } else {
-        timerRef.current = requestAnimationFrame(updateTimer);
+        timerRef.current = requestAnimationFrame(update);
       }
     };
-
-    timerRef.current = requestAnimationFrame(updateTimer);
+    timerRef.current = requestAnimationFrame(update);
   };
 
   const reset = () => {
     if (timerRef.current) cancelAnimationFrame(timerRef.current);
-    setPhase('SYSTEM NORMAL');
+    setPhase('MONITORING');
     setElapsed(0);
     setRunning(false);
     setBreakerOpen(false);
-    setEvents([{ id: Math.random(), time: 0, msg: `System Reset. Breaker 52 Closed.`, type: 'info' }]);
+    setEvents([]);
     setFaultCurrent(0);
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-
-      {/* Top Controls Grid */}
+    <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        {/* Settings Panel */}
-        <div className="lg:col-span-8 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-            <CircuitBoard size={160} />
-          </div>
-
-          <h3 className="font-bold text-lg mb-6 flex items-center text-slate-100">
-            <Settings className="w-5 h-5 text-sky-500 mr-3" /> Relay Protection Settings
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <Slider label="51 Pickup Current (Ip)" unit="A" min={50} max={2000} step={10} value={pickup51} onChange={e => setPickup51(+e.target.value)} color="blue" disabled={running} />
-            <Slider label="Time Setting (TD/TMS)" min={0.05} max={1.5} step={0.01} value={tms} onChange={e => setTms(+e.target.value)} color="blue" disabled={running} />
-
-            <div className="flex flex-col space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Standard & Curve Type</label>
-              <select
-                value={curveType}
-                onChange={e => setCurveType(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500 outline-none transition-all font-medium text-sm"
-                disabled={running}
-              >
-                {Object.entries(groupedCurves).map(([groupName, curves]) => (
-                  <optgroup key={groupName} label={groupName} className="text-slate-400 bg-slate-900">
-                    {curves.map(c => <option key={c.id} value={c.id} className="text-white">{c.label}</option>)}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
-
-            <Slider label="50 Instantaneous Pickup" unit="A" min={500} max={20000} step={100} value={pickup50} onChange={e => setPickup50(+e.target.value)} color="red" disabled={running} />
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-slate-800 relative z-10">
-            <div className="flex flex-col md:flex-row items-end gap-6">
-              <div className="flex-1 w-full">
-                <Slider label="Fault Current Injection" unit="A" min={0} max={25000} step={50} value={faultCurrent} onChange={e => setFaultCurrent(+e.target.value)} color="amber" disabled={running || breakerOpen} />
-              </div>
-              <div className="flex gap-3 w-full md:w-auto">
-                <motion.button
-                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={startFault}
-                  disabled={running || faultCurrent <= 0 || breakerOpen}
-                  className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(220,38,38,0.3)] disabled:opacity-40 disabled:shadow-none flex items-center justify-center gap-2 transition-all"
-                >
-                  <Zap className="w-4 h-4" /> {running ? 'Active...' : 'Inject Fault'}
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={reset}
-                  className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm transition-colors border border-slate-700 flex items-center justify-center gap-2"
-                >
-                  <RotateCcw className="w-4 h-4" /> Reset
-                </motion.button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Industrial Status Panel */}
-        <div className="lg:col-span-4 flex flex-col gap-4">
-          {/* Breaker Status */}
-          <div className={`p-5 rounded-2xl border flex items-center gap-4 shadow-lg transition-colors duration-500 ${breakerOpen ? 'bg-red-950/40 border-red-900/50' : 'bg-emerald-950/20 border-emerald-900/30'}`}>
-            <motion.div
-              animate={{ rotate: breakerOpen ? 45 : 0 }}
-              className={`p-3 rounded-full ${breakerOpen ? 'bg-red-500/20 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'bg-emerald-500/20 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]'}`}
-            >
-              <Power size={28} />
-            </motion.div>
-            <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">52 Circuit Breaker</div>
-              <div className={`text-2xl font-black tracking-tight ${breakerOpen ? 'text-red-500' : 'text-emerald-500'}`}>
-                {breakerOpen ? 'OPEN (TRIPPED)' : 'CLOSED (NORMAL)'}
-              </div>
-            </div>
-          </div>
-
-          {/* Relay Status */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex-1 flex flex-col relative overflow-hidden">
-            <div className={`absolute top-0 left-0 w-1.5 h-full ${phase.includes('LOCKOUT') ? 'bg-red-500 shadow-[0_0_20px_rgba(239,68,68,1)]' : running ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,1)] animate-pulse' : 'bg-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.5)]'}`} />
-
-            <h3 className="font-bold text-xs text-slate-400 mb-3 uppercase tracking-widest flex items-center">
-              <Activity className="w-4 h-4 mr-2" /> Real-Time Telemetry
-            </h3>
-
-            <div className="text-3xl font-black font-mono tracking-tight text-white mb-6 bg-slate-950 p-3 rounded-lg border border-slate-800 text-center shadow-inner">
-              {phase}
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-between items-end border-b border-slate-800/60 pb-2">
-                <span className="text-slate-400 text-sm font-medium">Primary Current</span>
-                <span className={`font-mono text-xl font-bold ${faultCurrent >= pickup50 ? 'text-red-400' : faultCurrent >= pickup51 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                  {faultCurrent.toLocaleString()} <span className="text-sm">A</span>
-                </span>
-              </div>
-              <div className="flex justify-between items-end border-b border-slate-800/60 pb-2">
-                <span className="text-slate-400 text-sm font-medium">Expected Op. Time</span>
-                <span className="font-mono text-xl font-bold text-sky-400">
-                  {tripTime ? `${tripTime.toFixed(3)}s` : '∞'}
-                </span>
-              </div>
-              <div className="flex justify-between items-end">
-                <span className="text-slate-400 text-sm font-medium">Relay Timer</span>
-                <span className="font-mono text-2xl font-bold text-white">
-                  {elapsed.toFixed(3)}s
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Bottom Grid: TCC Curve & Logs */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        {/* TCC Canvas */}
-        <div className="lg:col-span-8 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-100 flex items-center">
-              <TrendingUp className="w-5 h-5 text-sky-500 mr-3" /> Time-Current Characteristic (TCC)
-            </h3>
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-              <span className="w-3 h-0.5 bg-sky-500 inline-block"></span> 51 Curve
-              <span className="w-3 h-0.5 bg-red-500 inline-block ml-2 border-t border-dashed"></span> 50 Inst
-            </div>
-          </div>
-          <TCCChart
-            pickup51={sPickup51}
-            tms={sTms}
-            curveType={curveType}
-            pickup50={sPickup50}
-            faultCurrent={faultCurrent}
-            tripTime={tripTime}
-          />
-        </div>
-
-        {/* Event Log */}
-        <div className="lg:col-span-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col">
-          <h3 className="font-bold mb-4 text-slate-100 flex items-center">
-            <ShieldCheck className="w-5 h-5 text-sky-500 mr-3" /> Sequence of Events (SOE)
-          </h3>
-          <div className="flex-1 bg-[#0a0f18] rounded-xl border border-slate-800 p-4 overflow-hidden relative shadow-inner">
-            {/* Scanline effect */}
-            <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:100%_4px] z-10 opacity-30"></div>
-
-            <div className="h-full overflow-y-auto space-y-2 pr-2 relative z-20" style={{ maxHeight: '350px' }}>
-              {events.length === 0 && (
-                <div className="flex h-full items-center justify-center text-slate-600 font-mono text-sm animate-pulse">
-                  &gt; SYSTEM IDLE. WAITING FOR TRIGGER...
+        {/* Left: Settings */}
+        <div className="lg:col-span-8 space-y-6">
+          <Card isDark={isDark} noPadding>
+            <div className="p-8">
+              <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 mb-8 flex items-center gap-2">
+                <Settings className="w-4 h-4 text-indigo-500" /> <JargonTooltip text="Inverse Settings" explanation="Configurable parameters for the time-overcurrent characteristic." /> (ANSI 51/50)
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                <div className="space-y-8">
+                  <Slider label="51 Pickup (Ip)" unit=" A" min={50} max={2000} step={1} value={pickup51} onChange={e => setPickup51(+e.target.value)} color="blue" disabled={running} />
+                  <Slider label="Time Dial (TD/TMS)" min={0.05} max={1.5} step={0.01} unit="" value={tms} onChange={e => setTms(+e.target.value)} color="blue" disabled={running} />
                 </div>
-              )}
-              <AnimatePresence>
-                {events.map((e) => (
-                  <motion.div
-                    key={e.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className={`p-3 rounded bg-slate-900 border-l-2 shadow-sm ${e.type === 'trip' ? 'border-red-500 text-red-200' :
-                      e.type === 'success' ? 'border-emerald-500 text-emerald-200' :
-                        e.type === 'fault' ? 'border-amber-500 text-amber-200' :
-                          'border-sky-500 text-sky-200'
-                      }`}
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-mono text-[10px] opacity-60">T + {e.time.toFixed(3)}s</span>
-                      {e.type === 'trip' && <span className="font-mono text-[10px] bg-red-500/20 text-red-400 px-1 rounded">TRIP</span>}
-                    </div>
-                    <div className="font-mono text-xs leading-relaxed">{e.msg}</div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                
+                <div className="space-y-8">
+                  <div className="flex flex-col space-y-3">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Curve Characteristic</label>
+                    <select
+                      value={curveType}
+                      onChange={e => setCurveType(e.target.value)}
+                      className={`rounded-xl p-3 text-xs font-black tracking-widest outline-none focus:ring-2 focus:ring-indigo-500 transition-all border ${isDark ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                      disabled={running}
+                    >
+                      {Object.entries(groupedCurves).map(([group, curves]) => (
+                        <optgroup key={group} label={group}>
+                          {curves.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                  <Slider label="50 Inst. Pickup" unit=" A" min={500} max={20000} step={100} value={pickup50} onChange={e => setPickup50(+e.target.value)} color="red" disabled={running} />
+                </div>
+              </div>
+
+              <div className="mt-12 pt-8 border-t border-slate-800">
+                <Slider label="Inject Fault Current" unit=" A" min={0} max={25000} step={100} value={faultCurrent} onChange={e => setFaultCurrent(+e.target.value)} color="amber" disabled={running || breakerOpen} />
+                <div className="flex gap-4 mt-8">
+                  <button onClick={startFault} disabled={running || faultCurrent <= 0 || breakerOpen} className="flex-1 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-xs tracking-widest uppercase transition-all shadow-lg disabled:opacity-30">
+                    {running ? 'Relay Timing...' : 'Inject Fault'}
+                  </button>
+                  <button onClick={reset} className={`px-8 py-4 rounded-2xl font-black text-xs tracking-widest uppercase transition-all border ${isDark ? 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700' : 'bg-slate-200 border-slate-300 text-slate-900 hover:bg-slate-300'}`}>
+                    Reset
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          </Card>
+
+          <Card isDark={isDark} noPadding>
+             <div className="p-8">
+               <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
+                 <TrendingUp className="w-4 h-4 text-emerald-500" /> TCC Visualization
+               </h3>
+               <TCCChart pickup51={pickup51} tms={tms} curveType={curveType} pickup50={pickup50} faultCurrent={faultCurrent} tripTime={tripTime} />
+             </div>
+          </Card>
         </div>
 
+        {/* Right: Telemetry & Log */}
+        <div className="lg:col-span-4 space-y-6">
+          <Card isDark={isDark} noPadding>
+            <div className="p-6">
+              <div className={`flex items-center gap-4 p-5 rounded-2xl border transition-all ${breakerOpen ? 'bg-red-950/30 border-red-500/50 text-red-500 animate-pulse' : 'bg-emerald-950/20 border-emerald-500/30 text-emerald-500'}`}>
+                <Power className={`w-8 h-8 ${breakerOpen ? 'text-red-500' : 'text-emerald-500'}`} />
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Breaker 52</div>
+                  <div className="text-xl font-black">{breakerOpen ? 'TRIPPED' : 'CLOSED'}</div>
+                </div>
+              </div>
+
+              <div className="mt-8 space-y-6">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Relay Phase</span>
+                  <span className={`text-sm font-black tracking-widest ${running ? 'text-amber-400' : breakerOpen ? 'text-red-400' : 'text-emerald-400'}`}>{phase}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Relay Timer</span>
+                  <Odometer value={elapsed} format={v => `${v.toFixed(3)}s`} className="text-2xl font-black text-adaptive" />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card isDark={isDark} noPadding>
+            <div className="p-6 h-[400px] flex flex-col">
+              <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
+                <History className="w-4 h-4 text-blue-500" /> Sequence of Events
+              </h3>
+              <div className={`flex-1 rounded-2xl border p-4 overflow-y-auto space-y-3 custom-scrollbar ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+                {events.length === 0 && <div className="h-full flex items-center justify-center text-[10px] font-black text-slate-700 tracking-widest uppercase italic">Monitoring System...</div>}
+                {events.map(e => (
+                  <div key={e.id} className={`p-4 rounded-xl border text-[10px] font-black leading-relaxed ${e.type === 'trip' ? 'bg-red-950/20 border-red-500/30 text-red-400' : e.type === 'success' ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+                    <div className="flex justify-between mb-1 opacity-60"><span>T+{e.time.toFixed(3)}s</span> <span>{e.type.toUpperCase()}</span></div>
+                    {e.msg}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );
 };
 
-// ============================== THEORY & GUIDE MODULE ==============================
-const TheoryGuideModule = () => {
-  return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12">
-      <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-5">
-          <Book size={200} />
-        </div>
-        <h2 className="text-3xl font-black text-white mb-2 relative z-10">Overcurrent Protection Fundamentals</h2>
-        <p className="text-slate-400 text-lg relative z-10">ANSI 50/51 Elements & IEEE / IEC Characteristics</p>
-
-        <div className="mt-8 space-y-6 relative z-10">
-          <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 backdrop-blur-sm">
-            <h3 className="text-xl font-bold text-sky-400 mb-3 flex items-center"><Zap className="w-5 h-5 mr-2" /> Element 51 (Time Overcurrent)</h3>
-            <p className="text-slate-300 leading-relaxed mb-4">
-              Provides time-delayed tripping. The delay is inversely proportional to the fault current magnitude. Commercial relays implement standards like <strong>IEEE C37.112</strong> and <strong>IEC 60255-151</strong> mathematically:
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div className="bg-slate-950 p-4 rounded-lg text-center border border-slate-800 shadow-inner overflow-x-auto custom-scrollbar">
-                <div className="text-xs font-bold text-slate-500 mb-2 font-mono tracking-widest">IEC 60255 FORMULA</div>
-                <div className="text-amber-400">
-                  <BlockMath math={`t = TMS \\times \\left[ \\frac{A}{(I/I_p)^P - 1} + B \\right]`} />
-                </div>
-              </div>
-              <div className="bg-slate-950 p-4 rounded-lg text-center border border-slate-800 shadow-inner overflow-x-auto custom-scrollbar">
-                <div className="text-xs font-bold text-slate-500 mb-2 font-mono tracking-widest">IEEE C37.112 FORMULA</div>
-                <div className="text-amber-400">
-                  <BlockMath math={`t = TD \\times \\left[ \\frac{A}{(I/I_p)^P - 1} + B \\right]`} />
-                </div>
-              </div>
+// ============================== THEORY MODULE ==============================
+const TheoryGuideModule = ({ isDark }: { isDark: boolean }) => (
+    <div className="max-w-4xl mx-auto space-y-12 pb-20">
+      <Card isDark={isDark} noPadding>
+        <div className="p-10">
+          <h2 className="text-3xl font-black mb-4 tracking-tight text-adaptive">Overcurrent Protection <span className="text-indigo-500">Physics</span></h2>
+          <p className="text-slate-400 text-lg leading-relaxed mb-10 font-medium">Standardized Inverse Curves (IEEE/IEC) and Coordination Logic.</p>
+          
+          <div className="space-y-10">
+            <div className="bg-slate-950/50 p-8 rounded-3xl border border-slate-800">
+               <h3 className="text-xl font-black text-indigo-400 mb-6 flex items-center gap-3">
+                 <Zap className="w-6 h-6" /> ANSI 51 (Time Overcurrent)
+               </h3>
+               <p className="text-slate-300 leading-relaxed mb-8 font-medium">
+                 Protects against sustained overloads and low-magnitude faults. The trip time is calculated dynamically based on the current multiple (M = I / Ip).
+               </p>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl">
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">IEC 60255 Formula</div>
+                    <LaTeX math="t = TMS \times \left[ \frac{A}{(I/I_p)^P - 1} + B \right]" />
+                 </div>
+                 <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl">
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">IEEE C37.112 Formula</div>
+                    <LaTeX math="t = TD \times \left[ \frac{A}{(I/I_p)^P - 1} + B \right]" />
+                 </div>
+               </div>
             </div>
-            <ul className="space-y-2 text-sm text-slate-300 list-disc list-inside">
-              <li><strong>Standard/Moderately Inverse:</strong> General applications, backup protection.</li>
-              <li><strong>Very Inverse (VI):</strong> Networks with large fault current variations between near and far faults.</li>
-              <li><strong>Extremely Inverse (EI):</strong> Steepest curve. Best for coordinating with fuses and protecting equipment with severe thermal limits (I²t) like motors and transformers.</li>
-            </ul>
-          </div>
 
-          <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 backdrop-blur-sm">
-            <h3 className="text-xl font-bold text-red-400 mb-3 flex items-center"><AlertTriangle className="w-5 h-5 mr-2" /> Element 50 (Instantaneous)</h3>
-            <p className="text-slate-300 leading-relaxed">
-              Operates with no intentional time delay (typically &lt;30ms in modern digital relays) when the current exceeds a high setpoint. Usually set above the maximum asymmetrical through-fault current to ensure it only trips for close-in, severe faults inside the protected zone.
-            </p>
-          </div>
-
-          <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 backdrop-blur-sm">
-            <h3 className="text-xl font-bold text-emerald-400 mb-3 flex items-center"><Activity className="w-5 h-5 mr-2" /> Grading & Coordination</h3>
-            <p className="text-slate-300 leading-relaxed">
-              Relays in series must be coordinated. The downstream relay (closest to fault) must clear before the upstream relay. The <strong>Coordination Time Interval (CTI)</strong> is typically 0.2s to 0.4s for digital relays, accounting for breaker clearing time (approx 50ms) and safety margins.
-            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="p-8 bg-red-950/10 border border-red-500/20 rounded-3xl">
+                  <h4 className="text-lg font-black text-red-500 mb-4 flex items-center gap-2"><AlertTriangle className="w-5 h-5" /> ANSI 50 (Instant)</h4>
+                  <p className="text-sm text-slate-400 leading-relaxed font-medium italic">"Trips immediately for very high fault currents, typically &lt; 30ms. Used for severe faults close to the source."</p>
+               </div>
+               <div className="p-8 bg-emerald-950/10 border border-emerald-500/20 rounded-3xl">
+                  <h4 className="text-lg font-black text-emerald-500 mb-4 flex items-center gap-2"><Activity className="w-5 h-5" /> Coordination (CTI)</h4>
+                  <p className="text-sm text-slate-400 leading-relaxed font-medium">Relays are graded such that the downstream unit clears before the upstream unit, maintaining a Coord. Time Interval (~0.3s).</p>
+               </div>
+            </div>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
-  );
-};
+);
 
 // ============================== QUIZ MODULE ==============================
 const QUIZ_DATA = [
-  { q: "Which IEC curve provides the fastest trip for very high fault currents?", opts: ["Standard Inverse", "Very Inverse", "Extremely Inverse", "Definite Time"], ans: 2, why: "EI has an exponent of P=2.0, meaning trip time decreases dramatically with the square of the current multiple." },
-  { q: "What does ANSI 50 designate?", opts: ["Time overcurrent", "Instantaneous overcurrent", "Directional relay", "Undervoltage"], ans: 1, why: "ANSI 50 is Instantaneous Overcurrent, operating with no intentional time delay." },
-  { q: "The standard Coordination Time Interval (CTI) between two relays is typically:", opts: ["0.05s", "0.3s", "1.5s", "5.0s"], ans: 1, why: "0.3s to 0.4s is standard, allowing for breaker opening time and safety margins." },
-  { q: "The Pickup Current (Ip) of a 51 element should ideally be set:", opts: ["Below normal load", "Exactly at normal load", "1.2 to 1.3x max normal load", "Above short circuit current"], ans: 2, why: "It must be above maximum load to prevent nuisance tripping, but sensitive enough to detect minimum faults." }
+  { q: "Which IEC curve provides the fastest trip for very high fault currents?", opts: ["Standard Inverse", "Very Inverse", "Extremely Inverse", "Definite Time"], ans: 2, why: "Extremely Inverse has the steepest slope (P=2.0), reacting most aggressively to high currents." },
+  { q: "What does ANSI 50 designate?", opts: ["Time overcurrent", "Instantaneous overcurrent", "Directional relay", "Undervoltage"], ans: 1, why: "ANSI 50 is the 'Instant' element, operating with no intentional time delay." },
+  { q: "The standard Coordination Time Interval (CTI) is typically:", opts: ["0.05s", "0.3s", "1.5s", "5.0s"], ans: 1, why: "0.3s allows for breaker opening, relay reset, and safety margin." },
+  { q: "The Pickup Current (Ip) should ideally be set:", opts: ["Below full load", "At full load", "1.2 - 1.3x Max Load", "At 10x Max Load"], ans: 2, why: "It must clear normal load fluctuations while remaining sensitive to real faults." }
 ];
 
-const QuizModule = () => {
+const QuizModule = ({ isDark }: { isDark: boolean }) => {
   const [cur, setCur] = useState(0);
   const [score, setScore] = useState(0);
-  const [sel, setSel] = useState(null);
+  const [sel, setSel] = useState<number | null>(null);
   const [fin, setFin] = useState(false);
 
   const q = QUIZ_DATA[cur];
 
-  const pick = (i) => {
+  const pick = (i: number) => {
     if (sel !== null) return;
     setSel(i);
     if (i === q.ans) setScore(p => p + 1);
@@ -605,161 +413,131 @@ const QuizModule = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-12">
-      <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-xl">
-        <div className="flex items-center gap-4 mb-8 border-b border-slate-800 pb-4">
-          <div className="p-3 bg-purple-500/20 text-purple-400 rounded-xl"><Award size={32} /></div>
-          <div>
-            <h2 className="text-2xl font-black text-white">Knowledge Check</h2>
-            <p className="text-slate-400">Test your understanding of protective relaying</p>
-          </div>
-        </div>
-
+    <div className="max-w-3xl mx-auto py-10">
+      <Card isDark={isDark}>
         {fin ? (
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center py-12">
-            <div className="text-6xl mb-6">{score === QUIZ_DATA.length ? '🏆' : score > 1 ? '👍' : '📚'}</div>
-            <h3 className="text-3xl font-black text-white mb-2">Score: {score}/{QUIZ_DATA.length}</h3>
-            <button onClick={() => { setCur(0); setScore(0); setSel(null); setFin(false); }} className="mt-8 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-colors">Retake Quiz</button>
-          </motion.div>
+          <div className="text-center py-12">
+            <Trophy className="w-20 h-20 text-yellow-500 mx-auto mb-6" />
+            <h3 className="text-4xl font-black text-white mb-2">SCORE: {score}/{QUIZ_DATA.length}</h3>
+            <button onClick={() => { setCur(0); setScore(0); setSel(null); setFin(false); }} className="mt-10 px-10 py-4 bg-indigo-600 rounded-2xl font-black text-xs tracking-widest text-white uppercase shadow-lg">Try Again</button>
+          </div>
         ) : (
-          <AnimatePresence mode="wait">
-            <motion.div key={cur} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <div className="flex justify-between text-sm text-slate-400 mb-6 font-bold tracking-widest uppercase">
-                <span>Question {cur + 1} of {QUIZ_DATA.length}</span>
-                <span className="text-emerald-500">Score: {score}</span>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-8 leading-relaxed">{q.q}</h3>
-              <div className="space-y-4">
+          <div className="space-y-10">
+            <div className="flex justify-between items-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Question {cur + 1} of {QUIZ_DATA.length}</span>
+              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Relay Assessment</span>
+            </div>
+            
+            <div>
+              <h3 className="text-xl font-black mb-8 leading-tight uppercase tracking-tight text-adaptive">{q.q}</h3>
+              <div className="grid grid-cols-1 gap-4">
                 {q.opts.map((o, i) => (
-                  <button
-                    key={i}
-                    onClick={() => pick(i)}
-                    disabled={sel !== null}
-                    className={`w-full text-left p-5 rounded-xl border-2 transition-all ${sel === null ? 'border-slate-700 bg-slate-800/50 hover:border-blue-500 hover:bg-slate-800 text-slate-200' :
-                      i === q.ans ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold shadow-[0_0_15px_rgba(16,185,129,0.2)]' :
-                        sel === i ? 'border-red-500 bg-red-500/10 text-red-400' : 'border-slate-800 bg-slate-900 text-slate-600'
-                      }`}
-                  >
-                    <span className="font-mono mr-4 opacity-50">{String.fromCharCode(65 + i)}</span> {o}
+                  <button key={i} onClick={() => pick(i)} disabled={sel !== null}
+                    className={`w-full text-left p-6 rounded-2xl border-2 transition-all font-black text-xs tracking-widest uppercase ${sel === null ? 'bg-slate-900 border-slate-800 hover:border-indigo-500 text-slate-400' : (i === q.ans ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : (sel === i ? 'bg-red-500/20 border-red-500 text-red-500' : 'bg-slate-950 border-slate-800 opacity-30 text-slate-600'))}`}>
+                    {o}
                   </button>
                 ))}
               </div>
+            </div>
 
-              <AnimatePresence>
-                {sel !== null && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    className={`mt-6 p-5 rounded-xl border ${sel === q.ans ? 'bg-emerald-950/50 border-emerald-900 text-emerald-200' : 'bg-amber-950/50 border-amber-900 text-amber-200'}`}
-                  >
-                    <div className="font-bold flex items-center mb-1">
-                      {sel === q.ans ? <CheckCircle2 className="w-5 h-5 mr-2 text-emerald-500" /> : <AlertTriangle className="w-5 h-5 mr-2 text-amber-500" />}
-                      {sel === q.ans ? 'Correct!' : 'Incorrect.'}
-                    </div>
-                    <div className="text-sm opacity-90 ml-7">{q.why}</div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          </AnimatePresence>
+            {sel !== null && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`p-6 rounded-2xl border ${sel === q.ans ? 'bg-emerald-950/20 border-emerald-500 text-emerald-400' : 'bg-red-950/20 border-red-500 text-red-400'}`}>
+                <div className="font-black uppercase mb-2">{sel === q.ans ? 'Correct!' : 'Incorrect.'}</div>
+                <p className="text-xs font-medium italic opacity-80">{q.why}</p>
+              </motion.div>
+            )}
+          </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 };
 
 // ============================== MAIN APP ==============================
-export default function App() {
+export default function OvercurrentSim() {
+  const isDark = useThemeObserver();
   const [activeTab, setActiveTab] = useState('simulator');
 
+  const [pickup51, setPickup51] = usePersistentState('oc_pickup51', 400);
+  const [tms, setTms] = usePersistentState('oc_tms', 0.3);
+  const [curveType, setCurveType] = usePersistentState('oc_curve', 'IEC_SI');
+  const [pickup50, setPickup50] = usePersistentState('oc_pickup50', 4000);
+  const [faultCurrent, setFaultCurrent] = usePersistentState('oc_fault', 0);
+  const { isTripping, triggerTrip } = useTripFeedback();
+
   const tabs = [
-    { id: 'simulator', label: 'Interactive Simulator', icon: <MonitorPlay className="w-4 h-4" /> },
-    { id: 'theory', label: 'Theory & Reference', icon: <Book className="w-4 h-4" /> },
-    { id: 'quiz', label: 'Knowledge Check', icon: <Award className="w-4 h-4" /> }
+    { id: 'simulator', label: 'SIMULATOR', icon: <MonitorPlay className="w-5 h-5" /> },
+    { id: 'theory', label: 'THEORY', icon: <Book className="w-5 h-5" /> },
+    { id: 'quiz', label: 'QUIZ', icon: <Award className="w-5 h-5" /> }
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
+    <div className={`min-h-screen transition-colors duration-500 font-sans selection:bg-indigo-500/30 overflow-x-hidden ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${isTripping ? 'animate-trip' : ''}`}>
       <PageSEO 
-        title="Overcurrent Protection Simulator (ANSI 50/51) | RelaySchool"
-        description="Learn and simulate IEEE C37.112 and IEC 60255 overcurrent protection curves. Interactive TCC plotting and fault injection."
+        title="Overcurrent Simulator (ANSI 50/51)"
+        description="Professional IEEE C37.112 and IEC 60255 overcurrent relay simulator. Master TCC curves and protection coordination."
         url="/overcurrentsim"
-        schema={{
-          "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
-          "name": "RelaySchool OCGuard Pro",
-          "applicationCategory": "EducationalApplication",
-          "description": "Interactive overcurrent relay simulation with standard IEEE and IEC curve modeling."
-        }}
       />
 
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <header className={`h-20 backdrop-blur-xl border-b px-8 flex items-center justify-between sticky top-0 z-50 transition-colors duration-500 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-white/80 border-slate-200 shadow-sm'}`}>
+        <div className="flex items-center gap-5">
+           <div className="bg-indigo-600 p-2.5 rounded-xl text-white shadow-[0_0_20px_rgba(79,70,229,0.5)]">
+             <Zap className="w-6 h-6" />
+           </div>
+           <div>
+             <h1 className="font-black text-2xl tracking-tighter text-adaptive">OC<span className="text-indigo-400">GUARD</span> PRO</h1>
+             <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Protection Intelligence Engine</div>
+           </div>
+        </div>
 
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-2 rounded-xl text-white shadow-[0_0_15px_rgba(245,158,11,0.4)]">
-              <Zap className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="font-black text-xl text-white tracking-tight">
-                OC<span className="text-amber-500">Guard</span> Pro
-              </h1>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
-                IEEE / IEC 60255 Compliant
-              </div>
-            </div>
-          </div>
+        <nav className={`flex p-1 rounded-2xl border transition-colors duration-500 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+           {tabs.map(t => (
+             <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex items-center gap-3 px-6 py-2.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${activeTab === t.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300 dark:hover:text-slate-300'}`}>
+               {t.icon} {t.label}
+             </button>
+           ))}
+        </nav>
 
-          <div className="hidden md:flex p-1 bg-slate-950 border border-slate-800 rounded-xl">
-            {tabs.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all duration-300 ${activeTab === t.id ? 'bg-slate-800 text-amber-400 shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                  }`}
-              >
-                {t.icon}<span>{t.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold border border-slate-700 transition-colors" onClick={() => alert("Share link copied!")}>
-            <Share2 className="w-4 h-4" /> Share Config
-          </button>
+        <div className="hidden lg:flex items-center gap-4">
+           <div className="text-right px-4 border-r border-slate-800">
+             <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Logic Engine</div>
+             <div className="text-[10px] font-black text-emerald-500">IEEE C37.112</div>
+           </div>
+           <AICopyButton state={{ pickup51, tms, curveType, pickup50, faultCurrent }} toolName="Overcurrent Simulator / ANSI 50/51" />
         </div>
       </header>
 
-      {/* Mobile Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900 border-t border-slate-800 z-50 flex justify-around items-center pb-safe">
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={`flex flex-col items-center w-full h-full gap-1 justify-center text-[10px] font-bold transition-colors ${activeTab === t.id ? 'text-amber-400' : 'text-slate-500'
-              }`}
-          >
-            {t.icon}<span>{t.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-4rem)]">
+      <main className="max-w-[1400px] mx-auto px-8 py-10">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            {activeTab === 'simulator' && <SimulatorModule />}
-            {activeTab === 'theory' && <TheoryGuideModule />}
-            {activeTab === 'quiz' && <QuizModule />}
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+            {activeTab === 'simulator' && (
+              <SimulatorModule 
+                isDark={isDark} 
+                pickup51={pickup51} setPickup51={setPickup51}
+                tms={tms} setTms={setTms}
+                curveType={curveType} setCurveType={setCurveType}
+                pickup50={pickup50} setPickup50={setPickup50}
+                faultCurrent={faultCurrent} setFaultCurrent={setFaultCurrent}
+                triggerTrip={triggerTrip}
+              />
+            )}
+            {activeTab === 'theory' && <TheoryGuideModule isDark={isDark} />}
+            {activeTab === 'quiz' && <QuizModule isDark={isDark} />}
           </motion.div>
         </AnimatePresence>
       </main>
 
+      {/* Industrial Footer/Status */}
+      <footer className="h-10 bg-slate-950 border-t border-slate-800 px-8 flex items-center justify-between text-[8px] font-black text-slate-600 uppercase tracking-widest">
+         <div className="flex items-center gap-6">
+           <span>Engine Status: Active</span>
+           <span>Safety Interlock: Engaged</span>
+         </div>
+         <div className="animate-pulse flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+            Live Telemetry Enabled
+         </div>
+      </footer>
     </div>
   );
 }

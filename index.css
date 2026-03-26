@@ -4,14 +4,15 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+
 /* =====================================================
    TAILWIND v4 CUSTOM THEME
    (Replaces tailwind.config.js theme.extend in v4)
    ===================================================== */
 @theme {
   /* Fonts */
-  --font-sans: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
   /* Custom Engineering Color Palette */
   --color-engineering-50: #f0f9ff;
@@ -23,50 +24,68 @@
   /* Animations */
   --animate-fade-in: fadeIn 0.5s ease-out;
 
-  --keyframes-fadeIn-0%: {
-    opacity: 0;
-    transform: translateY(10px);
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-
-  ;
-
-  --keyframes-fadeIn-100%: {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  ;
 }
 
 /* =====================================================
    GLOBAL BASE STYLES
    ===================================================== */
 body {
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-sans);
   background-color: #0f172a;
   color: #f8fafc;
   transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Fallback keyframes for animate-fade-in utility */
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out;
+.dark body {
+  background-color: #020617;
 }
 
 /* =====================================================
-   PERFORMANCE: GPU compositing & content-visibility
+   ENGINEERING DESIGN TOKENS (Standardization)
+   ==================================================== */
+.font-black { font-weight: 900; }
+.font-bold { font-weight: 700; }
+
+.engineering-label {
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  opacity: 0.6;
+}
+
+.math-standard {
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Adaptive Text Utilities */
+.text-adaptive {
+  @apply text-slate-900 dark:text-white;
+}
+
+.text-adaptive-muted {
+  @apply text-slate-600 dark:text-slate-400;
+}
+
+.text-adaptive-dim {
+  @apply text-slate-500 dark:text-slate-500;
+}
+
+/* =====================================================
+   PERFORMANCE: GPU compositing
    ===================================================== */
 main > section,
 main > div {
@@ -96,11 +115,8 @@ main > div {
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #1e293b;
+  border: 2px solid #020617;
 }
 
 /* =====================================================
@@ -109,46 +125,31 @@ main > div {
 .bg-grid {
   background-size: 40px 40px;
   background-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
 }
 
 .dark .bg-grid {
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+.glass {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* 3D Flashcard helpers */
-.preserve-3d {
-  transform-style: preserve-3d;
-}
-
-.backface-hidden {
-  backface-visibility: hidden;
-}
-
-.perspective-1000 {
-  perspective: 1000px;
-}
-
-/* Sidebar scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-}
+.preserve-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+.perspective-1000 { perspective: 1000px; }
 
 /* Skip-to-content accessibility link */
 .skip-to-content {
@@ -164,188 +165,44 @@ main > div {
   transition: top 0.2s;
 }
 
-.skip-to-content:focus {
-  top: 0;
+.skip-to-content:focus { top: 0; }
+
+/* Phase 2: Industrial Feedback Animations */
+@keyframes trip-pulse {
+  0% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); }
+  50% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 0 20px 5px rgba(239, 68, 68, 0.4); }
+  100% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); }
+}
+
+@keyframes screen-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-4px); }
+}
+
+.animate-trip {
+  animation: trip-pulse 0.4s ease-in-out infinite, screen-shake 0.1s ease-in-out 4;
+}
+
+.glass-industrial {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* =====================================================
    PRINT STYLES
    ===================================================== */
 @media print {
-  @page {
-    margin: 1cm;
-    size: landscape;
-  }
-
-  body {
-    background-color: white !important;
-    color: black !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  aside,
-  header,
-  footer,
-  .no-print {
-    display: none !important;
-  }
-
-  main {
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    max-width: none !important;
-  }
-
-  .bg-grid {
-    background-image: none !important;
-  }
-
-  * {
-    box-shadow: none !important;
-  }
-}
-
-
-/* =====================================================
-   GLOBAL BASE STYLES
-   ===================================================== */
-body {
-  font-family: "Inter", sans-serif;
-  background-color: #0f172a;
-  color: #f8fafc;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* =====================================================
-   CUSTOM SCROLLBAR
-   ===================================================== */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #94a3b8;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-
-/* =====================================================
-   UTILITY CLASSES
-   ===================================================== */
-.bg-grid {
-  background-size: 40px 40px;
-  background-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-}
-
-.dark .bg-grid {
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-}
-
-/* 3D Flashcard helpers */
-.preserve-3d {
-  transform-style: preserve-3d;
-}
-
-.backface-hidden {
-  backface-visibility: hidden;
-}
-
-.perspective-1000 {
-  perspective: 1000px;
-}
-
-/* Custom Sidebar Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-}
-
-/* Skip-to-content accessibility link */
-.skip-to-content {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background: #2563eb;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 0 0 8px 0;
-  font-weight: bold;
-  z-index: 9999;
-  transition: top 0.2s;
-}
-
-.skip-to-content:focus {
-  top: 0;
-}
-
-/* =====================================================
-   PRINT STYLES
-   ===================================================== */
-@media print {
-  @page {
-    margin: 1cm;
-    size: landscape;
-  }
-
+  @page { margin: 1cm; size: landscape; }
   body {
     background-color: white !important;
     color: black !important;
     -webkit-print-color-adjust: exact;
   }
-
-  aside,
-  header,
-  footer,
-  .no-print {
-    display: none !important;
-  }
-
-  main {
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    max-width: none !important;
-  }
-
-  .bg-grid {
-    background-image: none !important;
-  }
-
-  * {
-    box-shadow: none !important;
-  }
+  aside, header, footer, .no-print { display: none !important; }
+  main { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+  .bg-grid { background-image: none !important; }
+  * { box-shadow: none !important; }
 }

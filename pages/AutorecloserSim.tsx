@@ -1,22 +1,19 @@
+import { motion, AnimatePresence } from 'framer-motion';
+import { PageSEO } from "../components/SEO/PageSEO";
+import { Card } from "../components/UI/Card";
+import { Slider } from "../components/UI/Slider";
+import { LaTeX } from "../components/UI/LaTeX";
+import { JargonTooltip } from "../components/UI/JargonTooltip";
+import { useThemeObserver } from "../hooks/useThemeObserver";
+import { usePersistentState } from "../hooks/usePersistentState";
+import { useTripFeedback } from "../hooks/useTripFeedback";
+import { AICopyButton } from "../components/UI/AICopyButton";
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     RotateCcw, AlertCircle, CheckCircle2, Activity, Zap, Timer,
     Book, AlertTriangle, Settings, MonitorPlay, GraduationCap,
     ShieldCheck, Lock, Power, Cpu, Radio, Hash, LineChart, BarChart
 } from 'lucide-react';
-import { PageSEO } from "../components/SEO/PageSEO";
-
-
-
-// ========================= HOOKS =========================
-const useThemeObserver = () => {
-    const [isDark, setIsDark] = useState(true);
-    // Locked to dark mode for SCADA realism, but kept hook for structure
-    useEffect(() => {
-        document.body.style.backgroundColor = '#020617'; 
-    }, []);
-    return isDark;
-};
 
 // ========================= CONSTANTS & DATA =========================
 const SHOT_CONFIGS = {
@@ -57,21 +54,27 @@ const THEORY_DATA = [
                     <li className="flex gap-3 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
                         <Timer className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
                         <div>
-                            <strong className="text-blue-400 block mb-1">Dead Time (Open Time)</strong> 
+                            <strong className="text-blue-400 block mb-1">
+                                <JargonTooltip text="Dead Time" explanation="The time between the breaker opening and the first reclosure attempt. Essential for arc deionization." /> (Open Time)
+                            </strong> 
                             The time the breaker remains open before reclosing. It must be long enough for the fault arc plasma to deionize and disperse, but short enough to minimize customer outage time. Typical fast dead time: 0.3s - 0.5s.
                         </div>
                     </li>
                     <li className="flex gap-3 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
                         <RotateCcw className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                         <div>
-                            <strong className="text-emerald-400 block mb-1">Reclaim Time</strong> 
+                            <strong className="text-emerald-400 block mb-1">
+                                <JargonTooltip text="Reclaim Time" explanation="The time the breaker must stay closed after a reclosure before the sequence is reset." />
+                            </strong> 
                             If a reclose is successful (breaker stays closed), the relay starts a Reclaim Timer (e.g., 15-60s). Once expired, the sequence counter resets to zero. If a fault occurs <i>before</i> it expires, it proceeds to the next shot.
                         </div>
                     </li>
                     <li className="flex gap-3 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
                         <Lock className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                         <div>
-                            <strong className="text-red-400 block mb-1">Lockout (ANSI 86)</strong> 
+                            <strong className="text-red-400 block mb-1">
+                                <JargonTooltip text="Lockout" explanation="The state where the relay permanently trips after exhausting all reclosure attempts. ANSI 86." /> (ANSI 86)
+                            </strong> 
                             If all programmed shots are exhausted and the fault is still present (Permanent fault), the recloser trips and locks open. It requires manual or SCADA intervention to reset.
                         </div>
                     </li>
@@ -89,12 +92,12 @@ const THEORY_DATA = [
                 <div className="grid md:grid-cols-2 gap-4 mt-2">
                     <div className="p-5 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl shadow-lg relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1 bg-amber-500/50"></div>
-                        <strong className="text-amber-400 flex items-center gap-2 mb-3"><ShieldCheck className="w-4 h-4"/> Fuse Saving Scheme</strong>
+                        <strong className="text-amber-400 flex items-center gap-2 mb-3"><ShieldCheck className="w-4 h-4"/> <JargonTooltip text="Fuse Saving" explanation="A reclosing coordination strategy where the recloser trips quickly to save the fuse from blowing on transient faults." /> Scheme</strong>
                         <p className="text-xs opacity-90">The recloser uses a "Fast" curve that is faster than the fuse's minimum melting time. The recloser trips first, saving the fuse from blowing on transient faults. If the fault persists, the recloser waits on slow shots, allowing the fuse to blow and isolate the lateral.</p>
                     </div>
                     <div className="p-5 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl shadow-lg relative overflow-hidden">
                          <div className="absolute top-0 left-0 w-full h-1 bg-red-500/50"></div>
-                        <strong className="text-red-400 flex items-center gap-2 mb-3"><Activity className="w-4 h-4"/> Fuse Blowing Scheme</strong>
+                        <strong className="text-red-400 flex items-center gap-2 mb-3"><Activity className="w-4 h-4"/> <JargonTooltip text="Fuse Blowing" explanation="A strategy where the fuse is allowed to blow immediately to isolate a fault, preventing service blinks for the rest of the feeder." /> Scheme</strong>
                         <p className="text-xs opacity-90">Used in dense urban areas. The recloser is deliberately slower than the fuse. Fuses blow immediately for any fault on their branch, protecting the main feeder from experiencing momentary voltage sags (blinks) that annoy commercial customers.</p>
                     </div>
                 </div>
@@ -102,36 +105,6 @@ const THEORY_DATA = [
         )
     }
 ];
-
-// ========================= UI COMPONENTS =========================
-const Slider = ({ label, unit, min, max, step, value, onChange, disabled, color = "blue" }) => {
-    const colorMap = {
-        blue: 'accent-blue-500 bg-blue-500', emerald: 'accent-emerald-500 bg-emerald-500', 
-        amber: 'accent-amber-500 bg-amber-500', purple: 'accent-purple-500 bg-purple-500'
-    };
-    const percentage = ((value - min) / (max - min)) * 100;
-
-    return (
-        <div className={`mb-5 group ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
-            <div className="flex justify-between items-center mb-2">
-                <label className="text-[10px] font-bold uppercase opacity-70 tracking-widest text-slate-300">{label}</label>
-                <div className="relative">
-                    <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 shadow-inner block min-w-[60px] text-center">
-                        {Number(value).toFixed(step < 1 ? 1 : 0)} <span className="opacity-50">{unit}</span>
-                    </span>
-                </div>
-            </div>
-            <div className="relative w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50 shadow-inner">
-                 <div className={`absolute top-0 left-0 h-full ${colorMap[color].split(' ')[1]} opacity-50`} style={{ width: `${percentage}%` }}></div>
-                 <input
-                    type="range" min={min} max={max} step={step} value={value} onChange={onChange} disabled={disabled}
-                    className={`absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer`}
-                />
-                <div className={`absolute top-1/2 -mt-2 w-4 h-4 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)] border-2 border-slate-900 pointer-events-none transition-transform ${disabled ? 'scale-0' : 'scale-100 group-hover:scale-125'}`} style={{ left: `calc(${percentage}% - 8px)` }}></div>
-            </div>
-        </div>
-    );
-};
 
 // ========================= SVG THEORY GRAPHS =========================
 
@@ -377,15 +350,12 @@ const AnimatedSLD = ({ breakerClosed, faultActive, state }) => {
 };
 
 // ========================= SIMULATOR ENGINE MODULE =========================
-const SimulatorModule = () => {
+const SimulatorModule = ({ 
+    isDark, shotConfig, setShotConfig, faultType, setFaultType, 
+    deadTimeFast, setDeadTimeFast, deadTimeSlow, setDeadTimeSlow, 
+    reclaimTimeLimit, setReclaimTimeLimit, triggerTrip 
+}: any) => {
     const [simState, setSimState] = useState('IDLE'); // IDLE, FAULT, DEAD_TIME, RECLAIM, SUCCESS, LOCKOUT
-    const [shotConfig, setShotConfig] = useState('2F2S');
-    const [faultType, setFaultType] = useState(FAULT_TYPES[0]);
-    
-    // Relay Parameters
-    const [deadTimeFast, setDeadTimeFast] = useState(0.3);
-    const [deadTimeSlow, setDeadTimeSlow] = useState(15);
-    const [reclaimTimeLimit, setReclaimTimeLimit] = useState(15);
     
     // Physics & Timers
     const [currentShot, setCurrentShot] = useState(0);
@@ -450,6 +420,7 @@ const SimulatorModule = () => {
                     setFaultActive(false); 
                     const shotType = shots[currentShot]?.type || 'FAST';
                     addEvent(`TRIP #${currentShot + 1} (${shotType} Curve) — Breaker OPEN`, 'trip');
+                    triggerTrip();
                     
                     setSimState('DEAD_TIME');
                     setPhaseTimer(0);
@@ -523,56 +494,58 @@ const SimulatorModule = () => {
                 
                 {/* LEFT COLUMN: Controls & Configurations */}
                 <div className="xl:col-span-4 flex flex-col gap-6">
-                    <div className="rounded-3xl border bg-slate-900 border-slate-800 p-6 shadow-2xl relative overflow-hidden">
+                    <Card isDark={isDark} className="relative overflow-hidden" noPadding>
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
                         
-                        <h3 className="font-black text-lg mb-6 flex items-center gap-3 text-white tracking-wide">
-                            <Settings className="w-5 h-5 text-blue-500" /> Relay Configuration (79)
-                        </h3>
-                        
-                        <div className="space-y-6 relative z-10">
-                            <div className="space-y-4 bg-slate-950/50 p-4 rounded-2xl border border-slate-800/50">
-                                <div>
-                                    <label className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2 block text-slate-300">Shot Sequence Schema</label>
-                                    <div className="relative">
-                                        <select value={shotConfig} onChange={e => setShotConfig(e.target.value)} disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'}
-                                            className="w-full p-3 pl-4 rounded-xl border bg-slate-800 border-slate-700 text-white text-sm font-bold outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer disabled:opacity-50">
-                                            {Object.entries(SHOT_CONFIGS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                                        </select>
-                                        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none"><Hash className="w-4 h-4 text-slate-500" /></div>
+                        <div className="p-6">
+                            <h3 className="font-black text-lg mb-6 flex items-center gap-3 text-white tracking-wide">
+                                <Settings className="w-5 h-5 text-blue-500" /> Relay Configuration (79)
+                            </h3>
+                            
+                            <div className="space-y-6 relative z-10">
+                                <div className="space-y-4 bg-slate-950/50 p-4 rounded-2xl border border-slate-800/50">
+                                    <div>
+                                        <label className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2 block text-slate-300">Shot Sequence Schema</label>
+                                        <div className="relative">
+                                            <select value={shotConfig} onChange={e => setShotConfig(e.target.value)} disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'}
+                                                className="w-full p-3 pl-4 rounded-xl border bg-slate-800 border-slate-700 text-white text-sm font-bold outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer disabled:opacity-50">
+                                                {Object.entries(SHOT_CONFIGS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                                            </select>
+                                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none"><Hash className="w-4 h-4 text-slate-500" /></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2 block text-slate-300">Fault Injection Type</label>
+                                        <div className="relative">
+                                            <select value={faultType.id} onChange={e => setFaultType(FAULT_TYPES.find(f => f.id === e.target.value))} disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'}
+                                                className="w-full p-3 pl-4 rounded-xl border bg-slate-800 border-slate-700 text-white text-sm font-bold outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer disabled:opacity-50">
+                                                {FAULT_TYPES.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                                            </select>
+                                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none"><Zap className="w-4 h-4 text-slate-500" /></div>
+                                        </div>
                                     </div>
                                 </div>
-                                
-                                <div>
-                                    <label className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2 block text-slate-300">Fault Injection Type</label>
-                                    <div className="relative">
-                                        <select value={faultType.id} onChange={e => setFaultType(FAULT_TYPES.find(f => f.id === e.target.value))} disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'}
-                                            className="w-full p-3 pl-4 rounded-xl border bg-slate-800 border-slate-700 text-white text-sm font-bold outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer disabled:opacity-50">
-                                            {FAULT_TYPES.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
-                                        </select>
-                                        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none"><Zap className="w-4 h-4 text-slate-500" /></div>
-                                    </div>
+
+                                <div className="pt-2 space-y-2">
+                                    <Slider label="Fast Curve Dead Time" unit="s" min={0.1} max={2.0} step={0.1} value={deadTimeFast} onChange={e => setDeadTimeFast(parseFloat(e.target.value))} color="blue" disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'} />
+                                    <Slider label="Slow Curve Dead Time" unit="s" min={1} max={30} step={1} value={deadTimeSlow} onChange={e => setDeadTimeSlow(parseFloat(e.target.value))} color="amber" disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'} />
+                                    <Slider label="Reclaim Timer Limit" unit="s" min={5} max={60} step={5} value={reclaimTimeLimit} onChange={e => setReclaimTimeLimit(parseFloat(e.target.value))} color="emerald" disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'} />
                                 </div>
                             </div>
 
-                            <div className="pt-2 space-y-2">
-                                <Slider label="Fast Curve Dead Time" unit="s" min={0.1} max={2.0} step={0.1} value={deadTimeFast} onChange={e => setDeadTimeFast(parseFloat(e.target.value))} color="blue" disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'} />
-                                <Slider label="Slow Curve Dead Time" unit="s" min={1} max={30} step={1} value={deadTimeSlow} onChange={e => setDeadTimeSlow(parseFloat(e.target.value))} color="amber" disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'} />
-                                <Slider label="Reclaim Timer Limit" unit="s" min={5} max={60} step={5} value={reclaimTimeLimit} onChange={e => setReclaimTimeLimit(parseFloat(e.target.value))} color="emerald" disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'} />
+                            <div className="flex gap-3 mt-8">
+                                <button onClick={startFault} disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'}
+                                    className="flex-2 w-2/3 flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl font-black text-sm disabled:opacity-50 transition-all shadow-[0_0_20px_rgba(220,38,38,0.4)] disabled:shadow-none hover:-translate-y-0.5 active:translate-y-0">
+                                    <Zap className="w-5 h-5 fill-current" /> INJECT FAULT
+                                </button>
+                                <button onClick={reset}
+                                    className="flex-1 py-3.5 rounded-xl font-bold text-sm transition-all bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white flex items-center justify-center gap-2 hover:-translate-y-0.5 active:translate-y-0">
+                                    <RotateCcw className="w-4 h-4" /> Reset
+                                </button>
                             </div>
                         </div>
-
-                        <div className="flex gap-3 mt-8">
-                            <button onClick={startFault} disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'}
-                                className="flex-2 w-2/3 flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl font-black text-sm disabled:opacity-50 transition-all shadow-[0_0_20px_rgba(220,38,38,0.4)] disabled:shadow-none hover:-translate-y-0.5 active:translate-y-0">
-                                <Zap className="w-5 h-5 fill-current" /> INJECT FAULT
-                            </button>
-                            <button onClick={reset}
-                                className="flex-1 py-3.5 rounded-xl font-bold text-sm transition-all bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white flex items-center justify-center gap-2 hover:-translate-y-0.5 active:translate-y-0">
-                                <RotateCcw className="w-4 h-4" /> Reset
-                            </button>
-                        </div>
-                    </div>
+                    </Card>
                 </div>
 
                 {/* CENTER & RIGHT COLUMNS: Visualizations & Telemetry */}
@@ -585,101 +558,107 @@ const SimulatorModule = () => {
 
                     <div className="grid md:grid-cols-12 gap-6 flex-1 min-h-[300px]">
                         
-                        <div className="md:col-span-5 rounded-3xl border bg-slate-900 border-slate-800 p-6 shadow-2xl relative overflow-hidden flex flex-col justify-center">
-                            <div className={`absolute inset-0 opacity-15 blur-3xl transition-colors duration-1000 ${
-                                simState === 'LOCKOUT' ? 'bg-red-600' : simState === 'SUCCESS' ? 'bg-emerald-600' : simState === 'FAULT' ? 'bg-amber-600' : 'bg-blue-600'
-                            }`} />
+                        <div className="md:col-span-5 relative flex flex-col justify-center">
+                            <Card isDark={isDark} noPadding className="h-full">
+                                <div className={`absolute inset-0 opacity-15 blur-3xl transition-colors duration-1000 ${
+                                    simState === 'LOCKOUT' ? 'bg-red-600' : simState === 'SUCCESS' ? 'bg-emerald-600' : simState === 'FAULT' ? 'bg-amber-600' : 'bg-blue-600'
+                                }`} />
 
-                            <div className="relative z-10 flex flex-col h-full justify-between">
-                                <div className="text-center mb-6">
-                                    <div className="inline-block bg-slate-950 border border-slate-800 px-4 py-1 rounded-full mb-4 shadow-inner">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-70 text-slate-300 flex items-center gap-2"><Cpu className="w-3 h-3 text-emerald-500" /> ANSI 79 Logic Controller</span>
+                                <div className="relative z-10 flex flex-col h-full justify-between p-6">
+                                    <div className="text-center mb-6">
+                                        <div className="inline-block bg-slate-950 border border-slate-800 px-4 py-1 rounded-full mb-4 shadow-inner">
+                                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-70 text-slate-300 flex items-center gap-2"><Cpu className="w-3 h-3 text-emerald-500" /> ANSI 79 Logic Controller</span>
+                                        </div>
+                                        <div className={`text-4xl font-black tracking-tighter uppercase drop-shadow-md ${
+                                            simState === 'LOCKOUT' ? 'text-red-500' : simState === 'SUCCESS' ? 'text-emerald-500' : 
+                                            simState === 'RECLAIM' ? 'text-blue-400' : simState === 'FAULT' ? 'text-amber-500 animate-pulse' : 'text-white'
+                                        }`}>
+                                            {simState.replace('_', ' ')}
+                                        </div>
+                                        <div className="font-mono text-xl font-bold text-slate-400 mt-2 bg-slate-950 inline-block px-4 py-1 rounded-lg border border-slate-800 shadow-inner">
+                                            <Timer className="inline w-4 h-4 mr-2 mb-1" />{formatTime(elapsed)}
+                                        </div>
                                     </div>
-                                    <div className={`text-4xl font-black tracking-tighter uppercase drop-shadow-md ${
-                                        simState === 'LOCKOUT' ? 'text-red-500' : simState === 'SUCCESS' ? 'text-emerald-500' : 
-                                        simState === 'RECLAIM' ? 'text-blue-400' : simState === 'FAULT' ? 'text-amber-500 animate-pulse' : 'text-white'
-                                    }`}>
-                                        {simState.replace('_', ' ')}
-                                    </div>
-                                    <div className="font-mono text-xl font-bold text-slate-400 mt-2 bg-slate-950 inline-block px-4 py-1 rounded-lg border border-slate-800 shadow-inner">
-                                        <Timer className="inline w-4 h-4 mr-2 mb-1" />{formatTime(elapsed)}
+
+                                    {/* Active Timers & Elements */}
+                                    <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/50 shadow-inner flex-1 flex flex-col justify-end">
+                                        
+                                        <div className="mb-4">
+                                            <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-2">Active Protection Elements</div>
+                                            <div className="flex gap-2">
+                                                <span className={`px-2 py-1 rounded text-[10px] font-bold border ${faultActive ? 'bg-red-900/50 border-red-500 text-red-400 animate-pulse' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>50/51 OC Pickup</span>
+                                                <span className={`px-2 py-1 rounded text-[10px] font-bold border ${simState==='DEAD_TIME'||simState==='RECLAIM' ? 'bg-blue-900/50 border-blue-500 text-blue-400' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>79 Logic Active</span>
+                                                <span className={`px-2 py-1 rounded text-[10px] font-bold border ${simState==='LOCKOUT' ? 'bg-red-900/80 border-red-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>86 Lockout</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-5 h-10">
+                                            {(simState === 'DEAD_TIME' || simState === 'RECLAIM') ? (
+                                                <div>
+                                                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-2">
+                                                        <span className="text-blue-400">{simState === 'DEAD_TIME' ? 'Dead Time Count' : 'Reclaim Timer'}</span>
+                                                        <span className="font-mono text-slate-300">{phaseTimer.toFixed(1)}s / {currentPhaseTarget.toFixed(1)}s</span>
+                                                    </div>
+                                                    <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                                                        <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all ease-linear" style={{ width: `${(phaseTimer / currentPhaseTarget) * 100}%` }} />
+                                                    </div>
+                                                </div>
+                                            ) : <div className="text-[10px] font-bold uppercase tracking-widest text-slate-600 text-center mt-3">Timers Idle</div>}
+                                        </div>
+
+                                        <div>
+                                            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+                                                <span>Sequence Progress</span>
+                                                <span>Shot {currentShot} / {shots.length}</span>
+                                            </div>
+                                            <div className="flex gap-2 h-8">
+                                                {shots.map((shot, i) => (
+                                                    <div key={i} className={`flex-1 rounded-lg flex items-center justify-center transition-all border ${
+                                                        i < currentShot 
+                                                            ? (simState === 'LOCKOUT' ? 'bg-red-900/50 border-red-500/50 text-red-500' : 'bg-slate-800 border-slate-700 text-slate-500')
+                                                            : i === currentShot && (simState === 'FAULT' || simState === 'DEAD_TIME' || simState === 'RECLAIM')
+                                                                ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.6)]'
+                                                                : 'bg-slate-900 border-slate-800 text-slate-600'
+                                                    }`}>
+                                                        <span className="text-[11px] font-black">{shot.type === 'FAST' ? 'FAST' : 'SLOW'}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+                            </Card>
+                        </div>
 
-                                {/* Active Timers & Elements */}
-                                <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/50 shadow-inner flex-1 flex flex-col justify-end">
-                                    
-                                    <div className="mb-4">
-                                        <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-2">Active Protection Elements</div>
-                                        <div className="flex gap-2">
-                                            <span className={`px-2 py-1 rounded text-[10px] font-bold border ${faultActive ? 'bg-red-900/50 border-red-500 text-red-400 animate-pulse' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>50/51 OC Pickup</span>
-                                            <span className={`px-2 py-1 rounded text-[10px] font-bold border ${simState==='DEAD_TIME'||simState==='RECLAIM' ? 'bg-blue-900/50 border-blue-500 text-blue-400' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>79 Logic Active</span>
-                                            <span className={`px-2 py-1 rounded text-[10px] font-bold border ${simState==='LOCKOUT' ? 'bg-red-900/80 border-red-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>86 Lockout</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-5 h-10">
-                                        {(simState === 'DEAD_TIME' || simState === 'RECLAIM') ? (
-                                            <div>
-                                                <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-2">
-                                                    <span className="text-blue-400">{simState === 'DEAD_TIME' ? 'Dead Time Count' : 'Reclaim Timer'}</span>
-                                                    <span className="font-mono text-slate-300">{phaseTimer.toFixed(1)}s / {currentPhaseTarget.toFixed(1)}s</span>
-                                                </div>
-                                                <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                                                    <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all ease-linear" style={{ width: `${(phaseTimer / currentPhaseTarget) * 100}%` }} />
-                                                </div>
-                                            </div>
-                                        ) : <div className="text-[10px] font-bold uppercase tracking-widest text-slate-600 text-center mt-3">Timers Idle</div>}
-                                    </div>
-
-                                    <div>
-                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
-                                            <span>Sequence Progress</span>
-                                            <span>Shot {currentShot} / {shots.length}</span>
-                                        </div>
-                                        <div className="flex gap-2 h-8">
-                                            {shots.map((shot, i) => (
-                                                <div key={i} className={`flex-1 rounded-lg flex items-center justify-center transition-all border ${
-                                                    i < currentShot 
-                                                        ? (simState === 'LOCKOUT' ? 'bg-red-900/50 border-red-500/50 text-red-500' : 'bg-slate-800 border-slate-700 text-slate-500')
-                                                        : i === currentShot && (simState === 'FAULT' || simState === 'DEAD_TIME' || simState === 'RECLAIM')
-                                                            ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.6)]'
-                                                            : 'bg-slate-900 border-slate-800 text-slate-600'
+                        <div className="md:col-span-7 flex flex-col">
+                            <Card isDark={isDark} noPadding className="h-full flex flex-col">
+                                <div className="p-5 flex flex-col h-full">
+                                    <h3 className="font-bold text-[11px] uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 w-fit">
+                                        <Radio className="w-4 h-4 text-emerald-500" /> Sequence Event Log
+                                    </h3>
+                                    <div className="flex-1 bg-[#0a0f1c] rounded-2xl border border-slate-800/80 p-4 overflow-y-auto space-y-2.5 font-mono text-xs shadow-inner relative">
+                                        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '100% 32px' }}></div>
+                                        
+                                        {events.length === 0 && <p className="opacity-40 italic text-center mt-10">System armed. Awaiting fault injection...</p>}
+                                        
+                                        <div className="relative z-10 flex flex-col gap-2">
+                                            {events.map((e, i) => (
+                                                <div key={i} className={`px-3 py-2.5 rounded-lg flex items-start gap-4 border-l-4 transition-all hover:bg-slate-800/50 ${
+                                                    e.type === 'fault' ? 'border-red-500 text-red-200 bg-red-950/30' :
+                                                    e.type === 'trip' ? 'border-amber-500 text-amber-200 bg-amber-950/30' :
+                                                    e.type === 'reclose' ? 'border-blue-500 text-blue-200 bg-blue-950/30' :
+                                                    e.type === 'success' ? 'border-emerald-500 text-emerald-200 bg-emerald-950/30' :
+                                                    e.type === 'lockout' ? 'border-red-600 text-red-100 bg-red-600/30 font-bold shadow-[0_0_10px_rgba(220,38,38,0.2)]' :
+                                                    'border-slate-600 text-slate-300 bg-slate-900/50'
                                                 }`}>
-                                                    <span className="text-[11px] font-black">{shot.type === 'FAST' ? 'FAST' : 'SLOW'}</span>
+                                                    <span className="opacity-60 min-w-[55px] font-bold text-[10px]">{(e.time).toFixed(3)}s</span>
+                                                    <span className="leading-tight">{e.msg}</span>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div className="md:col-span-7 rounded-3xl border bg-slate-900 border-slate-800 p-5 shadow-2xl flex flex-col">
-                            <h3 className="font-bold text-[11px] uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 w-fit">
-                                <Radio className="w-4 h-4 text-emerald-500" /> Sequence Event Log
-                            </h3>
-                            <div className="flex-1 bg-[#0a0f1c] rounded-2xl border border-slate-800/80 p-4 overflow-y-auto space-y-2.5 font-mono text-xs shadow-inner relative">
-                                <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '100% 32px' }}></div>
-                                
-                                {events.length === 0 && <p className="opacity-40 italic text-center mt-10">System armed. Awaiting fault injection...</p>}
-                                
-                                <div className="relative z-10 flex flex-col gap-2">
-                                    {events.map((e, i) => (
-                                        <div key={i} className={`px-3 py-2.5 rounded-lg flex items-start gap-4 border-l-4 transition-all hover:bg-slate-800/50 ${
-                                            e.type === 'fault' ? 'border-red-500 text-red-200 bg-red-950/30' :
-                                            e.type === 'trip' ? 'border-amber-500 text-amber-200 bg-amber-950/30' :
-                                            e.type === 'reclose' ? 'border-blue-500 text-blue-200 bg-blue-950/30' :
-                                            e.type === 'success' ? 'border-emerald-500 text-emerald-200 bg-emerald-950/30' :
-                                            e.type === 'lockout' ? 'border-red-600 text-red-100 bg-red-600/30 font-bold shadow-[0_0_10px_rgba(220,38,38,0.2)]' :
-                                            'border-slate-600 text-slate-300 bg-slate-900/50'
-                                        }`}>
-                                            <span className="opacity-60 min-w-[55px] font-bold text-[10px]">{(e.time).toFixed(3)}s</span>
-                                            <span className="leading-tight">{e.msg}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            </Card>
                         </div>
 
                     </div>
@@ -754,7 +733,15 @@ const TheoryModule = () => (
 
 // ========================= MAIN APP LAYOUT =========================
 export default function App() {
+    const isDark = useThemeObserver();
     const [activeTab, setActiveTab] = useState('simulator');
+    
+    const [shotConfig, setShotConfig] = usePersistentState('ar_shot_cfg', '2F2S');
+    const [faultType, setFaultType] = usePersistentState('ar_fault_type', FAULT_TYPES[0]);
+    const [deadTimeFast, setDeadTimeFast] = usePersistentState('ar_dt_fast', 0.3);
+    const [deadTimeSlow, setDeadTimeSlow] = usePersistentState('ar_dt_slow', 15);
+    const [reclaimTimeLimit, setReclaimTimeLimit] = usePersistentState('ar_reclaim', 15);
+    const { isTripping, triggerTrip } = useTripFeedback();
     
     useEffect(() => {
         document.body.style.backgroundColor = '#020617'; 
@@ -767,7 +754,7 @@ export default function App() {
     ];
 
     return (
-        <div className="h-screen flex flex-col font-sans bg-[#020617] text-slate-200 selection:bg-blue-500/30">
+        <div className={`h-screen flex flex-col font-sans transition-colors duration-500 ${isDark ? 'bg-[#020617] text-slate-100' : 'bg-slate-50 text-slate-900'} selection:bg-blue-500/30 ${isTripping ? 'animate-trip' : ''}`}>
             <PageSEO 
                 title="Autorecloser SCADA Simulator (ANSI 79) | RelaySchool"
                 description="Interactive SCADA simulator for autorecloser protection. Visualize shot sequences, dead times, and reclaim timers for power grid stability."
@@ -781,13 +768,13 @@ export default function App() {
                 }}
             />
             
-            <header className="h-16 border-b shrink-0 flex items-center justify-between px-6 z-20 bg-slate-950/80 backdrop-blur-xl border-slate-800">
+            <header className={`h-16 border-b shrink-0 flex items-center justify-between px-6 z-20 transition-colors duration-500 ${isDark ? 'bg-slate-950/80 border-slate-800 backdrop-blur-xl' : 'bg-white/80 border-slate-200 backdrop-blur-xl shadow-sm'}`}>
                 <div className="flex items-center gap-4">
                     <div className="bg-gradient-to-br from-blue-600 to-emerald-500 p-2.5 rounded-xl text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] ring-1 ring-white/10">
                         <RotateCcw className="w-5 h-5" />
                     </div>
                     <div>
-                        <h1 className="font-black text-xl leading-none tracking-tight text-white mb-1">GridGuard <span className="text-emerald-500">PRO 6.0</span></h1>
+                        <h1 className="font-black text-xl leading-none tracking-tight mb-1 text-adaptive">GridGuard <span className="text-emerald-500">PRO 6.0</span></h1>
                         <div className="flex items-center gap-2">
                             <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">ANSI 79</span>
                             <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">IEEE C37.104</span>
@@ -795,13 +782,13 @@ export default function App() {
                     </div>
                 </div>
 
-                <div className="hidden md:flex items-center p-1.5 rounded-2xl border shadow-inner bg-slate-900/80 border-slate-800 backdrop-blur-md">
+                <div className={`hidden md:flex items-center p-1.5 rounded-2xl border transition-colors duration-500 ${isDark ? 'bg-slate-900/80 border-slate-800 shadow-inner backdrop-blur-md' : 'bg-slate-100 border-slate-200'}`}>
                     {tabs.map(tab => (
                         <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
                                 activeTab === tab.id
                                     ? 'bg-slate-800 text-white shadow-md ring-1 ring-slate-700'
-                                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+                                    : 'text-slate-500 hover:text-slate-300 dark:hover:text-slate-300 hover:bg-slate-800/50'
                             }`}>
                             {tab.icon} <span>{tab.label}</span>
                         </button>
@@ -809,6 +796,7 @@ export default function App() {
                 </div>
                 
                 <div className="hidden md:flex items-center gap-4">
+                    <AICopyButton state={{ shotConfig, faultType, deadTimeFast, deadTimeSlow, reclaimTimeLimit, simState, currentShot }} toolName="Autorecloser SCADA / ANSI 79" />
                     <div className="px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 flex items-center gap-2 shadow-inner">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" />
                         <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">System Online</span>
@@ -830,7 +818,15 @@ export default function App() {
             <div className="flex-1 overflow-hidden relative pb-16 md:pb-0">
                 {activeTab === 'theory' && <div className="h-full overflow-y-auto"><TheoryModule /></div>}
                 <div className={activeTab === 'simulator' ? 'block h-full overflow-y-auto' : 'hidden'}>
-                    <SimulatorModule />
+                    <SimulatorModule 
+                        isDark={isDark}
+                        shotConfig={shotConfig} setShotConfig={setShotConfig}
+                        faultType={faultType} setFaultType={setFaultType}
+                        deadTimeFast={deadTimeFast} setDeadTimeFast={setDeadTimeFast}
+                        deadTimeSlow={deadTimeSlow} setDeadTimeSlow={setDeadTimeSlow}
+                        reclaimTimeLimit={reclaimTimeLimit} setReclaimTimeLimit={setReclaimTimeLimit}
+                        triggerTrip={triggerTrip}
+                    />
                 </div>
             </div>
         </div>

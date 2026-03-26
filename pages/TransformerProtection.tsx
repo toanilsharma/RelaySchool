@@ -6,6 +6,16 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageSEO } from "../components/SEO/PageSEO";
+import { Card } from "../components/UI/Card";
+import { Slider } from "../components/UI/Slider";
+import { LaTeX } from "../components/UI/LaTeX";
+import { JargonTooltip } from "../components/UI/JargonTooltip";
+import { useThemeObserver } from "../hooks/useThemeObserver";
+import { useSmoothedValues } from "../hooks/useSmoothedValues";
+import { usePersistentState } from "../hooks/usePersistentState";
+import { useTripFeedback } from "../hooks/useTripFeedback";
+import { PhasorCanvas } from "../components/UI/PhasorCanvas";
+import { AICopyButton } from "../components/UI/AICopyButton";
 
 const transformerSchema: Record<string, any> = {
     "@type": "WebApplication",
@@ -15,50 +25,33 @@ const transformerSchema: Record<string, any> = {
     "operatingSystem": "WebBrowser",
 };
 
-// ============================== HOOKS & UTILS ==============================
-const useThemeObserver = () => {
-    const [isDark, setIsDark] = useState(false);
-    useEffect(() => {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDark(mediaQuery.matches);
-        const handler = (e) => setIsDark(e.matches);
-        mediaQuery.addEventListener('change', handler);
-        return () => mediaQuery.removeEventListener('change', handler);
-    }, []);
-    return isDark;
-};
-
-const useSmoothedValues = (targetValues, speed = 0.08) => {
-    const [values, setValues] = useState(targetValues);
-    useEffect(() => {
-        let animationFrame;
-        const update = () => {
-            setValues(prev => {
-                const next = { ...prev };
-                let hasChanges = false;
-                for (const key in targetValues) {
-                    const diff = targetValues[key] - prev[key];
-                    if (Math.abs(diff) > 0.005) {
-                        next[key] = prev[key] + diff * speed;
-                        hasChanges = true;
-                    } else {
-                        next[key] = targetValues[key];
-                    }
-                }
-                if (hasChanges) animationFrame = requestAnimationFrame(update);
-                return next;
-            });
-        };
-        animationFrame = requestAnimationFrame(update);
-        return () => cancelAnimationFrame(animationFrame);
-    }, [targetValues, speed]);
-    return values;
-};
-
 // ============================== DATA ==============================
 const TRANSFORMER_PROTECTION_THEORY_CONTENT = [
-    { id: 'diff', title: '87T Differential Protection', content: 'The core principle of transformer protection. It compares the current entering the transformer to the current leaving it. If the difference (Id) exceeds a restraint threshold (Ir), an internal fault is detected, and the relay trips.' },
-    { id: 'vector', title: 'Vector Group Compensation', content: 'Transformers often introduce a phase shift (e.g., Dyn11 shifts by -30°). The relay mathematically compensates for this shift to align the primary and secondary vectors before calculating the differential current.' },
+    { 
+        id: 'diff', 
+        title: '87T Differential Protection', 
+        content: (
+            <div className="space-y-3">
+                <p>The core principle of transformer protection. It compares the current entering the transformer to the current leaving it.</p>
+                <div className="flex justify-center p-4 bg-slate-900/10 dark:bg-white/5 rounded-xl">
+                    <LaTeX math="I_d = |I_1 - I_2|" />
+                </div>
+                <p>If the difference (<LaTeX math="I_d" />) exceeds a restraint threshold (<LaTeX math="I_r" />), an internal fault is detected, and the relay trips.</p>
+            </div>
+        )
+    },
+    { 
+        id: 'vector', 
+        title: 'Vector Group Compensation', 
+        content: (
+            <div className="space-y-3">
+                <p>Transformers often introduce a phase shift (e.g., Dyn11 shifts by -30°). The relay mathematically compensates for this shift to align the primary and secondary vectors before calculating the differential current.</p>
+                <div className="flex justify-center p-4 bg-slate-900/10 dark:bg-white/5 rounded-xl">
+                    <LaTeX math="I_{comp} = [Matrix] \cdot I_{raw}" />
+                </div>
+            </div>
+        )
+    },
     { id: 'inrush', title: 'Magnetizing Inrush & 2nd Harmonic', content: 'When energizing a transformer, a massive, asymmetrical inrush current occurs. This looks like a fault to the differential element. However, inrush is rich in 2nd harmonics. Relays use a 2nd harmonic ratio (typically >15%) to block the trip.' },
     { id: 'vhz', title: 'Overexcitation & 5th Harmonic', content: 'High voltage or low frequency (V/Hz) drives the transformer core into saturation, causing stray flux that severely overheats the unit. Overexcitation generates high 5th harmonics, which are used to block the 87T element from falsely tripping while a dedicated 24 (V/Hz) relay handles the condition.' }
 ];
@@ -110,234 +103,29 @@ const itemVariants = {
 };
 
 // ============================== UI COMPONENTS ==============================
-const Card = ({ children, className = '', isDark, noPadding = false, hover = false }) => (
-    <motion.div 
-        variants={itemVariants}
-        whileHover={hover ? { y: -4, transition: { duration: 0.2, ease: 'easeOut' } } : {}}
-        className={`relative overflow-hidden rounded-3xl border backdrop-blur-xl transition-all duration-300 ${noPadding ? '' : 'p-6 lg:p-8'} ${
-        isDark 
-            ? 'bg-slate-900/60 border-white/5 shadow-2xl shadow-black/40 hover:border-white/10 hover:shadow-amber-900/20' 
-            : 'bg-white/70 border-slate-200/50 shadow-xl shadow-slate-200/50 hover:border-slate-300/50 hover:shadow-amber-500/10'
-        } ${className}`}>
-        <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03] pointer-events-none mix-blend-overlay" style={{backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`}}></div>
-        <div className="relative z-10">{children}</div>
-    </motion.div>
-);
+// Redundant local components removed. Using @/components/UI instead.
 
-const Slider = ({ label, unit, min, max, step, value, onChange, color, disabled }) => {
-    const colorMap = { 
-        emerald: 'from-emerald-400 to-teal-500', 
-        blue: 'from-blue-400 to-indigo-500', 
-        amber: 'from-amber-400 to-orange-500',
-        red: 'from-red-400 to-rose-500'
-    };
-    const progress = ((value - min) / (max - min)) * 100;
-
-    return (
-        <div className="flex flex-col gap-3 group">
-            <div className="flex justify-between items-center">
-                <label className="text-sm font-bold tracking-wide opacity-80 group-hover:opacity-100 transition-opacity">{label}</label>
-                <motion.span 
-                    key={value}
-                    initial={{ scale: 0.9, opacity: 0.5 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className={`text-xs font-mono font-black bg-gradient-to-r ${colorMap[color]} text-white px-3 py-1.5 rounded-lg shadow-lg`}
-                >
-                    {value}{unit}
-                </motion.span>
-            </div>
-            <div className="relative h-3 w-full rounded-full bg-slate-200/50 dark:bg-slate-800/50 overflow-hidden backdrop-blur-sm shadow-inner cursor-pointer">
-                <div 
-                    className={`absolute top-0 left-0 h-full bg-gradient-to-r ${colorMap[color]} transition-all duration-200 ease-out`}
-                    style={{ width: `${progress}%` }}
-                />
-                <input 
-                    type="range" min={min} max={max} step={step} value={value} onChange={onChange} disabled={disabled}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10" 
-                    aria-label={label}
-                />
-            </div>
-        </div>
-    );
-};
-
-// ============================== ADVANCED PHASOR CANVAS ==============================
-const PhasorCanvas = ({ isDark, smoothed, effectiveLV, vectorGroup, isTripped, isBlocked }) => {
-    const canvasRef = useRef(null);
-    const animationRef = useRef(null);
-    const phaseOffsetRef = useRef(0);
-    
-    useEffect(() => {
-        const cvs = canvasRef.current; if (!cvs) return;
-        const ctx = cvs.getContext('2d', { alpha: false }); if (!ctx) return;
-        
-        let width, height;
-
-        const resize = () => {
-            const dpr = window.devicePixelRatio || 1;
-            const rect = cvs.getBoundingClientRect();
-            width = rect.width; height = rect.height;
-            cvs.width = width * dpr; cvs.height = height * dpr;
-            ctx.scale(dpr, dpr);
-        };
-        resize();
-        window.addEventListener('resize', resize);
-
-        const draw = () => {
-            // Pulse effect for background grid
-            phaseOffsetRef.current += 0.015;
-            const pulse = Math.sin(phaseOffsetRef.current) * 0.1 + 0.9;
-
-            // Background Fill
-            ctx.fillStyle = isDark ? '#020617' : '#f8fafc';
-            ctx.fillRect(0, 0, width, height);
-            
-            const cx = width / 2;
-            const cy = height / 2;
-            const r = Math.min(width, height) / 2 - 50;
-
-            // Warning Overlays (Radar sweep style)
-            if (isTripped) {
-                const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, width);
-                grad.addColorStop(0, isDark ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.1)');
-                grad.addColorStop(1, 'transparent');
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, width, height);
-            } else if (isBlocked) {
-                const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, width);
-                grad.addColorStop(0, isDark ? 'rgba(217, 119, 6, 0.15)' : 'rgba(245, 158, 11, 0.1)');
-                grad.addColorStop(1, 'transparent');
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, width, height);
-            }
-
-            // --- Animated Background Radar Grid ---
-            ctx.strokeStyle = isDark ? `rgba(255,255,255,${0.05 * pulse})` : `rgba(0,0,0,${0.05 * pulse})`;
-            ctx.lineWidth = 1;
-            
-            // Concentric circles
-            [1, 0.66, 0.33].forEach(scale => {
-                ctx.beginPath(); 
-                ctx.arc(cx, cy, r * scale, 0, Math.PI * 2); 
-                ctx.stroke();
-            });
-            
-            // Crosshairs
-            ctx.setLineDash([4, 4]);
-            ctx.beginPath(); ctx.moveTo(cx - r - 20, cy); ctx.lineTo(cx + r + 20, cy); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(cx, cy - r - 20); ctx.lineTo(cx, cy + r + 20); ctx.stroke();
-            ctx.setLineDash([]);
-
-            // Draw Phasors
-            const phaseColors = isDark ? ['#f87171', '#fbbf24', '#60a5fa'] : ['#ef4444', '#f59e0b', '#3b82f6'];
-            const phaseAngles = [0, -120, 120];
-
-            phaseAngles.forEach((baseAngle, i) => {
-                // HV Phasor
-                const hvAngle = ((baseAngle - 90) * Math.PI) / 180;
-                const hvLen = Math.min((smoothed.hvCurrent / 10) * r, r * 1.3);
-                
-                ctx.strokeStyle = phaseColors[i];
-                ctx.lineWidth = isTripped ? 6 : 4;
-                ctx.lineCap = 'round';
-                ctx.shadowBlur = isTripped ? 25 : 10;
-                ctx.shadowColor = phaseColors[i];
-                
-                ctx.beginPath();
-                ctx.moveTo(cx, cy);
-                const hx = cx + Math.cos(hvAngle) * hvLen;
-                const hy = cy + Math.sin(hvAngle) * hvLen;
-                ctx.lineTo(hx, hy);
-                ctx.stroke();
-
-                // HV Arrow Head
-                ctx.fillStyle = isDark ? '#ffffff' : phaseColors[i];
-                ctx.beginPath();
-                ctx.arc(hx, hy, isTripped ? 5 : 4, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowBlur = 0; // Reset
-
-                // LV Phasor (Compensated via Vector Group)
-                const lvAngle = ((baseAngle + vectorGroup.shift - 90) * Math.PI) / 180;
-                const lvLen = Math.min((effectiveLV / 10) * r, r * 1.3);
-                
-                ctx.strokeStyle = phaseColors[i];
-                ctx.lineWidth = 3;
-                ctx.setLineDash([8, 8]);
-                ctx.globalAlpha = 0.8;
-                
-                ctx.beginPath();
-                ctx.moveTo(cx, cy);
-                const lx = cx + Math.cos(lvAngle) * lvLen;
-                const ly = cy + Math.sin(lvAngle) * lvLen;
-                ctx.lineTo(lx, ly);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.globalAlpha = 1.0;
-
-                // Labels
-                if (i === 0) {
-                    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-                    ctx.font = 'bold 13px Inter, sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('HV Phase A', hx + Math.cos(hvAngle) * 25, hy + Math.sin(hvAngle) * 25);
-                }
-            });
-
-            // Center Hub
-            ctx.beginPath();
-            ctx.arc(cx, cy, 7, 0, Math.PI * 2);
-            ctx.fillStyle = isDark ? '#ffffff' : '#0f172a';
-            ctx.fill();
-            
-            // Inner Hub ring
-            ctx.beginPath();
-            ctx.arc(cx, cy, 12, 0, Math.PI * 2);
-            ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            animationRef.current = requestAnimationFrame(draw);
-        };
-
-        draw();
-        return () => {
-            window.removeEventListener('resize', resize);
-            cancelAnimationFrame(animationRef.current);
-        };
-    }, [isDark, smoothed, effectiveLV, vectorGroup, isTripped, isBlocked]);
-    
-    return (
-        <div className="relative w-full h-full min-h-[350px] flex items-center justify-center rounded-b-3xl overflow-hidden">
-            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-            <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none z-10 flex justify-center">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/10 dark:bg-white/10 text-xs font-black tracking-widest backdrop-blur-md shadow-sm border border-slate-900/5 dark:border-white/5">
-                    <Activity className="w-3 h-3" />
-                    VECTOR: {vectorGroup.id} ({vectorGroup.shift}°)
-                </div>
-            </div>
-        </div>
-    );
-};
+// Centralized PhasorCanvas already imported.
 
 // ============================== SIMULATOR MODULE ==============================
-const SimulatorModule = ({ isDark }) => {
-    const [vectorGroup, setVectorGroup] = useState(VECTOR_GROUPS[0]);
-    const [hvCurrent, setHvCurrent] = useState(1.0);
-    const [lvCurrent, setLvCurrent] = useState(1.0);
-    const [tapPosition, setTapPosition] = useState(0);
+const SimulatorModule = () => {
+    const isDark = useThemeObserver();
+    const [vectorGroup, setVectorGroup] = usePersistentState('87t_vector', VECTOR_GROUPS[0]);
+    const [hvCurrent, setHvCurrent] = usePersistentState('87t_hv', 1.0);
+    const [lvCurrent, setLvCurrent] = usePersistentState('87t_lv', 1.0);
+    const [tapPosition, setTapPosition] = usePersistentState('87t_tap', 0);
     const [harmonic2nd, setHarmonic2nd] = useState(0);
     const [harmonic5th, setHarmonic5th] = useState(0);
     const [events, setEvents] = useState([]);
     
     const [inrushActive, setInrushActive] = useState(false);
     const [faultActive, setFaultActive] = useState(false);
-    const [shake, setShake] = useState(false);
+    const { isTripping, triggerTrip } = useTripFeedback();
 
     const slopeK1 = 0.3;
     const slopeK2 = 0.7;
 
-    const smoothed = useSmoothedValues({ hvCurrent, tapPosition, lvCurrent, harmonic2nd, harmonic5th }, 0.12);
+    const smoothed = useSmoothedValues({ hvCurrent, tapPosition, lvCurrent, harmonic2nd, harmonic5th });
 
     // Math Engine
     const compensatedHV = smoothed.hvCurrent; 
@@ -361,7 +149,7 @@ const SimulatorModule = ({ isDark }) => {
     };
 
     const injectInrush = () => {
-        triggerShake();
+        triggerTrip();
         setInrushActive(true);
         setHvCurrent(6.0); setLvCurrent(0.1);
         setHarmonic2nd(35); setHarmonic5th(5);
@@ -373,7 +161,7 @@ const SimulatorModule = ({ isDark }) => {
     };
 
     const injectFault = () => {
-        triggerShake();
+        triggerTrip();
         setFaultActive(true);
         setHvCurrent(8.0); setLvCurrent(0.5);
         setHarmonic2nd(5); setHarmonic5th(3);
@@ -398,10 +186,7 @@ const SimulatorModule = ({ isDark }) => {
                       : 'from-emerald-400 to-teal-500 text-white shadow-[0_0_30px_rgba(16,185,129,0.2)]';
 
     return (
-        <motion.div 
-            animate={shake ? { x: [-10, 10, -8, 8, -5, 5, 0], transition: { duration: 0.5, ease: "easeInOut" } } : {}} 
-            className="max-w-[90rem] mx-auto p-4 lg:p-8 space-y-8"
-        >
+        <div className={`max-w-[90rem] mx-auto p-4 lg:p-8 space-y-8 ${isTripping ? 'animate-trip' : ''}`}>
             {/* Top Grid: Canvas & 87T Analysis */}
             <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 xl:grid-cols-5 gap-8">
                 
@@ -413,8 +198,15 @@ const SimulatorModule = ({ isDark }) => {
                             Phasor Telemetry
                         </h3>
                     </div>
-                    <div className="flex-1 relative">
-                        <PhasorCanvas isDark={isDark} smoothed={smoothed} effectiveLV={effectiveLV} vectorGroup={vectorGroup} isTripped={isTripped} isBlocked={isBlocked} />
+                    <div className="flex-1 relative flex items-center justify-center min-h-[400px]">
+                        <PhasorCanvas 
+                            size={380}
+                            isDark={isDark}
+                            phasors={[
+                                { id: 'hvA', label: 'HV PhA', magnitude: Math.min(smoothed.hvCurrent/10, 1), angle: 90, color: isDark ? '#f87171' : '#ef4444' },
+                                { id: 'lvA', label: 'LV PhA', magnitude: Math.min(effectiveLV/10, 1), angle: 90 + vectorGroup.shift, color: isDark ? '#60a5fa' : '#3b82f6' }
+                            ]}
+                        />
                     </div>
                 </Card>
 
@@ -448,22 +240,22 @@ const SimulatorModule = ({ isDark }) => {
                     {/* Telemetry Cards */}
                     <Card isDark={isDark} hover className="flex flex-col justify-center border-l-4 border-l-red-500 group">
                         <div className="text-xs font-black opacity-60 uppercase tracking-widest mb-2 flex items-center gap-2">
-                            Differential <span className="text-[10px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full">Id</span>
+                             Differential <span className="text-[10px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full inline-flex items-center"><LaTeX math="I_d" /></span>
                         </div>
                         <div className="text-4xl lg:text-5xl font-black tracking-tighter text-red-500 group-hover:scale-105 transition-transform origin-left">
                             {Id.toFixed(3)}<span className="text-2xl opacity-50 ml-1">pu</span>
                         </div>
-                        <div className="mt-3 text-sm opacity-60 font-medium">Trip Threshold: {Math.max(0.2, slopeThreshold).toFixed(3)} pu</div>
+                        <div className="mt-3 text-sm opacity-60 font-medium font-mono text-[10px]">Threshold: {Math.max(0.2, slopeThreshold).toFixed(3)} pu</div>
                     </Card>
 
                     <Card isDark={isDark} hover className="flex flex-col justify-center border-l-4 border-l-blue-500 group">
                         <div className="text-xs font-black opacity-60 uppercase tracking-widest mb-2 flex items-center gap-2">
-                            Restraint <span className="text-[10px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full">Ir</span>
+                            Restraint <span className="text-[10px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full inline-flex items-center"><LaTeX math="I_r" /></span>
                         </div>
                         <div className="text-4xl lg:text-5xl font-black tracking-tighter text-blue-500 group-hover:scale-105 transition-transform origin-left">
                             {Ir.toFixed(3)}<span className="text-2xl opacity-50 ml-1">pu</span>
                         </div>
-                        <div className="mt-3 text-sm opacity-60 font-medium">Average (HV + LV) / 2</div>
+                        <div className="mt-3 text-sm opacity-60 font-medium font-mono text-[10px]">Avg: (HV + LV) / 2</div>
                     </Card>
 
                     <Card isDark={isDark} hover className={`flex flex-col justify-center border-l-4 ${blocked2nd ? 'border-l-amber-500' : 'border-l-emerald-500'} group`}>
@@ -503,16 +295,19 @@ const SimulatorModule = ({ isDark }) => {
                             Control Matrix
                         </h3>
                         
-                        <div className="relative">
-                            <select 
-                                value={vectorGroup.id} 
-                                onChange={e => setVectorGroup(VECTOR_GROUPS.find(v => v.id === e.target.value) || VECTOR_GROUPS[0])}
-                                aria-label="Vector Group"
-                                className={`appearance-none pl-4 pr-10 py-2.5 rounded-xl border text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`}
-                            >
-                                {VECTOR_GROUPS.map(v => <option key={v.id} value={v.id}>{v.label} ({v.shift}°)</option>)}
-                            </select>
-                            <ChevronRight className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50 rotate-90" />
+                        <div className="flex items-center gap-3">
+                            <AICopyButton state={{ hvCurrent, lvCurrent, tapPosition, vectorGroup: vectorGroup.id, Id, Ir, harmonic2nd, harmonic5th }} toolName="Transformer Differential Protection" />
+                            <div className="relative">
+                                <select 
+                                    value={vectorGroup.id} 
+                                    onChange={e => setVectorGroup(VECTOR_GROUPS.find(v => v.id === e.target.value) || VECTOR_GROUPS[0])}
+                                    aria-label="Vector Group"
+                                    className={`appearance-none pl-4 pr-10 py-2.5 rounded-xl border text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`}
+                                >
+                                    {VECTOR_GROUPS.map(v => <option key={v.id} value={v.id}>{v.label} ({v.shift}°)</option>)}
+                                </select>
+                                <ChevronRight className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50 rotate-90" />
+                            </div>
                         </div>
                     </div>
                     
@@ -585,7 +380,7 @@ const SimulatorModule = ({ isDark }) => {
                     </div>
                 </Card>
             </motion.div>
-        </motion.div>
+        </div>
     );
 };
 
@@ -873,7 +668,7 @@ export default function TransformerProtection() {
                 
                 <AnimatePresence mode="wait">
                     {activeTab === 'theory' && <motion.div key="theory" className="h-full overflow-y-auto custom-scrollbar" exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}><TheoryLibrary title="Theoretical Framework" description="Deep dive into the operational mechanics, standards, and advanced logic governing modern 87T Protection relays." sections={TRANSFORMER_PROTECTION_THEORY_CONTENT} isDark={isDark}/></motion.div>}
-                    {activeTab === 'simulator' && <motion.div key="simulator" className="h-full overflow-y-auto custom-scrollbar" exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.2 }}><SimulatorModule isDark={isDark}/></motion.div>}
+                    {activeTab === 'simulator' && <motion.div key="simulator" className="h-full overflow-y-auto custom-scrollbar" exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.2 }}><SimulatorModule /></motion.div>}
                     {activeTab === 'guide' && <motion.div key="guide" className="h-full overflow-y-auto custom-scrollbar" exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}><GuideModule isDark={isDark}/></motion.div>}
                     {activeTab === 'quiz' && <motion.div key="quiz" className="h-full overflow-y-auto custom-scrollbar" exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.2 }}><QuizModule isDark={isDark}/></motion.div>}
                 </AnimatePresence>
