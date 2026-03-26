@@ -9,7 +9,7 @@ interface SliderProps {
     step: number;
     value: number;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    color: 'emerald' | 'blue' | 'amber' | 'red' | 'purple';
+    color: 'emerald' | 'blue' | 'amber' | 'red' | 'purple' | 'orange' | 'yellow';
     disabled?: boolean;
 }
 
@@ -21,7 +21,9 @@ export const Slider: React.FC<SliderProps> = ({
         blue: 'from-blue-400 to-indigo-500', 
         amber: 'from-amber-400 to-orange-500',
         red: 'from-red-400 to-rose-500',
-        purple: 'from-purple-400 to-violet-500'
+        purple: 'from-purple-400 to-violet-500',
+        orange: 'from-orange-400 to-amber-500',
+        yellow: 'from-yellow-400 to-amber-500'
     };
     const progress = ((value - min) / (max - min)) * 100;
 

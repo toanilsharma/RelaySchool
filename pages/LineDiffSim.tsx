@@ -83,31 +83,31 @@ const SimulatorModule = ({
     }, [slope1, slope2, breakpoint, minPickup]);
 
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-8 space-y-6">
-                    <Card isDark={isDark} noPadding>
-                        <div className="p-8">
-                            <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 mb-8 flex items-center gap-2">
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 h-full">
+                <div className="xl:col-span-8 space-y-4 flex flex-col min-h-0">
+                    <Card isDark={isDark} noPadding className="shrink-0">
+                        <div className="p-4 lg:p-5">
+                            <h3 className="font-black text-[10px] uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
                                 <Network className="w-4 h-4 text-cyan-500" /> Network Configuration
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                                 {PRESETS.map(p => (
                                     <button key={p.id} onClick={() => { setIL(p.IL); setIR(p.IR); setAngleL(p.aL); setAngleR(p.aR); }}
-                                        className="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-left hover:bg-slate-900 transition-all">
+                                        className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-left hover:bg-slate-900 transition-all">
                                         <div className="text-[10px] font-black uppercase tracking-widest text-cyan-500 mb-1">{p.label}</div>
                                         <div className="text-[9px] text-slate-600 leading-tight">{p.desc}</div>
                                     </button>
                                 ))}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-6">
-                                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Local Substation (A)</div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-4">
+                                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Local Substation (A)</div>
                                     <Slider label="Magnitude" unit="A" min={0} max={10000} step={100} value={IL} onChange={(e) => setIL(Number(e.target.value))} color="blue" />
                                     <Slider label="Phase Angle" unit="°" min={-180} max={180} step={1} value={angleL} onChange={(e) => setAngleL(Number(e.target.value))} color="blue" />
                                 </div>
-                                <div className="space-y-6">
-                                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Remote Substation (B)</div>
+                                <div className="space-y-4">
+                                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Remote Substation (B)</div>
                                     <Slider label="Magnitude" unit="A" min={0} max={10000} step={100} value={IR} onChange={(e) => setIR(Number(e.target.value))} color="emerald" />
                                     <Slider label="Phase Angle" unit="°" min={-180} max={180} step={1} value={angleR} onChange={(e) => setAngleR(Number(e.target.value))} color="emerald" />
                                 </div>
@@ -115,11 +115,11 @@ const SimulatorModule = ({
                         </div>
                     </Card>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card isDark={isDark} noPadding>
-                            <div className="p-8">
-                                <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 mb-6">Characteristic Plane</h3>
-                                <div className="h-64 bg-slate-950 rounded-2xl border border-slate-800 p-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-[250px] xl:min-h-0">
+                        <Card isDark={isDark} noPadding className="flex flex-col h-full">
+                            <div className="p-4 lg:p-5 flex flex-col h-full">
+                                <h3 className="font-black text-[10px] uppercase tracking-widest text-slate-500 mb-3 shrink-0">Characteristic Plane</h3>
+                                <div className="flex-1 bg-slate-950 rounded-xl border border-slate-800 p-2 min-h-0">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <AreaChart data={chartData}>
                                             <defs>
@@ -137,31 +137,31 @@ const SimulatorModule = ({
                                 </div>
                             </div>
                         </Card>
-                        <Card isDark={isDark} noPadding className={`border ${trip ? 'border-red-500' : 'border-slate-800'}`}>
-                             <div className="p-8 space-y-8">
-                                <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                        <Card isDark={isDark} noPadding className={`border flex flex-col h-full ${trip ? 'border-red-500' : 'border-slate-800'}`}>
+                             <div className="p-4 lg:p-5 flex flex-col justify-center h-full space-y-4">
+                                <h3 className="font-black text-[10px] uppercase tracking-widest text-slate-500 flex items-center gap-2 shrink-0">
                                     <ShieldCheck className="w-4 h-4 text-emerald-500" /> Relay Assessment
                                 </h3>
-                                <div className={`p-6 rounded-2xl border-2 text-center transition-all ${trip ? 'bg-red-500/10 border-red-500/50' : 'bg-emerald-500/10 border-emerald-500/10'}`}>
-                                    <div className={`text-3xl font-black ${trip ? 'text-red-500' : 'text-emerald-500'}`}>
+                                <div className={`p-4 rounded-xl border-2 text-center transition-all ${trip ? 'bg-red-500/10 border-red-500/50' : 'bg-emerald-500/10 border-emerald-500/10'}`}>
+                                    <div className={`text-xl md:text-2xl font-black ${trip ? 'text-red-500' : 'text-emerald-500'}`}>
                                         {trip ? 'RED: ACTIVE TRIP' : 'GRN: RESTRAIN'}
                                     </div>
-                                    <div className="text-[10px] font-black uppercase tracking-widest mt-2 text-slate-500">
+                                    <div className="text-[9px] font-black uppercase tracking-widest mt-1 text-slate-500">
                                         Logic Status: {trip ? 'Differential Trigger' : 'Vector Equilibrium'}
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest"><span className="text-slate-500">Slope 1 Setting</span><span className="text-white">{slope1}%</span></div>
-                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest"><span className="text-slate-500">Slope 2 Setting</span><span className="text-white">{slope2}%</span></div>
+                                <div className="space-y-2 mt-auto">
+                                    <div className="flex justify-between text-[9px] font-black uppercase tracking-widest"><span className="text-slate-500">Slope 1 Setting</span><span className="text-white">{slope1}%</span></div>
+                                    <div className="flex justify-between text-[9px] font-black uppercase tracking-widest"><span className="text-slate-500">Slope 2 Setting</span><span className="text-white">{slope2}%</span></div>
                                 </div>
                              </div>
                         </Card>
                     </div>
                 </div>
 
-                <div className="lg:col-span-4 space-y-6">
-                    <Card isDark={isDark} noPadding>
-                        <div className="p-8 space-y-10">
+                <div className="xl:col-span-4 flex flex-col gap-4">
+                    <Card isDark={isDark} noPadding className="flex-1 min-h-0">
+                        <div className="p-4 lg:p-5 h-full flex flex-col justify-between">
                             <div>
                                 <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 flex justify-between">
                                     <span>Diff Current (Id)</span>
@@ -173,9 +173,9 @@ const SimulatorModule = ({
                                 <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 text-slate-500">Restraint Current (Ir)</div>
                                 <Odometer value={Irestraint} format={v => `${Math.round(v)}A`} className="text-4xl font-black text-cyan-400" />
                             </div>
-                            <div className="pt-4 border-t border-slate-800">
-                                <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-4">Relay Sensitivity Tuning</div>
-                                <div className="space-y-6">
+                            <div className="pt-4 border-t border-slate-800 mt-auto">
+                                <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3">Relay Sensitivity Tuning</div>
+                                <div className="space-y-4">
                                     <Slider label="Slope 1" unit="%" min={10} max={50} step={1} value={slope1} onChange={(e) => setSlope1(Number(e.target.value))} color="amber" />
                                     <Slider label="Slope 2" unit="%" min={50} max={100} step={1} value={slope2} onChange={(e) => setSlope2(Number(e.target.value))} color="amber" />
                                     <Slider label="Breakpoint" unit="A" min={500} max={5000} step={100} value={breakpoint} onChange={(e) => setBreakpoint(Number(e.target.value))} color="blue" />
@@ -184,8 +184,8 @@ const SimulatorModule = ({
                         </div>
                     </Card>
 
-                    <Card isDark={isDark} noPadding>
-                        <div className="p-8">
+                    <Card isDark={isDark} noPadding className="shrink-0">
+                        <div className="p-4 lg:p-5">
                             <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
                                 <Info className="w-4 h-4 text-orange-500" /> Engineering Note
                             </h3>
@@ -237,18 +237,20 @@ export default function LineDiffSim() {
                 </div>
             </header>
 
-            <main className="max-w-[1400px] mx-auto px-10 py-12">
+            <main className="w-full mx-auto p-4 lg:p-6 h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden">
                 <AnimatePresence mode="wait">
-                    <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                    <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full">
                         {activeTab === 'simulator' && (
-                            <SimulatorModule 
-                                isDark={isDark} 
-                                triggerTrip={triggerTrip}
-                                slope1={slope1} setSlope1={setSlope1}
-                                slope2={slope2} setSlope2={setSlope2}
-                                breakpoint={breakpoint} setBreakpoint={setBreakpoint}
-                                minPickup={minPickup} setMinPickup={setMinPickup}
-                            />
+                            <div className="h-full">
+                                <SimulatorModule 
+                                    isDark={isDark} 
+                                    triggerTrip={triggerTrip}
+                                    slope1={slope1} setSlope1={setSlope1}
+                                    slope2={slope2} setSlope2={setSlope2}
+                                    breakpoint={breakpoint} setBreakpoint={setBreakpoint}
+                                    minPickup={minPickup} setMinPickup={setMinPickup}
+                                />
+                            </div>
                         )}
                         {activeTab !== 'simulator' && <div className="text-center py-20 font-black text-slate-500 uppercase tracking-widest">RelaySchool Advanced Engineering Lab Module</div>}
                     </motion.div>

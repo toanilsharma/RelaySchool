@@ -5,10 +5,11 @@ import {
     Cpu, BookOpen, AlertOctagon, CheckCircle2, X,
     ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Share2, Upload,
     Maximize2, Sliders, LineChart as ChartIcon, Navigation,
-    PlayCircle, StopCircle, Info, BookText, TrendingUp, Wrench
+    PlayCircle, StopCircle, Info, BookText, TrendingUp, Wrench, FileUp
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 import PageSEO from '../components/SEO/PageSEO';
+import { parseCOMTRADEConfig } from '../services/mathEngine';
 
 // --- INDUSTRIAL STANDARDS & CONSTANTS ---
 const ANSI_CODES = {
@@ -87,6 +88,10 @@ export default function App() {
     // --- UI VIEW STATE ---
     const [activeTab, setActiveTab] = useState('DASHBOARD'); // DASHBOARD, SETTINGS, PHASORS, COMTRADE, THEORY
     const [showGuide, setShowGuide] = useState(true);
+
+    // --- COMTRADE FILE UPLOAD STATE ---
+    const [comtradeFile, setComtradeFile] = useState<{config: any; fileName: string} | null>(null);
+    const comtradeInputRef = useRef<HTMLInputElement>(null);
 
     // --- AUTO TRAINING STATE ---
     const [autoState, setAutoState] = useState({ active: false, message: '' });
@@ -839,11 +844,56 @@ export default function App() {
                         {/* TAB: COMTRADE / WAVEFORMS */}
                         {activeTab === 'COMTRADE' && (
                             <div className="flex flex-col h-full">
+                                {/* COMTRADE File Upload Banner */}
+                                <div className="mb-4 p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <FileUp className="w-5 h-5 text-blue-400" />
+                                        <div>
+                                            <div className="text-xs font-bold text-slate-300">IEEE C37.111 COMTRADE Support</div>
+                                            <div className="text-[10px] text-slate-500">Upload .cfg configuration files to visualize channel metadata</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {comtradeFile && (
+                                            <span className="text-[10px] font-mono bg-emerald-900/40 text-emerald-400 px-2 py-1 rounded border border-emerald-800">
+                                                {comtradeFile.fileName} — {comtradeFile.config.analogCount}A + {comtradeFile.config.digitalCount}D ch
+                                            </span>
+                                        )}
+                                        <input ref={comtradeInputRef} type="file" accept=".cfg,.cff" className="hidden" onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            const reader = new FileReader();
+                                            reader.onload = ev => {
+                                                try {
+                                                    const config = parseCOMTRADEConfig(ev.target?.result as string);
+                                                    setComtradeFile({ config, fileName: file.name });
+                                                } catch (err) {
+                                                    alert('Failed to parse COMTRADE file. Ensure it is a valid IEEE C37.111 .cfg file.');
+                                                }
+                                            };
+                                            reader.readAsText(file);
+                                        }} />
+                                        <button onClick={() => comtradeInputRef.current?.click()} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-all">
+                                            <Upload className="w-3 h-3" /> UPLOAD .CFG
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* COMTRADE Config Viewer */}
+                                {comtradeFile && (
+                                    <div className="mb-4 p-4 bg-blue-950/30 rounded-xl border border-blue-900/30 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div><div className="text-[10px] text-slate-500 uppercase font-bold">Station</div><div className="text-sm font-bold text-white">{comtradeFile.config.stationName}</div></div>
+                                        <div><div className="text-[10px] text-slate-500 uppercase font-bold">Device ID</div><div className="text-sm font-bold text-white">{comtradeFile.config.recDevId}</div></div>
+                                        <div><div className="text-[10px] text-slate-500 uppercase font-bold">Analog Channels</div><div className="text-sm font-bold text-blue-400">{comtradeFile.config.analogCount}</div></div>
+                                        <div><div className="text-[10px] text-slate-500 uppercase font-bold">Digital Channels</div><div className="text-sm font-bold text-emerald-400">{comtradeFile.config.digitalCount}</div></div>
+                                    </div>
+                                )}
+
                                 {!oscillography ? (
                                     <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
                                         <ChartIcon className="w-16 h-16 mb-4 opacity-20" />
                                         <p className="font-bold">No Fault Data Recorded</p>
-                                        <p className="text-sm">Inject a fault to generate oscillography.</p>
+                                        <p className="text-sm">Inject a fault to generate oscillography, or upload a COMTRADE .cfg file above.</p>
                                     </div>
                                 ) : (
                                     <>

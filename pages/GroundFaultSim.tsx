@@ -71,7 +71,7 @@ const QUIZ_DATA = [
 ];
 
 // ============================== REUSABLE UI COMPONENTS ==============================
-const Card = ({ children, className = "", title, icon: Icon, action }) => (
+const Card = ({ children, className = "", title, icon: Icon, action }: any) => (
   <div className={`bg-slate-900/60 border border-slate-700/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl ${className}`}>
     {(title || Icon) && (
       <div className="flex items-center justify-between p-4 border-b border-slate-800/80 bg-slate-800/20">
@@ -107,11 +107,11 @@ const ProSlider = ({ label, unit, min, max, step, value, onChange, color = "ambe
 };
 
 const StepBadge = ({ step, title }) => (
-  <div className="flex items-center gap-3 mb-4">
-    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-400 font-black shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+  <div className="flex items-center gap-2 mb-2">
+    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-400 text-xs font-black shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
       {step}
     </div>
-    <h3 className="text-xl font-bold text-slate-100 tracking-wide">{title}</h3>
+    <h3 className="text-sm font-bold text-slate-100 tracking-wide uppercase">{title}</h3>
   </div>
 );
 
@@ -377,65 +377,64 @@ const SimulationView = () => {
   }, []);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 lg:grid-cols-12 gap-8 p-4 md:p-6 max-w-[1600px] mx-auto">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 xl:grid-cols-12 gap-4 p-4 md:p-6 w-full h-full max-w-[1600px] mx-auto">
       
       {/* LEFT COLUMN: Guided Controls */}
-      <div className="lg:col-span-5 space-y-8">
+      <div className="xl:col-span-5 flex flex-col gap-4 min-h-0">
         
-        <section>
+        <section className="shrink-0 relative">
           <StepBadge step="1" title="Network Configuration" />
           <Card className="border-amber-900/50">
-            <p className="text-sm text-slate-400 mb-4">Set the physical characteristics of the power system and the type of fault to simulate.</p>
             
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">System Grounding (Neutral Path)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">System Grounding (Neutral Path)</label>
                 <select 
                   value={grounding.id} onChange={e => setGrounding(GROUNDING_METHODS.find(g => g.id === e.target.value) || GROUNDING_METHODS[0])}
-                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-100 font-bold focus:outline-none focus:border-amber-500 transition-colors"
+                  className="w-full p-2.5 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-100 font-bold focus:outline-none focus:border-amber-500 transition-colors"
                   disabled={isRunning}
                 >
                   {GROUNDING_METHODS.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
                 </select>
-                <p className="text-xs text-slate-500 mt-1 pl-1">{grounding.desc}</p>
+                <p className="text-[10px] text-slate-500 mt-1 pl-1 leading-tight">{grounding.desc}</p>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Fault Type</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Fault Type</label>
                 <select 
                   value={faultType.id} onChange={e => setFaultType(FAULT_TYPES.find(f => f.id === e.target.value) || FAULT_TYPES[0])}
-                  className="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-100 font-bold focus:outline-none focus:border-amber-500 transition-colors"
+                  className="w-full p-2.5 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-100 font-bold focus:outline-none focus:border-amber-500 transition-colors"
                   disabled={isRunning}
                 >
                   {FAULT_TYPES.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
                 </select>
-                <p className="text-xs text-slate-500 mt-1 pl-1">{faultType.desc}</p>
+                <p className="text-[10px] text-slate-500 mt-1 pl-1 leading-tight">{faultType.desc}</p>
               </div>
             </div>
           </Card>
         </section>
 
-        <section>
+        <section className="flex-1 flex flex-col min-h-0 relative">
           <StepBadge step="2" title="Relay Settings (50N/51N/67N)" />
-          <Card className="border-red-900/30">
-            <div className="space-y-6">
-              <ProSlider label="50N Pickup (Instantaneous)" unit="A" min={500} max={10000} step={100} value={pickup50N} onChange={e => setPickup50N(+e.target.value)} color="red" />
-              <ProSlider label="51N Pickup (Time Delayed)" unit="A" min={50} max={2000} step={50} value={pickup51N} onChange={e => setPickup51N(+e.target.value)} color="amber" />
+          <Card className="border-red-900/30 flex-1 overflow-y-auto">
+            <div className="space-y-5">
+              <ProSlider label="50N Pickup (Inst)" unit="A" min={500} max={10000} step={100} value={pickup50N} onChange={e => setPickup50N(+e.target.value)} color="red" />
+              <ProSlider label="51N Pickup (Time)" unit="A" min={50} max={2000} step={50} value={pickup51N} onChange={e => setPickup51N(+e.target.value)} color="amber" />
               
-              <div className="pt-4 border-t border-slate-800">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">67N Directional Control</label>
+              <div className="pt-3 border-t border-slate-800">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">67N Directional Control</label>
                   <button 
                     onClick={() => setDirectional(!directional)} disabled={isRunning}
-                    className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${directional ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'bg-slate-800 text-slate-500 border-slate-700'}`}
+                    className={`px-3 py-1 rounded-md text-[10px] font-bold border transition-colors ${directional ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'bg-slate-800 text-slate-500 border-slate-700'}`}
                   >
                     {directional ? 'ENABLED' : 'DISABLED'}
                   </button>
                 </div>
                 
                 <div className="flex rounded-lg overflow-hidden border border-slate-700">
-                  <button onClick={() => setFaultLocation('forward')} disabled={isRunning} className={`flex-1 py-2 text-sm font-bold transition-colors ${faultLocation === 'forward' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}>Forward Fault</button>
-                  <button onClick={() => setFaultLocation('reverse')} disabled={isRunning} className={`flex-1 py-2 text-sm font-bold transition-colors ${faultLocation === 'reverse' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}>Reverse Fault</button>
+                  <button onClick={() => setFaultLocation('forward')} disabled={isRunning} className={`flex-1 py-1.5 text-xs font-bold transition-colors ${faultLocation === 'forward' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}>Forward</button>
+                  <button onClick={() => setFaultLocation('reverse')} disabled={isRunning} className={`flex-1 py-1.5 text-xs font-bold transition-colors ${faultLocation === 'reverse' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}>Reverse</button>
                 </div>
               </div>
             </div>
@@ -445,59 +444,60 @@ const SimulationView = () => {
       </div>
 
       {/* RIGHT COLUMN: Execution & Analysis */}
-      <div className="lg:col-span-7 space-y-8">
+      <div className="xl:col-span-7 flex flex-col gap-4 min-h-0">
         
-        <section>
+        <section className="flex flex-col min-h-0 relative">
           <StepBadge step="3" title="Execution & Expert Analysis" />
           
-          <div className="flex flex-wrap gap-4 p-4 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl mb-6">
+          <div className="flex flex-wrap gap-2 md:gap-4 p-3 md:p-4 bg-slate-900 border border-slate-800 rounded-xl shadow-xl mb-4 shrink-0">
             <button 
               onClick={executeTest} 
               disabled={isRunning} 
-              className="flex-1 min-w-[200px] px-6 py-4 bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-amber-500/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+              className="flex-1 min-w-[150px] px-4 py-3 bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white rounded-lg font-bold text-sm shadow-lg shadow-amber-500/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
             >
-              {isRunning ? <Timer className="w-5 h-5 animate-spin"/> : <Zap className="w-5 h-5" />}
+              {isRunning ? <Timer className="w-4 h-4 animate-spin"/> : <Zap className="w-4 h-4" />}
               {isRunning ? 'Analyzing Fault...' : 'Inject Fault Conditions'}
             </button>
-            <button onClick={clearTest} className="px-6 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl font-bold transition-all">
-              <RotateCcw className="w-5 h-5" />
+            <button onClick={clearTest} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg font-bold transition-all">
+              <RotateCcw className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <Card title="Phasor Scope" icon={Activity} className="border-slate-700/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 shrink-0">
+            <Card title="Phasor Scope" icon={Activity} className="border-slate-700/50 min-h-[250px] flex flex-col justify-center">
                <AnimatedPhasorCanvas faultPhases={faultType.phases} tripStatus={tripStatus} isRunning={isRunning || tripStatus !== ''} />
             </Card>
 
             <Card title="Relay Status" icon={ShieldCheck} className="border-slate-700/50 flex flex-col justify-between">
-              <div className="space-y-4">
+              <div className="space-y-3 p-1">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span className="text-sm text-slate-400">Measured Residual (3I₀)</span>
-                  <span className="font-mono text-xl font-bold text-amber-400">{mathResults ? mathResults.residualI.toFixed(1) : '0.0'} A</span>
+                  <span className="text-xs text-slate-400">Measured Residual (3I₀)</span>
+                  <span className="font-mono text-lg font-bold text-amber-400">{mathResults ? mathResults.residualI.toFixed(1) : '0.0'} A</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span className="text-sm text-slate-400">Timer</span>
+                  <span className="text-xs text-slate-400">Timer</span>
                   <span className="font-mono text-lg text-slate-300">{elapsed.toFixed(2)} s</span>
                 </div>
                 
-                <div className={`mt-6 p-4 rounded-xl text-center border-2 transition-all duration-300 ${
+                <div className={`mt-4 p-3 rounded-lg text-center border-2 transition-all duration-300 ${
                   tripStatus === '50N TRIP' ? 'bg-red-500/10 border-red-500 text-red-500' :
                   tripStatus === '51N TRIP' ? 'bg-amber-500/10 border-amber-500 text-amber-500' :
                   tripStatus === 'REVERSE BLOCK' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-500' :
                   tripStatus === 'NO TRIP' || tripStatus === 'NO 3I₀' ? 'bg-slate-800 border-slate-600 text-slate-400' :
                   'bg-slate-900 border-slate-800 text-slate-600'
                 }`}>
-                  <div className="text-2xl font-black mb-1 flex justify-center items-center gap-2">
-                    {tripStatus.includes('TRIP') && <AlertTriangle className="w-6 h-6" />}
+                  <div className="text-xl font-black mb-1 flex justify-center items-center gap-1">
+                    {tripStatus.includes('TRIP') && <AlertTriangle className="w-5 h-5" />}
                     {tripStatus || 'STANDBY'}
                   </div>
-                  <div className="text-xs uppercase tracking-widest opacity-80 font-bold">Relay Decision</div>
+                  <div className="text-[10px] uppercase tracking-widest opacity-80 font-bold">Relay Decision</div>
                 </div>
               </div>
             </Card>
           </div>
 
           {/* Expert Analysis Output */}
+          <div className="flex-1 overflow-y-auto min-h-0 pr-1 custom-scrollbar">
           <AnimatePresence>
             {mathResults && tripStatus && (
               <motion.div key="analysis" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
@@ -556,7 +556,7 @@ const SimulationView = () => {
               </motion.div>
             )}
           </AnimatePresence>
-
+          </div>
         </section>
 
       </div>
@@ -662,7 +662,7 @@ const QuizView = () => {
 
         <AnimatePresence>
           {selected !== null && (
-            <motion.div key="explanation" initial={{ opacity: 0, height: 0, mt: 0 }} animate={{ opacity: 1, height: 'auto', mt: 24 }} className={`p-4 rounded-xl border ${selected === q.ans ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
+            <motion.div key="explanation" initial={{ opacity: 0, height: 0, marginTop: 0 }} animate={{ opacity: 1, height: 'auto', marginTop: 24 }} className={`p-4 rounded-xl border ${selected === q.ans ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
               <div className="flex gap-3">
                 <Info className={`w-5 h-5 shrink-0 ${selected === q.ans ? 'text-emerald-400' : 'text-amber-400'}`} />
                 <p className="text-sm text-slate-300"><strong>Explanation:</strong> {q.why}</p>
@@ -723,11 +723,11 @@ export default function App() {
       </header>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto pb-24 md:pb-8 relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden h-[calc(100vh-5rem)] relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950">
         <AnimatePresence mode="wait">
-          {activeTab === 'simulator' && <motion.div key="sim" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}><SimulationView /></motion.div>}
-          {activeTab === 'theory' && <motion.div key="theory" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}><TheoryView /></motion.div>}
-          {activeTab === 'quiz' && <motion.div key="quiz" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}><QuizView /></motion.div>}
+          {activeTab === 'simulator' && <motion.div key="sim" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="h-full"><SimulationView /></motion.div>}
+          {activeTab === 'theory' && <motion.div key="theory" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="h-full"><TheoryView /></motion.div>}
+          {activeTab === 'quiz' && <motion.div key="quiz" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="h-full"><QuizView /></motion.div>}
         </AnimatePresence>
       </main>
 

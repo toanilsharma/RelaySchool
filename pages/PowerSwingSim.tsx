@@ -268,78 +268,86 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
     }, [zReal, zImag, trajectory, isDark, outerRadius, innerRadius, state]);
 
     return (
-        <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
-            <div className={`rounded-2xl border p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Settings className="w-5 h-5 text-blue-500" /> Configuration</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                        <label className="text-xs font-bold uppercase tracking-wider opacity-60 mb-1 block">Swing Type</label>
+        <div className="w-full h-full max-w-[1600px] mx-auto p-4 space-y-4 flex flex-col">
+            <div className={`shrink-0 rounded-2xl border p-4 lg:p-5 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <h3 className="font-bold text-sm mb-3 flex items-center gap-2"><Settings className="w-4 h-4 text-blue-500" /> Configuration</h3>
+                <div className="flex flex-wrap gap-4 items-end">
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="text-[10px] font-bold uppercase tracking-wider opacity-60 mb-1 block">Swing Type</label>
                         <select value={swingType} onChange={e => setSwingType(e.target.value as 'stable' | 'oos')}
                             className={`w-full p-2.5 rounded-lg border text-sm ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} disabled={running}>
                             <option value="stable">Stable Power Swing</option>
                             <option value="oos">Out-of-Step (OOS)</option>
                         </select>
                     </div>
-                    <Slider 
-                        label="Inertia Constant (H)" 
-                        unit="MWs/MVA" 
-                        min={1.0} 
-                        max={10.0} 
-                        step={0.5} 
-                        value={inertiaH} 
-                        onChange={e => setInertiaH(parseFloat(e.target.value))} 
-                        color="blue" 
-                        disabled={running}
-                    />
-                    <Slider 
-                        label="PSB Timer" 
-                        unit="ms" 
-                        min={10} 
-                        max={100} 
-                        step={5} 
-                        value={psbTimer} 
-                        onChange={e => setPsbTimer(parseInt(e.target.value))} 
-                        color="amber" 
-                        disabled={running}
-                    />
-                    <div className="flex items-end gap-3">
+                    <div className="flex-1 min-w-[200px] mb-[-4px]">
+                        <Slider 
+                            label="Inertia Constant (H)" 
+                            unit="MWs/MVA" 
+                            min={1.0} 
+                            max={10.0} 
+                            step={0.5} 
+                            value={inertiaH} 
+                            onChange={e => setInertiaH(parseFloat(e.target.value))} 
+                            color="blue" 
+                            disabled={running}
+                        />
+                    </div>
+                    <div className="flex-1 min-w-[200px] mb-[-4px]">
+                        <Slider 
+                            label="PSB Timer" 
+                            unit="ms" 
+                            min={10} 
+                            max={100} 
+                            step={5} 
+                            value={psbTimer} 
+                            onChange={e => setPsbTimer(parseInt(e.target.value))} 
+                            color="amber" 
+                            disabled={running}
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
                         <button onClick={start} disabled={running}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm disabled:opacity-40 transition-all">
+                            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm disabled:opacity-40 transition-all">
                             <Play className="w-4 h-4" /> Start Swing
                         </button>
                         <button onClick={reset}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-white' : 'bg-slate-200 hover:bg-slate-300'}`}>
+                            className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-white' : 'bg-slate-200 hover:bg-slate-300'}`}>
                             <RotateCcw className="w-4 h-4" /> Reset
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex-1 flex flex-col xl:flex-row gap-4 min-h-0">
                 {/* R-X Diagram */}
-                <div className={`rounded-2xl border p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <h3 className="font-bold mb-4 flex items-center gap-2"><Radar className="w-5 h-5 text-purple-500" /> R-X Impedance Plane</h3>
-                    <canvas ref={canvasRef} width={350} height={350} className="mx-auto" />
+                <div className={`xl:flex-1 rounded-2xl border p-4 lg:p-5 flex flex-col ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} min-h-[300px]`}>
+                    <h3 className="font-bold text-sm mb-2 flex items-center gap-2 shrink-0"><Radar className="w-4 h-4 text-purple-500" /> R-X Impedance Plane</h3>
+                    <div className="flex-1 flex items-center justify-center min-h-0">
+                        <canvas ref={canvasRef} width={350} height={350} className="max-w-full max-h-full object-contain" />
+                    </div>
                 </div>
 
-                {/* Status */}
-                <div className={`rounded-2xl border p-6 space-y-4 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <h3 className="font-bold mb-2 flex items-center gap-2"><Activity className="w-5 h-5 text-blue-500" /> Status</h3>
+                {/* Status Column */}
+                <div className={`xl:w-[350px] shrink-0 rounded-2xl border p-4 lg:p-5 flex flex-col gap-3 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <h3 className="font-bold text-sm mb-1 flex items-center gap-2 shrink-0"><Activity className="w-4 h-4 text-blue-500" /> Status</h3>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                     {[
                         { label: 'State', value: state, color: state === 'OOS_TRIP' ? 'text-red-500' : state === 'PSB_ACTIVE' ? 'text-amber-500' : state === 'STABLE' ? 'text-emerald-500' : '' },
-                        { label: 'Rotor Angle (δ)', value: `${delta.toFixed(1)}°`, color: Math.abs(delta) > 120 ? 'text-red-500' : 'text-blue-500' },
-                        { label: 'Z Real', value: `${zReal.toFixed(3)} pu`, color: '' },
-                        { label: 'Z Imag', value: `${zImag.toFixed(3)} pu`, color: '' },
-                        { label: '|Z|', value: `${Math.sqrt(zReal**2 + zImag**2).toFixed(3)} pu`, color: '' },
-                        { label: 'Elapsed', value: `${elapsed.toFixed(2)}s`, color: '' },
+                        { label: 'Angle (δ)', value: `${delta.toFixed(1)}°`, color: Math.abs(delta) > 120 ? 'text-red-500' : 'text-blue-500' },
+                        { label: 'Z Real', value: `${zReal.toFixed(2)}`, color: '' },
+                        { label: 'Z Imag', value: `${zImag.toFixed(2)}`, color: '' },
+                        { label: '|Z|', value: `${Math.sqrt(zReal**2 + zImag**2).toFixed(2)}`, color: '' },
+                        { label: 'Time', value: `${elapsed.toFixed(2)}s`, color: '' },
                     ].map(item => (
-                        <div key={item.label} className="flex justify-between text-sm">
+                        <div key={item.label} className="col-span-2 sm:col-span-1 flex justify-between text-[11px]">
                             <span className="opacity-60">{item.label}</span>
                             <span className={`font-bold font-mono ${item.color}`}>{item.value}</span>
                         </div>
                     ))}
+                    </div>
 
-                    <div className="pt-4 space-y-2">
+                    <div className="space-y-2 mt-auto">
                         <div className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs ${outerEntry ? 'border-blue-500/30 bg-blue-500/5' : isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                             {outerEntry ? <AlertTriangle className="w-3.5 h-3.5 text-blue-500" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
                             <span className="font-bold">Outer Blinder</span>
@@ -352,38 +360,38 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                         </div>
                     </div>
 
-                    <div className={`mt-2 p-4 rounded-xl text-center font-bold text-lg border ${
+                    <div className={`mt-2 p-3 rounded-xl text-center font-bold text-sm border ${
                         state === 'OOS_TRIP' ? 'bg-red-500/10 text-red-500 border-red-500/30' :
                         state === 'PSB_ACTIVE' ? 'bg-amber-500/10 text-amber-500 border-amber-500/30' :
                         state === 'STABLE' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' :
                         'bg-slate-500/10 text-slate-400 border-slate-500/20'
                     }`}>
-                        {state === 'OOS_TRIP' ? '🔴 OUT-OF-STEP TRIP' :
-                         state === 'PSB_ACTIVE' ? '🟡 PSB — Zone 1/2 BLOCKED' :
-                         state === 'STABLE' ? '🟢 SWING DAMPED — STABLE' :
-                         state === 'SWINGING' ? '⏳ Swing in progress...' :
+                        {state === 'OOS_TRIP' ? '🔴 OOS TRIP' :
+                         state === 'PSB_ACTIVE' ? '🟡 PSB BLOCKED' :
+                         state === 'STABLE' ? '🟢 SWING DAMPED' :
+                         state === 'SWINGING' ? '⏳ Swinging...' :
                          '⏸ STANDBY'}
                     </div>
                 </div>
-            </div>
 
-            {/* Event Log */}
-            <div className={`rounded-2xl border p-6 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <h3 className="font-bold mb-3"><AlertCircle className="w-4 h-4 text-amber-500 inline mr-2" />Event Log</h3>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {events.length === 0 && <p className="text-sm opacity-40 italic">No events yet.</p>}
-                    <AnimatePresence>
-                        {events.map((e, i) => (
-                            <motion.div 
-                                key={e + i}
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                className="text-xs font-mono p-2 rounded bg-slate-800/50 mb-1"
-                            >
-                                {e}
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
+                {/* Event Log */}
+                <div className={`xl:w-[400px] shrink-0 rounded-2xl border p-4 lg:p-5 flex flex-col ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <h3 className="font-bold text-sm mb-3 flex items-center gap-2 shrink-0"><AlertCircle className="w-4 h-4 text-amber-500" />Event Log</h3>
+                    <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar min-h-[150px]">
+                        {events.length === 0 && <p className="text-xs opacity-40 italic">No events yet.</p>}
+                        <AnimatePresence>
+                            {events.map((e, i) => (
+                                <motion.div 
+                                    key={e + i}
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    className="text-[11px] font-mono p-2 rounded bg-slate-800/50 mb-1"
+                                >
+                                    {e}
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </div>
         </div>
@@ -466,11 +474,11 @@ export default function PowerSwingSim() {
             <div className={`md:hidden fixed bottom-0 left-0 right-0 h-16 border-t z-50 flex justify-around items-center px-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 {tabs.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center justify-center w-full h-full gap-1 text-[10px] font-bold ${activeTab === tab.id ? (isDark ? 'text-violet-400' : 'text-violet-600') : 'opacity-50'}`}>{tab.icon} <span>{tab.label}</span></button>))}
             </div>
-            <div className="flex-1 overflow-hidden relative pb-16 md:pb-0">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden relative h-[calc(100vh-4rem)]">
                 {activeTab === 'theory' && <TheoryLibrary title="Power Swing Handbook" description="Power swing blocking, out-of-step tripping, and impedance locus analysis." sections={POWER_SWING_THEORY_CONTENT} />}
-                <div className={activeTab === 'simulator' ? 'block h-full overflow-y-auto' : 'hidden'}><SimulatorModule isDark={isDark} /></div>
-                {activeTab === 'guide' && <div className="h-full overflow-y-auto"><GuideModule isDark={isDark} /></div>}
-                {activeTab === 'quiz' && <div className="h-full overflow-y-auto"><QuizModule isDark={isDark} /></div>}
+                {activeTab === 'simulator' && <div className="h-full"><SimulatorModule isDark={isDark} /></div>}
+                {activeTab === 'guide' && <div className="h-full"><GuideModule isDark={isDark} /></div>}
+                {activeTab === 'quiz' && <div className="h-full"><QuizModule isDark={isDark} /></div>}
             </div>
         </div>
     );

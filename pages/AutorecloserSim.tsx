@@ -489,20 +489,20 @@ const SimulatorModule = ({
     };
 
     return (
-        <div className="max-w-[1600px] mx-auto p-4 md:p-6 space-y-6">
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <div className="w-full h-full max-w-[1600px] mx-auto p-4 space-y-4 flex flex-col">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1 min-h-0">
                 
                 {/* LEFT COLUMN: Controls & Configurations */}
-                <div className="xl:col-span-4 flex flex-col gap-6">
-                    <Card isDark={isDark} className="relative overflow-hidden" noPadding>
+                <div className="xl:col-span-4 flex flex-col min-h-0">
+                    <Card isDark={isDark} className="relative overflow-y-auto flex-1 custom-scrollbar" noPadding>
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
                         
-                        <div className="p-6">
-                            <h3 className="font-black text-lg mb-6 flex items-center gap-3 text-white tracking-wide">
-                                <Settings className="w-5 h-5 text-blue-500" /> Relay Configuration (79)
+                        <div className="p-4 lg:p-5 flex flex-col h-full">
+                            <h3 className="font-black text-sm mb-4 flex items-center gap-2 text-white tracking-wide shrink-0">
+                                <Settings className="w-4 h-4 text-blue-500" /> Relay Configuration (79)
                             </h3>
                             
-                            <div className="space-y-6 relative z-10">
+                            <div className="space-y-4 relative z-10 shrink-0">
                                 <div className="space-y-4 bg-slate-950/50 p-4 rounded-2xl border border-slate-800/50">
                                     <div>
                                         <label className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2 block text-slate-300">Shot Sequence Schema</label>
@@ -534,13 +534,13 @@ const SimulatorModule = ({
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 mt-8">
+                            <div className="flex gap-2 mt-auto pt-4 shrink-0">
                                 <button onClick={startFault} disabled={simState !== 'IDLE' && simState !== 'SUCCESS' && simState !== 'LOCKOUT'}
-                                    className="flex-2 w-2/3 flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl font-black text-sm disabled:opacity-50 transition-all shadow-[0_0_20px_rgba(220,38,38,0.4)] disabled:shadow-none hover:-translate-y-0.5 active:translate-y-0">
-                                    <Zap className="w-5 h-5 fill-current" /> INJECT FAULT
+                                    className="flex-[2] flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl font-black text-sm disabled:opacity-50 transition-all shadow-[0_0_15px_rgba(220,38,38,0.3)] disabled:shadow-none">
+                                    <Zap className="w-4 h-4 fill-current" /> INJECT FAULT
                                 </button>
                                 <button onClick={reset}
-                                    className="flex-1 py-3.5 rounded-xl font-bold text-sm transition-all bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white flex items-center justify-center gap-2 hover:-translate-y-0.5 active:translate-y-0">
+                                    className="flex-1 py-3 rounded-xl font-bold text-sm transition-all bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white flex items-center justify-center gap-2">
                                     <RotateCcw className="w-4 h-4" /> Reset
                                 </button>
                             </div>
@@ -549,22 +549,22 @@ const SimulatorModule = ({
                 </div>
 
                 {/* CENTER & RIGHT COLUMNS: Visualizations & Telemetry */}
-                <div className="xl:col-span-8 flex flex-col gap-6">
+                <div className="xl:col-span-8 flex flex-col gap-4 min-h-0">
                     
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid md:grid-cols-2 gap-4 shrink-0">
                         <AnimatedSLD breakerClosed={breakerClosed} faultActive={faultActive} state={simState} />
                         <Oscilloscope state={simState} phaseTimer={phaseTimer} faultActive={faultActive} />
                     </div>
 
-                    <div className="grid md:grid-cols-12 gap-6 flex-1 min-h-[300px]">
+                    <div className="grid md:grid-cols-12 gap-4 flex-1 min-h-0">
                         
-                        <div className="md:col-span-5 relative flex flex-col justify-center">
-                            <Card isDark={isDark} noPadding className="h-full">
-                                <div className={`absolute inset-0 opacity-15 blur-3xl transition-colors duration-1000 ${
+                        <div className="md:col-span-5 relative flex flex-col min-h-0">
+                            <Card isDark={isDark} noPadding className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+                                <div className={`absolute inset-0 opacity-15 blur-3xl transition-colors duration-1000 pointer-events-none ${
                                     simState === 'LOCKOUT' ? 'bg-red-600' : simState === 'SUCCESS' ? 'bg-emerald-600' : simState === 'FAULT' ? 'bg-amber-600' : 'bg-blue-600'
                                 }`} />
 
-                                <div className="relative z-10 flex flex-col h-full justify-between p-6">
+                                <div className="relative z-10 flex flex-col flex-1 justify-between p-4 lg:p-5">
                                     <div className="text-center mb-6">
                                         <div className="inline-block bg-slate-950 border border-slate-800 px-4 py-1 rounded-full mb-4 shadow-inner">
                                             <span className="text-[10px] font-bold uppercase tracking-widest opacity-70 text-slate-300 flex items-center gap-2"><Cpu className="w-3 h-3 text-emerald-500" /> ANSI 79 Logic Controller</span>
@@ -592,7 +592,7 @@ const SimulatorModule = ({
                                             </div>
                                         </div>
 
-                                        <div className="mb-5 h-10">
+                                        <div className="mb-4 shrink-0">
                                             {(simState === 'DEAD_TIME' || simState === 'RECLAIM') ? (
                                                 <div>
                                                     <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-2">
@@ -630,18 +630,18 @@ const SimulatorModule = ({
                             </Card>
                         </div>
 
-                        <div className="md:col-span-7 flex flex-col">
-                            <Card isDark={isDark} noPadding className="h-full flex flex-col">
-                                <div className="p-5 flex flex-col h-full">
-                                    <h3 className="font-bold text-[11px] uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 w-fit">
+                        <div className="md:col-span-7 flex flex-col min-h-0">
+                            <Card isDark={isDark} noPadding className="flex-1 flex flex-col h-full">
+                                <div className="p-4 lg:p-5 flex flex-col h-full min-h-0">
+                                    <h3 className="font-bold text-[10px] uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-2 bg-slate-950 px-2 py-1.5 rounded-lg border border-slate-800 w-fit shrink-0">
                                         <Radio className="w-4 h-4 text-emerald-500" /> Sequence Event Log
                                     </h3>
-                                    <div className="flex-1 bg-[#0a0f1c] rounded-2xl border border-slate-800/80 p-4 overflow-y-auto space-y-2.5 font-mono text-xs shadow-inner relative">
+                                    <div className="flex-1 bg-[#0a0f1c] rounded-xl border border-slate-800/80 p-2 overflow-y-auto space-y-2 font-mono text-xs shadow-inner relative custom-scrollbar">
                                         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '100% 32px' }}></div>
                                         
-                                        {events.length === 0 && <p className="opacity-40 italic text-center mt-10">System armed. Awaiting fault injection...</p>}
+                                        {events.length === 0 && <p className="opacity-40 italic text-center mt-6">System armed. Awaiting fault injection...</p>}
                                         
-                                        <div className="relative z-10 flex flex-col gap-2">
+                                        <div className="relative z-10 flex flex-col gap-1.5">
                                             {events.map((e, i) => (
                                                 <div key={i} className={`px-3 py-2.5 rounded-lg flex items-start gap-4 border-l-4 transition-all hover:bg-slate-800/50 ${
                                                     e.type === 'fault' ? 'border-red-500 text-red-200 bg-red-950/30' :
@@ -796,7 +796,7 @@ export default function App() {
                 </div>
                 
                 <div className="hidden md:flex items-center gap-4">
-                    <AICopyButton state={{ shotConfig, faultType, deadTimeFast, deadTimeSlow, reclaimTimeLimit, simState, currentShot }} toolName="Autorecloser SCADA / ANSI 79" />
+                    <AICopyButton state={{ shotConfig, faultType, deadTimeFast, deadTimeSlow, reclaimTimeLimit }} toolName="Autorecloser SCADA / ANSI 79" />
                     <div className="px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 flex items-center gap-2 shadow-inner">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" />
                         <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">System Online</span>

@@ -5,7 +5,7 @@ import {
     Trophy, RefreshCw, Sliders, Move, Printer,
     Volume2, VolumeX, GraduationCap, Microscope,
     ArrowRight, FileText, Share2, Maximize, Minimize, Navigation,
-    TrendingUp, Radio, BrainCircuit, ShieldCheck
+    TrendingUp, Radio, BrainCircuit, ShieldCheck, Flame, GitBranch, Play, Square
 } from 'lucide-react';
 import { useThemeObserver } from '../hooks/useThemeObserver';
 import TheoryLibrary from '../components/TheoryLibrary';
@@ -20,6 +20,7 @@ import { usePersistentState } from "../hooks/usePersistentState";
 import { useTripFeedback } from "../hooks/useTripFeedback";
 import { AICopyButton } from "../components/UI/AICopyButton";
 import Odometer from '../components/Odometer';
+import { calculateArcResistance, calculateApparentImpedance, calculateMutualCoupling } from '../services/mathEngine';
 
 const distanceSchema: Record<string, any> = {
     "@type": "WebApplication",
@@ -159,6 +160,31 @@ export default function RelaySimUltra() {
         quadResReach: 10.0,
     });
 
+    // Advanced Engineering: Arc Resistance & Mutual Coupling
+    const [arcSettings, setArcSettings] = usePersistentState('dist_arc', {
+        enabled: false,
+        gapLength: 2.0,       // meters
+        faultCurrent: 5000,   // Amps
+        infeedRatio: 1.0,     // >=1
+        faultLocation: 0.5,   // per-unit on line
+        lineR: 1.5,           // Ohms
+        lineX: 10.0,          // Ohms
+    });
+    const [mutualCoupling, setMutualCoupling] = usePersistentState('dist_mutual', {
+        enabled: false,
+        z0R: 3.0,
+        z0X: 15.0,
+        couplingFactor: 0.6,
+    });
+
+    // Dynamic Sequence Test (IEC 60255-121)
+    const [dynamicTest, setDynamicTest] = useState({
+        running: false,
+        phase: 'idle' as 'idle' | 'prefault' | 'fault' | 'postfault',
+        trajectory: [] as { r: number; x: number }[],
+        timer: null as ReturnType<typeof setTimeout> | null,
+    });
+
     const [fault, setFault] = usePersistentState('dist_fault', { r: 5, x: 5 });
     const [status, setStatus] = useState({ trip: false, zone: 'NONE', time: 0 });
     const [voiceEnabled, setVoiceEnabled] = useState(false);
@@ -205,7 +231,66 @@ export default function RelaySimUltra() {
         });
     }, [fault, settings, triggerTrip, status.zone]);
 
+    // Computed Arc Resistance values
+    const arcResistanceOhms = arcSettings.enabled
+        ? calculateArcResistance(arcSettings.gapLength, arcSettings.faultCurrent)
+        : 0;
+    const apparentZ = arcSettings.enabled
+        ? calculateApparentImpedance(arcSettings.lineR, arcSettings.lineX, arcSettings.faultLocation, arcResistanceOhms, arcSettings.infeedRatio)
+        : null;
+    const mutualZ = mutualCoupling.enabled
+        ? calculateMutualCoupling(mutualCoupling.z0R, mutualCoupling.z0X, mutualCoupling.couplingFactor)
+        : null;
+
+    // Dynamic Sequence Test Runner (IEC 60255-121)
+    const startDynamicTest = () => {
+        if (dynamicTest.running) return;
+        const loadR = 15, loadX = 3; // Load impedance (outside zones)
+        const faultR = arcSettings.enabled && apparentZ ? apparentZ.r : 3;
+        const faultX = arcSettings.enabled && apparentZ ? apparentZ.x : 6;
+        const postR = 20, postX = 2; // Post-fault (load returns)
+
+        const trajectory: { r: number; x: number }[] = [];
+        // Pre-fault: 20 points at load
+        for (let i = 0; i < 20; i++) trajectory.push({ r: loadR, x: loadX });
+        // Transition: 10 points from load to fault
+        for (let i = 0; i <= 10; i++) {
+            const t = i / 10;
+            trajectory.push({ r: loadR + (faultR - loadR) * t, x: loadX + (faultX - loadX) * t });
+        }
+        // Fault: 30 points at fault
+        for (let i = 0; i < 30; i++) trajectory.push({ r: faultR, x: faultX });
+        // Post-fault: transition back
+        for (let i = 0; i <= 10; i++) {
+            const t = i / 10;
+            trajectory.push({ r: faultR + (postR - faultR) * t, x: faultX + (postX - faultX) * t });
+        }
+        for (let i = 0; i < 20; i++) trajectory.push({ r: postR, x: postX });
+
+        setDynamicTest({ running: true, phase: 'prefault', trajectory, timer: null });
+
+        let step = 0;
+        const run = () => {
+            if (step >= trajectory.length) {
+                setDynamicTest(prev => ({ ...prev, running: false, phase: 'idle' }));
+                return;
+            }
+            const pt = trajectory[step];
+            setFault({ r: pt.r, x: pt.x });
+            const phase = step < 20 ? 'prefault' : step < 31 ? 'fault' : step < 61 ? 'fault' : 'postfault';
+            setDynamicTest(prev => ({ ...prev, phase }));
+            step++;
+            setTimeout(run, 80);
+        };
+        run();
+    };
+
+    const stopDynamicTest = () => {
+        setDynamicTest({ running: false, phase: 'idle', trajectory: [], timer: null });
+    };
+
     const handleSvgClick = (e: React.MouseEvent) => {
+        if (dynamicTest.running) return; // Don't allow clicks during dynamic test
         if (!svgRef.current) return;
         const rect = svgRef.current.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
@@ -318,14 +403,12 @@ export default function RelaySimUltra() {
                     <div className="absolute top-10 left-1/2 -translate-x-1/2 font-mono text-[10px] text-slate-600 font-black tracking-[0.2em]">+ jX (REACTANCE Ω)</div>
                     <div className="absolute top-1/2 right-10 -translate-y-1/2 font-mono text-[10px] text-slate-600 font-black tracking-[0.2em] rotate-90">+ R (RESISTANCE Ω)</div>
                     
-                    <div className={`relative group p-4 rounded-[3rem] border backdrop-blur-sm shadow-2xl transition-colors duration-500 ${isDark ? 'bg-slate-900/20 border-slate-800/50' : 'bg-white border-slate-200'}`}>
+                    <div className={`relative group p-2 md:p-4 rounded-[3rem] border backdrop-blur-sm shadow-2xl transition-colors duration-500 ${isDark ? 'bg-slate-900/20 border-slate-800/50' : 'bg-white border-slate-200'} max-h-[80vh] flex items-center justify-center`}>
                         <svg 
                             ref={svgRef}
-                            width={CANVAS_SIZE} 
-                            height={CANVAS_SIZE} 
                             viewBox={`0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}`}
                             onClick={handleSvgClick}
-                            className="cursor-crosshair rounded-full overflow-hidden"
+                            className="w-full h-auto max-w-[500px] max-h-[60vh] cursor-crosshair rounded-full overflow-hidden"
                         >
                             <defs>
                                 <pattern id="subgrid" width="10" height="10" patternUnits="userSpaceOnUse">
@@ -350,9 +433,65 @@ export default function RelaySimUltra() {
                                 {settings.charType === 'MHO' ? getMhoPath(settings.z1Reach, settings.mta) : getQuadPath(settings.z1Reach, settings.quadResReach * 0.8, settings.mta, settings.tilt)}
                             </g>
 
+                            {/* Arc Resistance Vector (orange dashed) */}
+                            {arcSettings.enabled && apparentZ && (
+                                <g>
+                                    {/* Line impedance vector */}
+                                    <line
+                                        x1={CENTER} y1={CENTER}
+                                        x2={CENTER + arcSettings.faultLocation * arcSettings.lineR * SCALE}
+                                        y2={CENTER - arcSettings.faultLocation * arcSettings.lineX * SCALE}
+                                        stroke="#22d3ee" strokeWidth="2" strokeDasharray="4,3" opacity={0.6}
+                                    />
+                                    {/* Arc resistance horizontal shift */}
+                                    <line
+                                        x1={CENTER + arcSettings.faultLocation * arcSettings.lineR * SCALE}
+                                        y1={CENTER - arcSettings.faultLocation * arcSettings.lineX * SCALE}
+                                        x2={CENTER + apparentZ.r * SCALE}
+                                        y2={CENTER - apparentZ.x * SCALE}
+                                        stroke="#f97316" strokeWidth="2.5" strokeDasharray="6,3"
+                                    />
+                                    {/* Arc R label */}
+                                    <text
+                                        x={CENTER + (arcSettings.faultLocation * arcSettings.lineR + apparentZ.r) / 2 * SCALE}
+                                        y={CENTER - apparentZ.x * SCALE - 8}
+                                        fill="#f97316" fontSize="9" fontWeight="bold" textAnchor="middle"
+                                    >R_arc = {arcResistanceOhms.toFixed(2)}Ω</text>
+                                    {/* Apparent Z marker */}
+                                    <circle cx={CENTER + apparentZ.r * SCALE} cy={CENTER - apparentZ.x * SCALE} r="6" fill="#f97316" stroke="white" strokeWidth="2" />
+                                </g>
+                            )}
+
+                            {/* Mutual Coupling Z0m indicator */}
+                            {mutualCoupling.enabled && mutualZ && (
+                                <g opacity={0.5}>
+                                    <line x1={CENTER} y1={CENTER} x2={CENTER + mutualZ.r * SCALE} y2={CENTER - mutualZ.x * SCALE} stroke="#a855f7" strokeWidth="2" strokeDasharray="3,3" />
+                                    <text x={CENTER + mutualZ.r * SCALE + 5} y={CENTER - mutualZ.x * SCALE} fill="#a855f7" fontSize="8" fontWeight="bold">Z0m</text>
+                                </g>
+                            )}
+
+                            {/* Dynamic Test Trajectory Trail */}
+                            {dynamicTest.running && dynamicTest.trajectory.length > 0 && (
+                                <polyline
+                                    points={dynamicTest.trajectory.map(p => `${CENTER + p.r * SCALE},${CENTER - p.x * SCALE}`).join(' ')}
+                                    fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="2,2" opacity={0.4}
+                                />
+                            )}
+
                             <motion.line x1={CENTER} y1={CENTER} x2={CENTER + fault.r * SCALE} y2={CENTER - fault.x * SCALE} stroke="#6366f1" strokeWidth="3" strokeDasharray="6,4" animate={{ x2: CENTER + fault.r * SCALE, y2: CENTER - fault.x * SCALE }} transition={{ type: "spring", stiffness: 300, damping: 30 }} />
                             <motion.circle cx={CENTER + fault.r * SCALE} cy={CENTER - fault.x * SCALE} r="8" className={`${status.trip ? 'fill-red-500 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.5)]' : 'fill-indigo-500 shadow-lg'}`} animate={{ cx: CENTER + fault.r * SCALE, cy: CENTER - fault.x * SCALE }} transition={{ type: "spring", stiffness: 300, damping: 30 }} />
                         </svg>
+
+                        {/* Dynamic Test Phase Badge */}
+                        {dynamicTest.running && (
+                            <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border animate-pulse ${
+                                dynamicTest.phase === 'prefault' ? 'bg-emerald-950/80 border-emerald-500 text-emerald-400' :
+                                dynamicTest.phase === 'fault' ? 'bg-red-950/80 border-red-500 text-red-400' :
+                                'bg-blue-950/80 border-blue-500 text-blue-400'
+                            }`}>
+                                ⚡ {dynamicTest.phase === 'prefault' ? 'Pre-Fault (Load)' : dynamicTest.phase === 'fault' ? 'FAULT IN ZONE' : 'Post-Fault Recovery'}
+                            </div>
+                        )}
 
                         <div className={`absolute bottom-10 left-10 p-5 border rounded-2xl backdrop-blur-xl shadow-2xl space-y-3 pointer-events-none transition-colors duration-500 ${isDark ? 'bg-slate-950/90 border-slate-800' : 'bg-white/90 border-slate-200'}`}>
                             <div className="flex justify-between gap-6"><span className="text-[10px] font-black text-slate-500 uppercase">Input R:</span> <Odometer value={fault.r} format={v => `${v.toFixed(2)} Ω`} className="font-mono text-xs font-bold text-adaptive" /></div>
@@ -360,12 +499,16 @@ export default function RelaySimUltra() {
                             <div className="h-px bg-slate-800" />
                             <div className="flex justify-between gap-6"><span className="text-[10px] font-black text-indigo-400 uppercase">Magnitude |Z|:</span> <Odometer value={Math.sqrt(fault.r**2 + fault.x**2)} format={v => `${v.toFixed(2)} Ω`} className="font-mono text-sm font-black text-indigo-400" /></div>
                             <div className="flex justify-between gap-6"><span className="text-[10px] font-black text-indigo-400 uppercase">Angle ∠Z:</span> <Odometer value={Math.atan2(fault.x, fault.r) * RAD_TO_DEG} format={v => `${v.toFixed(1)}°`} className="font-mono text-sm font-black text-indigo-400" /></div>
+                            {arcSettings.enabled && <>
+                                <div className="h-px bg-orange-800/30" />
+                                <div className="flex justify-between gap-6"><span className="text-[10px] font-black text-orange-400 uppercase">R_arc:</span> <span className="font-mono text-xs font-black text-orange-400">{arcResistanceOhms.toFixed(2)} Ω</span></div>
+                            </>}
                         </div>
                     </div>
                 </div>
 
                 {/* SIDEBAR CONTROLS */}
-                <div className={`w-[420px] border-l flex flex-col z-20 shadow-[-20px_0_50px_rgba(0,0,0,0.3)] transition-colors duration-500 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`w-full lg:w-[360px] xl:w-[420px] border-l flex flex-col z-20 shadow-[-20px_0_50px_rgba(0,0,0,0.3)] transition-colors duration-500 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                     <div className={`flex border-b p-1 transition-colors duration-500 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
                         {['sim', 'theory', 'quiz', 'missions'].map(t => (
                             <button key={t} onClick={() => setActiveTab(t)} 
@@ -376,15 +519,15 @@ export default function RelaySimUltra() {
                         ))}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth custom-scrollbar">
                         {activeTab === 'sim' && (
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 <Card isDark={isDark} noPadding>
-                                    <div className="p-6">
-                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                    <div className="p-4">
+                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                                             <Shield className="w-4 h-4 text-indigo-500" /> <JargonTooltip text="Protection Reach" explanation="The distance along the line that a relay zone is programmed to protect based on calculated impedance." />
                                         </h3>
-                                        <div className="space-y-6">
+                                        <div className="space-y-4">
                                             <div className="grid grid-cols-2 gap-2">
                                                 <button onClick={() => setSettings({...settings, charType: 'MHO'})} className={`py-3 rounded-xl text-[10px] font-black border transition-all ${settings.charType === 'MHO' ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-slate-800/50 border-slate-700 text-slate-500'}`}>MHO CIRCLE</button>
                                                 <button onClick={() => setSettings({...settings, charType: 'QUAD'})} className={`py-3 rounded-xl text-[10px] font-black border transition-all ${settings.charType === 'QUAD' ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-slate-800/50 border-slate-700 text-slate-500'}`}>QUADRILATERAL</button>
@@ -400,17 +543,89 @@ export default function RelaySimUltra() {
                                     </div>
                                 </Card>
 
+                                {/* ARC RESISTANCE & ADVANCED MODELING */}
                                 <Card isDark={isDark} noPadding>
-                                    <div className="p-6 bg-slate-950/30">
-                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <div className="p-4">
+                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                            <Flame className="w-4 h-4 text-orange-500" /> Arc Resistance & Infeed
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <button
+                                                onClick={() => setArcSettings(prev => ({...prev, enabled: !prev.enabled}))}
+                                                className={`w-full py-2 rounded-lg text-[10px] font-black border transition-all ${arcSettings.enabled ? 'bg-orange-600 border-orange-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-500'}`}
+                                            >
+                                                {arcSettings.enabled ? '● ARC RESISTANCE ON' : '○ ENABLE ARC MODELING'}
+                                            </button>
+                                            {arcSettings.enabled && (
+                                                <div className="space-y-2 animate-in fade-in">
+                                                    <Slider label="Arc Gap" unit=" m" min={0.5} max={5} step={0.1} value={arcSettings.gapLength} onChange={e => setArcSettings(s => ({...s, gapLength: Number(e.target.value)}))} color="orange" />
+                                                    <Slider label="Fault Current" unit=" A" min={500} max={20000} step={100} value={arcSettings.faultCurrent} onChange={e => setArcSettings(s => ({...s, faultCurrent: Number(e.target.value)}))} color="orange" />
+                                                    <Slider label="Infeed Ratio" unit="" min={1} max={5} step={0.1} value={arcSettings.infeedRatio} onChange={e => setArcSettings(s => ({...s, infeedRatio: Number(e.target.value)}))} color="orange" />
+                                                    <Slider label="Fault Location" unit=" p.u." min={0} max={1} step={0.05} value={arcSettings.faultLocation} onChange={e => setArcSettings(s => ({...s, faultLocation: Number(e.target.value)}))} color="orange" />
+                                                    <div className="p-2 bg-orange-950/30 border border-orange-800/30 rounded-lg">
+                                                        <div className="text-[9px] text-orange-400 font-bold">Warrington: R_arc = 28710 × gap / I^1.4</div>
+                                                        <div className="text-[10px] text-orange-300 font-mono font-black mt-1">R_arc = {arcResistanceOhms.toFixed(3)} Ω</div>
+                                                        {apparentZ && <div className="text-[10px] text-orange-300 font-mono mt-0.5">Z_app = {apparentZ.r.toFixed(2)} + j{apparentZ.x.toFixed(2)} Ω</div>}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </Card>
+
+                                {/* MUTUAL COUPLING */}
+                                <Card isDark={isDark} noPadding>
+                                    <div className="p-4">
+                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                            <GitBranch className="w-4 h-4 text-purple-500" /> Mutual Coupling (Z0m)
+                                        </h3>
+                                        <button
+                                            onClick={() => setMutualCoupling(prev => ({...prev, enabled: !prev.enabled}))}
+                                            className={`w-full py-2 rounded-lg text-[10px] font-black border transition-all ${mutualCoupling.enabled ? 'bg-purple-600 border-purple-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-500'}`}
+                                        >
+                                            {mutualCoupling.enabled ? '● PARALLEL LINE COUPLED' : '○ ENABLE MUTUAL COUPLING'}
+                                        </button>
+                                        {mutualCoupling.enabled && (
+                                            <div className="space-y-2 mt-3 animate-in fade-in">
+                                                <Slider label="Z0 Self R" unit=" Ω" min={0.5} max={10} step={0.1} value={mutualCoupling.z0R} onChange={e => setMutualCoupling(s => ({...s, z0R: Number(e.target.value)}))} color="purple" />
+                                                <Slider label="Z0 Self X" unit=" Ω" min={1} max={30} step={0.5} value={mutualCoupling.z0X} onChange={e => setMutualCoupling(s => ({...s, z0X: Number(e.target.value)}))} color="purple" />
+                                                <Slider label="Coupling Factor" unit="" min={0.3} max={0.9} step={0.05} value={mutualCoupling.couplingFactor} onChange={e => setMutualCoupling(s => ({...s, couplingFactor: Number(e.target.value)}))} color="purple" />
+                                                {mutualZ && <div className="p-2 bg-purple-950/30 border border-purple-800/30 rounded-lg text-[10px] text-purple-300 font-mono">Z0m = {mutualZ.r.toFixed(2)} + j{mutualZ.x.toFixed(2)} Ω</div>}
+                                            </div>
+                                        )}
+                                    </div>
+                                </Card>
+
+                                {/* DYNAMIC SEQUENCE TEST (IEC 60255-121) */}
+                                <Card isDark={isDark} noPadding>
+                                    <div className="p-4">
+                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                            <Activity className="w-4 h-4 text-yellow-500" /> IEC 60255-121 Dynamic Test
+                                        </h3>
+                                        <p className="text-[10px] text-slate-400 mb-3 leading-relaxed">Simulates Pre-Fault → Fault → Post-Fault trajectory on the R-X plane to test dynamic relay response.</p>
+                                        {!dynamicTest.running ? (
+                                            <button onClick={startDynamicTest} className="w-full py-2.5 bg-yellow-600 hover:bg-yellow-500 text-black rounded-lg text-[10px] font-black tracking-widest flex items-center justify-center gap-2">
+                                                <Play className="w-3 h-3" /> START DYNAMIC TEST
+                                            </button>
+                                        ) : (
+                                            <button onClick={stopDynamicTest} className="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-[10px] font-black tracking-widest flex items-center justify-center gap-2">
+                                                <Square className="w-3 h-3" /> ABORT TEST
+                                            </button>
+                                        )}
+                                    </div>
+                                </Card>
+
+                                <Card isDark={isDark} noPadding>
+                                    <div className="p-4 bg-slate-950/30">
+                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
                                             <Info className="w-4 h-4 text-indigo-400" /> <JargonTooltip text="Engineering Reference" explanation="Key mathematical and theoretical principles for distance protection configuration." />
                                         </h3>
-                                        <div className="space-y-4">
-                                            <div className="p-4 bg-slate-900 border border-indigo-500/20 rounded-2xl">
+                                        <div className="space-y-3">
+                                            <div className="p-3 bg-slate-900 border border-indigo-500/20 rounded-xl">
                                                 <div className="text-[10px] font-black text-indigo-400 uppercase mb-2">Impedance Formula</div>
                                                 <LaTeX math="Z = \frac{\overline{V}}{\overline{I} } = R + jX" />
                                             </div>
-                                            <p className="text-xs text-slate-400 leading-relaxed italic">
+                                            <p className="text-[10px] text-slate-400 leading-relaxed italic">
                                                 Click on the R-X diagram to simulate a fault. If the impedance phasor falls inside the characteristic, the relay will initiate a trip sequence according to the graded zones.
                                             </p>
                                         </div>

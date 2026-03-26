@@ -88,8 +88,8 @@ const TCCChart = ({ pickup51, tms, curveType, pickup50, faultCurrent, tripTime }
   const yFault = tripTime ? mapY(tripTime) : null;
 
   return (
-    <div className="w-full overflow-hidden bg-[#0a0f18] rounded-2xl border border-slate-800 relative shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
+    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-[#0a0f18] rounded-2xl border border-slate-800 relative shadow-[inset_0_0_40px_rgba(0,0,0,0.7)]">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto max-h-full object-contain">
         {/* Minor Grid Lines */}
         <g className="text-slate-800/60" strokeWidth="0.5" stroke="currentColor">
           {minorX.map(v => (
@@ -235,108 +235,113 @@ const SimulatorModule = ({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Settings */}
-        <div className="lg:col-span-8 space-y-6">
-          <Card isDark={isDark} noPadding>
-            <div className="p-8">
-              <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 mb-8 flex items-center gap-2">
-                <Settings className="w-4 h-4 text-indigo-500" /> <JargonTooltip text="Inverse Settings" explanation="Configurable parameters for the time-overcurrent characteristic." /> (ANSI 51/50)
-              </h3>
+    <div className="h-full flex flex-col xl:flex-row gap-4">
+      {/* Settings Panel (Left) */}
+      <div className="flex-1 xl:w-[320px] xl:max-w-[350px] flex flex-col gap-4">
+        <Card isDark={isDark} noPadding className="flex-1 flex flex-col">
+          <div className="p-4 lg:p-5 flex-1 flex flex-col">
+            <h3 className="font-black text-[10px] uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2 shrink-0">
+              <Settings className="w-3.5 h-3.5 text-indigo-500" /> <JargonTooltip text="Inverse Settings" explanation="Configurable parameters for the time-overcurrent characteristic." /> (ANSI 51/50)
+            </h3>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
+              <div className="space-y-4">
+                <Slider label="51 Pickup (Ip)" unit=" A" min={50} max={2000} step={1} value={pickup51} onChange={e => setPickup51(+e.target.value)} color="blue" disabled={running} />
+                <Slider label="Time Dial (TD/TMS)" min={0.05} max={1.5} step={0.01} unit="" value={tms} onChange={e => setTms(+e.target.value)} color="blue" disabled={running} />
+              </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                <div className="space-y-8">
-                  <Slider label="51 Pickup (Ip)" unit=" A" min={50} max={2000} step={1} value={pickup51} onChange={e => setPickup51(+e.target.value)} color="blue" disabled={running} />
-                  <Slider label="Time Dial (TD/TMS)" min={0.05} max={1.5} step={0.01} unit="" value={tms} onChange={e => setTms(+e.target.value)} color="blue" disabled={running} />
+              <div className="space-y-4">
+                <div className="flex flex-col space-y-2">
+                  <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Curve Characteristic</label>
+                  <select
+                    value={curveType}
+                    onChange={e => setCurveType(e.target.value)}
+                    className={`rounded-lg p-2 text-[10px] font-black tracking-widest outline-none focus:ring-2 focus:ring-indigo-500 transition-all border ${isDark ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                    disabled={running}
+                  >
+                    {Object.entries(groupedCurves).map(([group, curves]) => (
+                      <optgroup key={group} label={group}>
+                        {curves.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
                 </div>
-                
-                <div className="space-y-8">
-                  <div className="flex flex-col space-y-3">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Curve Characteristic</label>
-                    <select
-                      value={curveType}
-                      onChange={e => setCurveType(e.target.value)}
-                      className={`rounded-xl p-3 text-xs font-black tracking-widest outline-none focus:ring-2 focus:ring-indigo-500 transition-all border ${isDark ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
-                      disabled={running}
-                    >
-                      {Object.entries(groupedCurves).map(([group, curves]) => (
-                        <optgroup key={group} label={group}>
-                          {curves.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                        </optgroup>
-                      ))}
-                    </select>
-                  </div>
-                  <Slider label="50 Inst. Pickup" unit=" A" min={500} max={20000} step={100} value={pickup50} onChange={e => setPickup50(+e.target.value)} color="red" disabled={running} />
-                </div>
-              </div>
-
-              <div className="mt-12 pt-8 border-t border-slate-800">
-                <Slider label="Inject Fault Current" unit=" A" min={0} max={25000} step={100} value={faultCurrent} onChange={e => setFaultCurrent(+e.target.value)} color="amber" disabled={running || breakerOpen} />
-                <div className="flex gap-4 mt-8">
-                  <button onClick={startFault} disabled={running || faultCurrent <= 0 || breakerOpen} className="flex-1 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-xs tracking-widest uppercase transition-all shadow-lg disabled:opacity-30">
-                    {running ? 'Relay Timing...' : 'Inject Fault'}
-                  </button>
-                  <button onClick={reset} className={`px-8 py-4 rounded-2xl font-black text-xs tracking-widest uppercase transition-all border ${isDark ? 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700' : 'bg-slate-200 border-slate-300 text-slate-900 hover:bg-slate-300'}`}>
-                    Reset
-                  </button>
-                </div>
+                <Slider label="50 Inst. Pickup" unit=" A" min={500} max={20000} step={100} value={pickup50} onChange={e => setPickup50(+e.target.value)} color="red" disabled={running} />
               </div>
             </div>
-          </Card>
 
-          <Card isDark={isDark} noPadding>
-             <div className="p-8">
-               <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
-                 <TrendingUp className="w-4 h-4 text-emerald-500" /> TCC Visualization
-               </h3>
-               <TCCChart pickup51={pickup51} tms={tms} curveType={curveType} pickup50={pickup50} faultCurrent={faultCurrent} tripTime={tripTime} />
+            <div className="mt-4 pt-4 border-t border-slate-800 shrink-0">
+              <Slider label="Inject Fault Current" unit=" A" min={0} max={25000} step={100} value={faultCurrent} onChange={e => setFaultCurrent(+e.target.value)} color="amber" disabled={running || breakerOpen} />
+              <div className="flex gap-2 mt-4">
+                <button onClick={startFault} disabled={running || faultCurrent <= 0 || breakerOpen} className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-black text-[10px] tracking-widest uppercase transition-all shadow-lg disabled:opacity-30">
+                  {running ? 'Timing...' : 'Inject Fault'}
+                </button>
+                <button onClick={reset} className={`px-4 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase transition-all border ${isDark ? 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700' : 'bg-slate-200 border-slate-300 text-slate-900 hover:bg-slate-300'}`}>
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Main Visualization (Center) */}
+      <div className="flex-none xl:flex-1 h-[400px] xl:h-auto">
+        <Card isDark={isDark} noPadding className="h-full flex flex-col">
+           <div className="p-4 lg:p-5 flex flex-col h-full">
+             <h3 className="font-black text-[10px] uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2 shrink-0">
+               <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> TCC Visualization
+             </h3>
+             <div className="flex-1 flex items-center justify-center min-h-0">
+               <div className="w-full max-w-2xl">
+                 <TCCChart pickup51={pickup51} tms={tms} curveType={curveType} pickup50={pickup50} faultCurrent={faultCurrent} tripTime={tripTime} />
+               </div>
              </div>
-          </Card>
-        </div>
+           </div>
+        </Card>
+      </div>
 
-        {/* Right: Telemetry & Log */}
-        <div className="lg:col-span-4 space-y-6">
-          <Card isDark={isDark} noPadding>
-            <div className="p-6">
-              <div className={`flex items-center gap-4 p-5 rounded-2xl border transition-all ${breakerOpen ? 'bg-red-950/30 border-red-500/50 text-red-500 animate-pulse' : 'bg-emerald-950/20 border-emerald-500/30 text-emerald-500'}`}>
-                <Power className={`w-8 h-8 ${breakerOpen ? 'text-red-500' : 'text-emerald-500'}`} />
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Breaker 52</div>
-                  <div className="text-xl font-black">{breakerOpen ? 'TRIPPED' : 'CLOSED'}</div>
-                </div>
-              </div>
-
-              <div className="mt-8 space-y-6">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-4">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Relay Phase</span>
-                  <span className={`text-sm font-black tracking-widest ${running ? 'text-amber-400' : breakerOpen ? 'text-red-400' : 'text-emerald-400'}`}>{phase}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Relay Timer</span>
-                  <Odometer value={elapsed} format={v => `${v.toFixed(3)}s`} className="text-2xl font-black text-adaptive" />
-                </div>
+      {/* Telemetry & Log (Right) */}
+      <div className="flex-1 xl:w-[280px] xl:max-w-[320px] flex flex-col gap-4">
+        <Card isDark={isDark} noPadding>
+          <div className="p-4 lg:p-5">
+            <div className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${breakerOpen ? 'bg-red-950/30 border-red-500/50 text-red-500 animate-pulse' : 'bg-emerald-950/20 border-emerald-500/30 text-emerald-500'}`}>
+              <Power className={`w-6 h-6 shrink-0 ${breakerOpen ? 'text-red-500' : 'text-emerald-500'}`} />
+              <div>
+                <div className="text-[9px] font-black uppercase tracking-widest opacity-60">Breaker 52</div>
+                <div className="text-sm font-black">{breakerOpen ? 'TRIPPED' : 'CLOSED'}</div>
               </div>
             </div>
-          </Card>
 
-          <Card isDark={isDark} noPadding>
-            <div className="p-6 h-[400px] flex flex-col">
-              <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
-                <History className="w-4 h-4 text-blue-500" /> Sequence of Events
-              </h3>
-              <div className={`flex-1 rounded-2xl border p-4 overflow-y-auto space-y-3 custom-scrollbar ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
-                {events.length === 0 && <div className="h-full flex items-center justify-center text-[10px] font-black text-slate-700 tracking-widest uppercase italic">Monitoring System...</div>}
-                {events.map(e => (
-                  <div key={e.id} className={`p-4 rounded-xl border text-[10px] font-black leading-relaxed ${e.type === 'trip' ? 'bg-red-950/20 border-red-500/30 text-red-400' : e.type === 'success' ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
-                    <div className="flex justify-between mb-1 opacity-60"><span>T+{e.time.toFixed(3)}s</span> <span>{e.type.toUpperCase()}</span></div>
-                    {e.msg}
-                  </div>
-                ))}
+            <div className="mt-4 space-y-4">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Relay Phase</span>
+                <span className={`text-[10px] font-black tracking-widest ${running ? 'text-amber-400' : breakerOpen ? 'text-red-400' : 'text-emerald-400'}`}>{phase}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Relay Timer</span>
+                <Odometer value={elapsed} format={v => `${v.toFixed(3)}s`} className="text-xl font-black text-adaptive" />
               </div>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
+
+        <Card isDark={isDark} noPadding className="flex-1 flex flex-col h-[300px] xl:h-auto">
+          <div className="p-4 lg:p-5 flex flex-col h-full">
+            <h3 className="font-black text-[10px] uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2 shrink-0">
+              <History className="w-3.5 h-3.5 text-blue-500" /> Sequence of Events
+            </h3>
+            <div className={`flex-1 rounded-xl border p-3 overflow-y-auto min-h-0 space-y-2 custom-scrollbar ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+              {events.length === 0 && <div className="h-full flex items-center justify-center text-[9px] font-black text-slate-700 tracking-widest uppercase italic">Monitoring System...</div>}
+              {events.map(e => (
+                <div key={e.id} className={`p-2 rounded-lg border text-[9px] font-black leading-relaxed ${e.type === 'trip' ? 'bg-red-950/20 border-red-500/30 text-red-400' : e.type === 'success' ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+                  <div className="flex justify-between mb-1 opacity-60"><span>T+{e.time.toFixed(3)}s</span> <span>{e.type.toUpperCase()}</span></div>
+                  {e.msg}
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );
@@ -507,9 +512,9 @@ export default function OvercurrentSim() {
         </div>
       </header>
 
-      <main className="max-w-[1400px] mx-auto px-8 py-10">
+      <main className="w-full mx-auto p-4 lg:p-6 h-[calc(100vh-5rem-2.5rem)] overflow-y-auto overflow-x-hidden">
         <AnimatePresence mode="wait">
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="h-full">
             {activeTab === 'simulator' && (
               <SimulatorModule 
                 isDark={isDark} 

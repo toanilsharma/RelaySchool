@@ -52,6 +52,16 @@ const CurveType = {
     EQUIP_TRANSFORMER_DAMAGE: 'EQ_TX_DMG',
     EQUIP_MOTOR_START: 'EQ_MOT_START',
     EQUIP_CABLE_DAMAGE: 'EQ_CABLE',
+    // Manufacturer-Specific Curves
+    SEL_U1: 'SEL_U1',
+    SEL_U2: 'SEL_U2',
+    SEL_U3: 'SEL_U3',
+    SEL_U4: 'SEL_U4',
+    SEL_U5: 'SEL_U5',
+    ABB_RXIDG: 'ABB_RXIDG',
+    GE_IAC_INVERSE: 'GE_IAC_INV',
+    GE_IAC_VERY_INVERSE: 'GE_IAC_VI',
+    GE_IAC_EXTREMELY_INVERSE: 'GE_IAC_EI',
 };
 
 const COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6'];
@@ -120,6 +130,16 @@ const CURVE_LIB = [
     { label: "K-Link Fuse (Fast)", value: CurveType.FUSE_K_FAST, group: 'Fuse' },
     { label: "T-Link Fuse (Slow)", value: CurveType.FUSE_T_SLOW, group: 'Fuse' },
     { label: "NH gG Fuse (IEC)", value: CurveType.FUSE_NH_GG, group: 'Fuse' },
+    // Manufacturer-Specific Curves
+    { label: "SEL U1 — Mod. Inverse", value: CurveType.SEL_U1, group: 'SEL' },
+    { label: "SEL U2 — Inverse", value: CurveType.SEL_U2, group: 'SEL' },
+    { label: "SEL U3 — Very Inverse", value: CurveType.SEL_U3, group: 'SEL' },
+    { label: "SEL U4 — Ext. Inverse", value: CurveType.SEL_U4, group: 'SEL' },
+    { label: "SEL U5 — Short Time", value: CurveType.SEL_U5, group: 'SEL' },
+    { label: "ABB RXIDG — Std Inverse", value: CurveType.ABB_RXIDG, group: 'ABB' },
+    { label: "GE IAC51 — Inverse", value: CurveType.GE_IAC_INVERSE, group: 'GE' },
+    { label: "GE IAC53 — Very Inverse", value: CurveType.GE_IAC_VERY_INVERSE, group: 'GE' },
+    { label: "GE IAC55 — Ext. Inverse", value: CurveType.GE_IAC_EXTREMELY_INVERSE, group: 'GE' },
 ];
 
 const SCENARIOS = [
@@ -454,6 +474,18 @@ const calculateTripTime = (current, pickup, tds, curveType, instantaneous, manuf
         case CurveType.ANSI_EXTREMELY_INVERSE: A = 28.2; B = 0.1217; p = 2.0; break;
         case CurveType.ANSI_SHORT_TIME_INVERSE: A = 0.00342; B = 0.00262; p = 0.02; break;
         case CurveType.ANSI_LONG_TIME_INVERSE: A = 120; B = 10.0; p = 2.0; break;
+        // SEL Curves (ANSI formula structure)
+        case CurveType.SEL_U1: A = 0.0226; B = 0.0104; p = 0.02; break;
+        case CurveType.SEL_U2: A = 0.180; B = 5.95; p = 2.0; break;
+        case CurveType.SEL_U3: A = 5.95; B = 0.180; p = 2.0; break;
+        case CurveType.SEL_U4: A = 28.2; B = 0.1217; p = 2.0; break;
+        case CurveType.SEL_U5: A = 0.0399; B = 0.0255; p = 0.02; break;
+        // ABB Curves
+        case CurveType.ABB_RXIDG: A = 0.14; B = 0.0; p = 0.02; isIEC = true; break;
+        // GE Multilin Curves
+        case CurveType.GE_IAC_INVERSE: A = 0.2663; B = 0.03393; p = 0.02; break;
+        case CurveType.GE_IAC_VERY_INVERSE: A = 5.64; B = 0.02434; p = 2.0; break;
+        case CurveType.GE_IAC_EXTREMELY_INVERSE: A = 28.2; B = 0.1217; p = 2.0; break;
         case CurveType.DT_DEFINITE_TIME: return tds;
         default: return null;
     }
@@ -1201,57 +1233,57 @@ const SimulatorView = ({ isActive }) => {
             {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
             {/* HEADER TOOLBAR */}
-            <div className="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-4 shadow-sm z-20 shrink-0">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => setLeftPanelOpen(!leftPanelOpen)} className={`p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!leftPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
+            <div className="h-10 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-2 shadow-sm z-20 shrink-0 overflow-x-auto custom-scrollbar">
+                <div className="flex items-center gap-2">
+                    <button onClick={() => setLeftPanelOpen(!leftPanelOpen)} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!leftPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
                         {leftPanelOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
                     </button>
                     <div className="relative group">
-                        <button className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-bold transition-colors">
+                        <button className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-[11px] font-bold transition-colors whitespace-nowrap">
                             <Layers className="w-3 h-3 text-blue-500" /> Scenarios <ChevronDown className="w-3 h-3" />
                         </button>
-                        <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl hidden group-hover:block z-50 p-2">
+                        <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl hidden group-hover:block z-50 p-1">
                             {SCENARIOS.map((s, i) => (
-                                <button key={s.id} onClick={() => loadScenario(i)} className="w-full text-left p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                                    <div className="font-bold text-sm text-slate-800 dark:text-slate-200">{s.name}</div>
-                                    <div className="text-xs text-slate-500 mt-1">{s.description}</div>
+                                <button key={s.id} onClick={() => loadScenario(i)} className="w-full text-left p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded transition-colors">
+                                    <div className="font-bold text-xs text-slate-800 dark:text-slate-200">{s.name}</div>
+                                    <div className="text-[10px] text-slate-500 mt-0.5">{s.description}</div>
                                 </button>
                             ))}
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <button onClick={() => setShowHelp(true)} className="flex items-center gap-2 px-3 py-1.5 text-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg text-xs font-bold transition-colors">
+                <div className="flex items-center gap-1.5 ml-auto">
+                    <button onClick={() => setShowHelp(true)} className="hidden sm:flex items-center gap-1 px-2 py-1 text-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded text-[10px] font-bold transition-colors uppercase whitespace-nowrap">
                         <Info className="w-3 h-3" /> Help
                     </button>
-                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                    <div className="hidden md:flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div>
+                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                         <Zap className="w-3 h-3 text-amber-500 fill-current animate-pulse" />
-                        <span className="text-[10px] font-bold text-slate-500 uppercase">Sim Fault:</span>
-                        <input type="number" min="0" value={faultAmps} onChange={(e) => setFaultAmps(Number(e.target.value))} className="w-16 bg-transparent text-xs font-mono font-bold outline-none text-right border-b border-slate-300 dark:border-slate-600 focus:border-blue-500" />
-                        <span className="text-[10px] text-slate-500 font-bold">A</span>
+                        <span className="hidden sm:inline text-[9px] font-bold text-slate-500 uppercase">Sim Fault:</span>
+                        <input type="number" min="0" value={faultAmps} onChange={(e) => setFaultAmps(Number(e.target.value))} className="w-14 bg-transparent text-[11px] font-mono font-bold outline-none text-right border-b border-slate-300 dark:border-slate-600 focus:border-blue-500" />
+                        <span className="text-[9px] text-slate-500 font-bold">A</span>
                     </div>
-                    <div className="hidden md:flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
-                        <span className="text-[10px] font-mono font-bold text-slate-500">{devices.length}/7</span>
-                        <span className="text-[9px] text-slate-400">devices</span>
+                    <div className="hidden lg:flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                        <span className="text-[9px] font-mono font-bold text-slate-500">{devices.length}/7</span>
+                        <span className="text-[8px] text-slate-400">dev</span>
                     </div>
-                    <button onClick={addDevice} disabled={devices.length >= 7} className={`px-3 py-1.5 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-95 ${devices.length >= 7 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}>
-                        <Plus className="w-3 h-3" /> Add Device
+                    <button onClick={addDevice} disabled={devices.length >= 7} className={`px-2 py-1 text-white rounded text-[10px] font-bold flex items-center gap-1 shadow-sm transition-all active:scale-95 uppercase whitespace-nowrap ${devices.length >= 7 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}>
+                        <Plus className="w-3 h-3" /> <span className="hidden sm:inline">Add Device</span>
                     </button>
-                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                    <button onClick={saveSnapshot} className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-700">
+                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div>
+                    <button onClick={saveSnapshot} className="hidden sm:flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors border border-slate-200 dark:border-slate-700 whitespace-nowrap">
                         <Save className="w-3 h-3" /> Snapshot
                     </button>
-                    {snapshots.length > 0 && <button onClick={clearSnapshots} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Clear Snapshots"><Trash2 className="w-4 h-4" /></button>}
+                    {snapshots.length > 0 && <button onClick={clearSnapshots} className="p-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Clear Snapshots"><Trash2 className="w-3.5 h-3.5" /></button>}
 
-                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                    <button onClick={copyContextForLLM} className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-lg text-xs font-bold transition-colors">
+                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div>
+                    <button onClick={copyContextForLLM} className="hidden lg:flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded text-[10px] uppercase font-bold transition-colors whitespace-nowrap">
                         <BrainCircuit className="w-3 h-3" /> Export to AI
                     </button>
 
-                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                    <button onClick={() => setRightPanelOpen(!rightPanelOpen)} className={`p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
+                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1 hidden lg:block"></div>
+                    <button onClick={() => setRightPanelOpen(!rightPanelOpen)} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
                         {rightPanelOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
                     </button>
                 </div>
@@ -1723,38 +1755,38 @@ const TCCStudio = () => {
             />
 
             {/* Top Navigation Bar */}
-            <div className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-between px-6 z-50">
+            <div className="h-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-between px-3 z-50">
                 <div className="flex items-center gap-2">
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-blue-500/20">
-                        <Activity className="w-5 h-5" />
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 rounded-lg text-white shadow-sm">
+                        <Activity className="w-4 h-4" />
                     </div>
-                    <div>
-                        <h1 className="font-black text-lg leading-none tracking-tight text-slate-900 dark:text-white">TCC Studio <span className="text-blue-600">PRO</span></h1>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protection Suite v2.0</span>
-                            <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50"></span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">IEEE C37.112 / IEC 60255</span>
-                        </div>
+                    <div className="flex items-center flex-wrap gap-x-2">
+                        <h1 className="font-black text-sm leading-none tracking-tight text-slate-900 dark:text-white">TCC Studio <span className="text-blue-600">PRO</span></h1>
+                        <span className="hidden lg:flex items-center gap-1.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest hidden xl:inline">Protection Suite v2.0</span>
+                            <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50 hidden xl:inline"></span>
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-blue-500/80">IEEE C37.112 / IEC 60255</span>
+                        </span>
                     </div>
                 </div>
 
-                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
                     {[
-                        { id: 'theory', label: 'Theory', icon: <BookOpen className="w-4 h-4" /> },
-                        { id: 'simulator', label: 'Simulator', icon: <Activity className="w-4 h-4" /> },
-                        { id: 'quiz', label: 'Quiz', icon: <Trophy className="w-4 h-4" /> },
+                        { id: 'theory', label: 'Theory', icon: <BookOpen className="w-3 h-3" /> },
+                        { id: 'simulator', label: 'Simulator', icon: <Activity className="w-3 h-3" /> },
+                        { id: 'quiz', label: 'Quiz', icon: <Trophy className="w-3 h-3" /> },
                     ].map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setMode(tab.id)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${mode === tab.id ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-bold transition-all ${mode === tab.id ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
-                            {tab.icon} {tab.label}
+                            {tab.icon} <span className="hidden sm:inline">{tab.label}</span>
                         </button>
                     ))}
                 </div>
 
-                <div className="w-32 hidden md:block">
+                <div className="w-16 hidden md:block">
                     {/* Spacer to balance title */}
                 </div>
             </div>

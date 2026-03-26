@@ -414,13 +414,13 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
     };
 
     return (
-        <div className="max-w-[1600px] mx-auto px-6 py-8 space-y-8">
+        <div className="max-w-[1600px] w-full h-full mx-auto p-4 lg:p-6 flex flex-col">
             {/* CONTROL DECK */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
 
                 {/* LEFT: Inputs */}
-                <div className={`rounded-2xl p-6 border shadow-sm flex flex-col h-full ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <div className="flex justify-between items-center mb-6">
+                <div className={`rounded-2xl p-4 lg:p-5 border shadow-sm flex flex-col h-full min-h-0 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className="flex justify-between items-center mb-4 shrink-0">
                         <h3 className={`font-bold text-sm uppercase tracking-wider flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                             <Sliders className="w-4 h-4 text-blue-500" /> Vector Inputs
                         </h3>
@@ -429,7 +429,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar max-h-[400px]">
+                    <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar min-h-0">
                         {phasors.map((p, i) => (
                             <div key={p.id} className={`group p-3 rounded-xl border transition-colors ${isDark ? 'bg-slate-950 border-slate-800 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:border-blue-300'}`}>
                                 <div className="flex justify-between items-center mb-2">
@@ -470,19 +470,19 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                     </div>
 
                     {/* Presets Toolbar */}
-                    <div className={`mt-6 pt-4 border-t ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+                    <div className={`mt-4 pt-4 border-t shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Quick Simulations</label>
                         <div className="grid grid-cols-4 gap-2">
                             <button onClick={() => loadPreset('balanced')} className="p-2 text-[10px] font-bold bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 border border-emerald-200">Balanced</button>
                             <button onClick={() => loadPreset('ag-fault')} className="p-2 text-[10px] font-bold bg-red-50 text-red-700 rounded hover:bg-red-100 border border-red-200">A-G Fault</button>
                             <button onClick={() => loadPreset('bc-fault')} className="p-2 text-[10px] font-bold bg-amber-50 text-amber-700 rounded hover:bg-amber-100 border border-amber-200">B-C Fault</button>
                             <button onClick={() => loadPreset('llg-fault')} className="p-2 text-[10px] font-bold bg-orange-50 text-orange-700 rounded hover:bg-orange-100 border border-orange-200">LLG Fault</button>
-                            <button onClick={() => loadPreset('open-c')} className="p-2 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">Open Ph</button>
+                            <button onClick={() => loadPreset('open-c')} className="p-2 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 col-span-4 lg:col-span-1">Open Ph</button>
                         </div>
                     </div>
 
                     {/* Play/Stop Rotation */}
-                    <div className={`mt-4 pt-4 border-t ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+                    <div className={`mt-4 pt-4 border-t shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <div className="flex gap-2">
                             <button onClick={() => setIsRotating(!isRotating)} className={`flex-1 p-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${isRotating ? 'bg-red-500 text-white' : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'}`}>
                                 {isRotating ? <><RefreshCw className="w-3 h-3 animate-spin" /> Stop Rotation</> : <><RotateCcw className="w-3 h-3" /> Animate {systemFreq}Hz</>}
@@ -498,7 +498,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                 </div>
 
                 {/* CENTER: Visualization */}
-                <div className={`rounded-2xl border p-1 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden min-h-[500px] ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-900 border-slate-800'}`}>
+                <div className={`rounded-2xl border p-1 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden h-[400px] lg:h-full ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-900 border-slate-800'}`}>
                     {/* Graph Background always dark or specialized graphic */}
                     <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-20"></div>
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -507,7 +507,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                     </div>
 
                     {/* SVG Graph */}
-                    <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full relative z-10 p-4">
+                    <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full relative z-10 p-4 max-h-full object-contain">
                         {/* Grid Circles */}
                         <circle cx={center} cy={center} r={maxMag * 0.25 * scale} fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="4,4" />
                         <circle cx={center} cy={center} r={maxMag * 0.5 * scale} fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="4,4" />
@@ -577,25 +577,25 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
 
                     {/* Graph Controls overlay */}
                     <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-                        <div className="bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-2 text-xs text-slate-400">
+                        <div className="bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-2 text-[10px] text-slate-400">
                             <div>Scale: 1.0 pu = {(1 / scale * 50).toFixed(1)} px</div>
                             <div>Ref: {refVoltage}V / {systemFreq}Hz</div>
                         </div>
-                        <div className="bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-3 flex flex-col gap-2">
-                            <label className="flex items-center gap-2 text-xs text-white cursor-pointer">
-                                <input type="checkbox" checked={showResultant} onChange={e => setShowResultant(e.target.checked)} className="accent-emerald-500" />
-                                Show Residual (Ground)
+                        <div className="bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-2 flex flex-col gap-2">
+                            <label className="flex items-center gap-1.5 text-[10px] text-white cursor-pointer">
+                                <input type="checkbox" checked={showResultant} onChange={e => setShowResultant(e.target.checked)} className="accent-emerald-500 w-3 h-3" />
+                                Show Residual
                             </label>
                         </div>
                     </div>
                 </div>
 
                 {/* RIGHT: Analysis Panel */}
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2 min-h-0">
 
                     {/* 1. Sequence Components (The "Pro" feature) */}
-                    <div className={`rounded-2xl border p-6 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                        <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2 mb-4 text-purple-600">
+                    <div className={`rounded-2xl border p-4 lg:p-5 shadow-sm shrink-0 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <h3 className="font-bold text-xs uppercase tracking-wider flex items-center gap-2 mb-3 text-purple-600">
                             <Layers className="w-4 h-4" /> Symmetrical Components
                         </h3>
                         {seqComponents ? (
@@ -648,22 +648,22 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                     </div>
 
                     {/* 2. Power Monitor */}
-                    <div className={`rounded-2xl border p-6 shadow-sm flex-1 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2 text-amber-600">
+                    <div className={`rounded-2xl border p-4 lg:p-5 shadow-sm flex-1 shrink-0 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <div className="flex justify-between items-center mb-3">
+                            <h3 className="font-bold text-xs uppercase tracking-wider flex items-center gap-2 text-amber-600">
                                 <Zap className="w-4 h-4" /> Power Monitor
                             </h3>
-                            <div className={`text-[10px] px-2 py-1 rounded text-slate-500 ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>Ref V: {refVoltage}V</div>
+                            <div className={`text-[10px] px-2 py-1 rounded text-slate-500 ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>Ref: {refVoltage}V</div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className={`text-center p-3 rounded-xl ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
-                                <div className="text-[10px] text-slate-400 uppercase font-bold">Active (P)</div>
-                                <div className={`text-xl font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{(totalP / 1000).toFixed(2)} <span className="text-xs font-normal text-slate-400">kW</span></div>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className={`text-center p-2 rounded-xl ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                                <div className="text-[9px] text-slate-400 uppercase font-bold">Active (P)</div>
+                                <div className={`text-lg font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{(totalP / 1000).toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kW</span></div>
                             </div>
-                            <div className={`text-center p-3 rounded-xl ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
-                                <div className="text-[10px] text-slate-400 uppercase font-bold">Reactive (Q)</div>
-                                <div className={`text-xl font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{(totalQ / 1000).toFixed(2)} <span className="text-xs font-normal text-slate-400">kVAR</span></div>
+                            <div className={`text-center p-2 rounded-xl ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                                <div className="text-[9px] text-slate-400 uppercase font-bold">Reactive (Q)</div>
+                                <div className={`text-lg font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{(totalQ / 1000).toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kVAR</span></div>
                             </div>
                         </div>
 

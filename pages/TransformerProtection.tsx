@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
     RotateCcw, AlertCircle, CheckCircle2, Activity, Zap,
     HelpCircle, Book, AlertTriangle, Settings, MonitorPlay, GraduationCap,
-    ShieldCheck, Award, GitMerge, Share2, ChevronRight, Scale, CheckCircle, ShieldAlert
+    ShieldCheck, Award, GitMerge, Share2, ChevronRight, Scale, CheckCircle, ShieldAlert,
+    Radio
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageSEO } from "../components/SEO/PageSEO";
@@ -16,6 +17,7 @@ import { usePersistentState } from "../hooks/usePersistentState";
 import { useTripFeedback } from "../hooks/useTripFeedback";
 import { PhasorCanvas } from "../components/UI/PhasorCanvas";
 import { AICopyButton } from "../components/UI/AICopyButton";
+import { generateInrushWaveform, extractHarmonic, generateWaveform } from '../services/mathEngine';
 
 const transformerSchema: Record<string, any> = {
     "@type": "WebApplication",
@@ -122,6 +124,10 @@ const SimulatorModule = () => {
     const [faultActive, setFaultActive] = useState(false);
     const { isTripping, triggerTrip } = useTripFeedback();
 
+    // Waveform state for harmonic visualization
+    const [waveformData, setWaveformData] = useState<{x:number;y:number}[] | null>(null);
+    const [harmonicAnalysis, setHarmonicAnalysis] = useState<{h2Ratio: number; h5Ratio: number} | null>(null);
+
     const slopeK1 = 0.3;
     const slopeK2 = 0.7;
 
@@ -143,21 +149,27 @@ const SimulatorModule = () => {
     const blocked = blocked2nd || blocked5th;
     const tripResult = wouldTrip && !blocked;
 
-    const triggerShake = () => {
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-    };
 
     const injectInrush = () => {
         triggerTrip();
         setInrushActive(true);
         setHvCurrent(6.0); setLvCurrent(0.1);
         setHarmonic2nd(35); setHarmonic5th(5);
-        setEvents(prev => [{ id: Date.now(), time: new Date().toLocaleTimeString(), msg: 'MAGNETIZING INRUSH DETECTED. High 2nd Harmonic.', type: 'warn' }, ...prev].slice(0, 15));
+
+        // Generate real inrush waveform and run DFT
+        const waveform = generateInrushWaveform(6.0, 8, 0.15);
+        setWaveformData(waveform);
+        const samples = waveform.map(p => p.y);
+        const h2 = extractHarmonic(samples, 64, 2);
+        const h5 = extractHarmonic(samples, 64, 5);
+        setHarmonicAnalysis({ h2Ratio: h2.ratio * 100, h5Ratio: h5.ratio * 100 });
+
+        setEvents(prev => [{ id: Date.now(), time: new Date().toLocaleTimeString(), msg: `MAGNETIZING INRUSH DETECTED. DFT: 2nd=${(h2.ratio*100).toFixed(1)}%, 5th=${(h5.ratio*100).toFixed(1)}%`, type: 'warn' }, ...prev].slice(0, 15));
         setTimeout(() => { 
             setInrushActive(false); setHvCurrent(1.0); setLvCurrent(1.0); setHarmonic2nd(0); setHarmonic5th(0); 
+            setWaveformData(null); setHarmonicAnalysis(null);
             setEvents(prev => [{ id: Date.now(), time: new Date().toLocaleTimeString(), msg: 'Inrush subsided. System nominal.', type: 'info' }, ...prev].slice(0, 15));
-        }, 3500);
+        }, 5000);
     };
 
     const injectFault = () => {
@@ -165,7 +177,15 @@ const SimulatorModule = () => {
         setFaultActive(true);
         setHvCurrent(8.0); setLvCurrent(0.5);
         setHarmonic2nd(5); setHarmonic5th(3);
-        setEvents(prev => [{ id: Date.now(), time: new Date().toLocaleTimeString(), msg: 'INTERNAL FAULT DETECTED. Differential criteria met.', type: 'fault' }, ...prev].slice(0, 15));
+
+        // Generate pure sinusoidal fault waveform (no harmonics)
+        const waveform = generateWaveform(8, 50, 8.0, 0, 0);
+        setWaveformData(waveform);
+        const samples = waveform.map(p => p.y);
+        const h2 = extractHarmonic(samples, 36, 2);
+        setHarmonicAnalysis({ h2Ratio: h2.ratio * 100, h5Ratio: 0 });
+
+        setEvents(prev => [{ id: Date.now(), time: new Date().toLocaleTimeString(), msg: 'INTERNAL FAULT DETECTED. Differential criteria met. Low harmonics — no blocking.', type: 'fault' }, ...prev].slice(0, 15));
     };
 
     const reset = () => {
@@ -173,6 +193,7 @@ const SimulatorModule = () => {
         setHvCurrent(1.0); setLvCurrent(1.0);
         setHarmonic2nd(0); setHarmonic5th(0);
         setTapPosition(0); 
+        setWaveformData(null); setHarmonicAnalysis(null);
         setEvents(prev => [{ id: Date.now(), time: new Date().toLocaleTimeString(), msg: 'System reset to standby state.', type: 'info' }, ...prev].slice(0, 15));
     };
 
@@ -281,6 +302,55 @@ const SimulatorModule = () => {
                             </span>
                         </div>
                     </Card>
+
+                    {/* Waveform & Harmonic Analysis Panel */}
+                    {waveformData && (
+                        <Card isDark={isDark} noPadding className="sm:col-span-2">
+                            <div className="p-4 border-b border-white/5 bg-slate-100/50 dark:bg-slate-900/50 flex justify-between items-center">
+                                <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Radio className="w-4 h-4 text-amber-500" /> Live Waveform & DFT Analysis
+                                </h3>
+                                {harmonicAnalysis && (
+                                    <div className="flex gap-3">
+                                        <span className={`text-[10px] font-black px-2 py-1 rounded ${harmonicAnalysis.h2Ratio > 15 ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                            2nd: {harmonicAnalysis.h2Ratio.toFixed(1)}%
+                                        </span>
+                                        <span className={`text-[10px] font-black px-2 py-1 rounded ${harmonicAnalysis.h5Ratio > 25 ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                            5th: {harmonicAnalysis.h5Ratio.toFixed(1)}%
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-4 h-[160px]">
+                                <svg viewBox="0 0 600 120" className="w-full h-full" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id="waveGrad" x1="0" y1="0" x2="1" y2="0">
+                                            <stop offset="0%" stopColor="#f59e0b" />
+                                            <stop offset="50%" stopColor="#ef4444" />
+                                            <stop offset="100%" stopColor="#f59e0b" />
+                                        </linearGradient>
+                                    </defs>
+                                    {/* Zero line */}
+                                    <line x1="0" y1="60" x2="600" y2="60" stroke="#334155" strokeWidth="0.5" strokeDasharray="4,4" />
+                                    {/* Waveform */}
+                                    <polyline
+                                        fill="none"
+                                        stroke="url(#waveGrad)"
+                                        strokeWidth="2"
+                                        points={waveformData.slice(0, 300).map((p, i) => {
+                                            const xPos = (i / 300) * 600;
+                                            const maxVal = Math.max(...waveformData.slice(0, 300).map(d => Math.abs(d.y)), 1);
+                                            const yPos = 60 - (p.y / maxVal) * 50;
+                                            return `${xPos},${yPos}`;
+                                        }).join(' ')}
+                                    />
+                                    {/* Labels */}
+                                    <text x="4" y="12" fill="#94a3b8" fontSize="8" fontWeight="bold">I_diff (pu)</text>
+                                    <text x="560" y="118" fill="#94a3b8" fontSize="8" fontWeight="bold">cycles</text>
+                                </svg>
+                            </div>
+                        </Card>
+                    )}
                 </div>
             </motion.div>
 
