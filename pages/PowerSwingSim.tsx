@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     Play, RotateCcw, AlertCircle, CheckCircle2, Activity, Zap,
-    HelpCircle, Book, Flag, AlertTriangle, MonitorPlay, GraduationCap, Award, Settings, 
+    HelpCircle, Book, Flag, AlertTriangle, MonitorPlay, GraduationCap, Award, Settings,
     Info, StopCircle, RefreshCcw, Share2, Radar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -81,11 +81,11 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
 
         let t = 0;
         const w_s = 2 * Math.PI * 60; // 377 rad/s sync speed
-        const Pm = 1.0; 
-        const Pe_max = 2.0; 
-        let currentDelta = Math.asin(Pm / Pe_max) * (180 / Math.PI); 
+        const Pm = 1.0;
+        const Pe_max = 2.0;
+        let currentDelta = Math.asin(Pm / Pe_max) * (180 / Math.PI);
         let omega = 0; // slip velocity rad/s
-        
+
         let outerEntered = false;
         let innerEntered = false;
         let outerEntryTime = 0;
@@ -96,10 +96,10 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
             const dt = Math.min((currentTime - lastTime) / 1000, 0.05); // dynamic dt, max 50ms
             lastTime = currentTime;
             t += dt;
-            
+
             // Electrical power
             const Pe = Pe_max * Math.sin(currentDelta * Math.PI / 180);
-            
+
             // Swing Equation: (2H / w_s) * d(omega)/dt = Pm - Pe
             let P_acc;
             if (swingType === 'oos') {
@@ -107,7 +107,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                 P_acc = (Pm * 2.2) - Pe - (0.01 * omega); // Force OOS
             } else {
                 // Stable swing: temporary fault drops Pe to 0.2, then clears
-                if (t < 0.15) P_acc = Pm - (Pe * 0.2); 
+                if (t < 0.15) P_acc = Pm - (Pe * 0.2);
                 else P_acc = Pm - Pe - (0.08 * omega); // Cleared + some damping
             }
 
@@ -125,7 +125,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
             // Z_apparent traces vertical line through electrical center
             const cosd = Math.cos(dRad);
             const sind = Math.sin(dRad);
-            const denom = 2 * (1 - cosd) + 0.01; 
+            const denom = 2 * (1 - cosd) + 0.01;
             const zr = (Zl * sind) / denom;
             const zx = Zs + (Zl * (1 - cosd)) / denom;
 
@@ -154,7 +154,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                 if (transitTime > psbTimer) {
                     // Slow crossing = power swing
                     setEvents(prev => [`[${t.toFixed(2)}s] Locus entered INNER zone — Transit time: ${transitTime.toFixed(0)}ms > ${psbTimer}ms → POWER SWING detected`, ...prev].slice(0, 20));
-                    
+
                     if (swingType === 'oos' && Math.abs(effectiveDelta) > 180) {
                         setState('OOS_TRIP');
                         setEvents(prev => ['🔴 OOS TRIP — δ > 180°. Controlled separation executed.', ...prev]);
@@ -185,7 +185,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                 cancelAnimationFrame(timerRef.current);
                 setRunning(false);
             }
-            
+
             if (running) {
                 timerRef.current = requestAnimationFrame(loop);
             }
@@ -281,28 +281,28 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                         </select>
                     </div>
                     <div className="flex-1 min-w-[200px] mb-[-4px]">
-                        <Slider 
-                            label="Inertia Constant (H)" 
-                            unit="MWs/MVA" 
-                            min={1.0} 
-                            max={10.0} 
-                            step={0.5} 
-                            value={inertiaH} 
-                            onChange={e => setInertiaH(parseFloat(e.target.value))} 
-                            color="blue" 
+                        <Slider
+                            label="Inertia Constant (H)"
+                            unit="MWs/MVA"
+                            min={1.0}
+                            max={10.0}
+                            step={0.5}
+                            value={inertiaH}
+                            onChange={e => setInertiaH(parseFloat(e.target.value))}
+                            color="blue"
                             disabled={running}
                         />
                     </div>
                     <div className="flex-1 min-w-[200px] mb-[-4px]">
-                        <Slider 
-                            label="PSB Timer" 
-                            unit="ms" 
-                            min={10} 
-                            max={100} 
-                            step={5} 
-                            value={psbTimer} 
-                            onChange={e => setPsbTimer(parseInt(e.target.value))} 
-                            color="amber" 
+                        <Slider
+                            label="PSB Timer"
+                            unit="ms"
+                            min={10}
+                            max={100}
+                            step={5}
+                            value={psbTimer}
+                            onChange={e => setPsbTimer(parseInt(e.target.value))}
+                            color="amber"
                             disabled={running}
                         />
                     </div>
@@ -332,19 +332,19 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                 <div className={`xl:w-[350px] shrink-0 rounded-2xl border p-4 lg:p-5 flex flex-col gap-3 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <h3 className="font-bold text-sm mb-1 flex items-center gap-2 shrink-0"><Activity className="w-4 h-4 text-blue-500" /> Status</h3>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                    {[
-                        { label: 'State', value: state, color: state === 'OOS_TRIP' ? 'text-red-500' : state === 'PSB_ACTIVE' ? 'text-amber-500' : state === 'STABLE' ? 'text-emerald-500' : '' },
-                        { label: 'Angle (δ)', value: `${delta.toFixed(1)}°`, color: Math.abs(delta) > 120 ? 'text-red-500' : 'text-blue-500' },
-                        { label: 'Z Real', value: `${zReal.toFixed(2)}`, color: '' },
-                        { label: 'Z Imag', value: `${zImag.toFixed(2)}`, color: '' },
-                        { label: '|Z|', value: `${Math.sqrt(zReal**2 + zImag**2).toFixed(2)}`, color: '' },
-                        { label: 'Time', value: `${elapsed.toFixed(2)}s`, color: '' },
-                    ].map(item => (
-                        <div key={item.label} className="col-span-2 sm:col-span-1 flex justify-between text-[11px]">
-                            <span className="opacity-60">{item.label}</span>
-                            <span className={`font-bold font-mono ${item.color}`}>{item.value}</span>
-                        </div>
-                    ))}
+                        {[
+                            { label: 'State', value: state, color: state === 'OOS_TRIP' ? 'text-red-500' : state === 'PSB_ACTIVE' ? 'text-amber-500' : state === 'STABLE' ? 'text-emerald-500' : '' },
+                            { label: 'Angle (δ)', value: `${delta.toFixed(1)}°`, color: Math.abs(delta) > 120 ? 'text-red-500' : 'text-blue-500' },
+                            { label: 'Z Real', value: `${zReal.toFixed(2)}`, color: '' },
+                            { label: 'Z Imag', value: `${zImag.toFixed(2)}`, color: '' },
+                            { label: '|Z|', value: `${Math.sqrt(zReal ** 2 + zImag ** 2).toFixed(2)}`, color: '' },
+                            { label: 'Time', value: `${elapsed.toFixed(2)}s`, color: '' },
+                        ].map(item => (
+                            <div key={item.label} className="col-span-2 sm:col-span-1 flex justify-between text-[11px]">
+                                <span className="opacity-60">{item.label}</span>
+                                <span className={`font-bold font-mono ${item.color}`}>{item.value}</span>
+                            </div>
+                        ))}
                     </div>
 
                     <div className="space-y-2 mt-auto">
@@ -360,17 +360,16 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                         </div>
                     </div>
 
-                    <div className={`mt-2 p-3 rounded-xl text-center font-bold text-sm border ${
-                        state === 'OOS_TRIP' ? 'bg-red-500/10 text-red-500 border-red-500/30' :
+                    <div className={`mt-2 p-3 rounded-xl text-center font-bold text-sm border ${state === 'OOS_TRIP' ? 'bg-red-500/10 text-red-500 border-red-500/30' :
                         state === 'PSB_ACTIVE' ? 'bg-amber-500/10 text-amber-500 border-amber-500/30' :
-                        state === 'STABLE' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' :
-                        'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                    }`}>
+                            state === 'STABLE' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' :
+                                'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                        }`}>
                         {state === 'OOS_TRIP' ? '🔴 OOS TRIP' :
-                         state === 'PSB_ACTIVE' ? '🟡 PSB BLOCKED' :
-                         state === 'STABLE' ? '🟢 SWING DAMPED' :
-                         state === 'SWINGING' ? '⏳ Swinging...' :
-                         '⏸ STANDBY'}
+                            state === 'PSB_ACTIVE' ? '🟡 PSB BLOCKED' :
+                                state === 'STABLE' ? '🟢 SWING DAMPED' :
+                                    state === 'SWINGING' ? '⏳ Swinging...' :
+                                        '⏸ STANDBY'}
                     </div>
                 </div>
 
@@ -381,7 +380,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                         {events.length === 0 && <p className="text-xs opacity-40 italic">No events yet.</p>}
                         <AnimatePresence>
                             {events.map((e, i) => (
-                                <motion.div 
+                                <motion.div
                                     key={e + i}
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
@@ -464,13 +463,13 @@ export default function PowerSwingSim() {
                 <div className="flex items-center gap-3">
                     <div className="bg-gradient-to-br from-violet-600 to-purple-600 p-2 rounded-lg text-white shadow-lg shadow-violet-500/20"><Radar className="w-5 h-5" /></div>
                     <div><h1 className={`font-black text-lg leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Swing<span className="text-violet-500">Guard</span></h1>
-                    <div className="flex items-center gap-2 mt-1"><span className="text-[10px] font-bold uppercase tracking-widest opacity-50">PSB / OOS Simulator</span><span className="w-1 h-1 bg-slate-400 rounded-full opacity-50" /><span className="text-[10px] font-bold uppercase tracking-widest text-violet-500/80">✅ IEEE C37.104 / NERC PRC-026</span></div></div>
+                        <div className="flex items-center gap-2 mt-1"><span className="text-[10px] font-bold uppercase tracking-widest opacity-50">PSB / OOS Simulator</span><span className="w-1 h-1 bg-slate-400 rounded-full opacity-50" /><span className="text-[10px] font-bold uppercase tracking-widest text-violet-500/80">✅ IEEE C37.104 / NERC PRC-026</span></div></div>
                 </div>
                 <div className={`hidden md:flex items-center p-1 rounded-xl border shadow-sm mx-4 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
                     {tabs.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === tab.id ? (isDark ? 'bg-slate-800 text-violet-400 shadow-sm' : 'bg-white text-violet-600 shadow-sm') : 'opacity-60 hover:opacity-100'}`}>{tab.icon} <span>{tab.label}</span></button>))}
                 </div>
                 <div />
-            <button onClick={copyShareLink} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-colors" title="Share Simulation"><Share2 className="w-4 h-4"/>Share</button></header>
+                <button onClick={copyShareLink} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-colors" title="Share Simulation"><Share2 className="w-4 h-4" />Share</button></header>
             <div className={`md:hidden fixed bottom-0 left-0 right-0 h-16 border-t z-50 flex justify-around items-center px-2 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                 {tabs.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center justify-center w-full h-full gap-1 text-[10px] font-bold ${activeTab === tab.id ? (isDark ? 'text-violet-400' : 'text-violet-600') : 'opacity-50'}`}>{tab.icon} <span>{tab.label}</span></button>))}
             </div>
