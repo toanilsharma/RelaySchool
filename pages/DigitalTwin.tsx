@@ -609,12 +609,12 @@ export default function App() {
       </header>
 
       {/* STRICT PERSISTENT FLEXBOX LAYOUT */}
-      <div className="flex-1 flex overflow-hidden w-full h-full min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden w-full h-full min-h-0">
         
         {activeTab === 'sim' ? (
           <>
             {/* LEFT COLUMN: SLD + SOE LOG */}
-            <div className="flex-1 flex flex-col min-w-0 border-r border-slate-800 bg-[#030712] relative overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0 min-h-[500px] lg:min-h-0 border-r border-slate-800 bg-[#030712] relative lg:overflow-hidden">
               
               {/* TOP: ENLARGED SVG SLD CANVAS */}
               <div className="flex-1 relative cursor-crosshair overflow-hidden" onClick={() => setSelectedId(null)}>
@@ -745,7 +745,7 @@ export default function App() {
             </div>
 
             {/* RIGHT COLUMN: PERSISTENT IED/OVERVIEW PANEL (Reduced Width) */}
-            <div className="w-[340px] shrink-0 bg-[#0a0f1c] flex flex-col z-30 shadow-[-10px_0_20px_rgba(0,0,0,0.5)]">
+            <div className="w-full lg:w-[340px] shrink-0 min-h-[400px] lg:min-h-0 bg-[#0a0f1c] flex flex-col z-30 lg:shadow-[-10px_0_20px_rgba(0,0,0,0.5)] border-t lg:border-t-0 border-slate-800">
               {selectedNode ? (
                 // IED Dashboard
                 <div className="flex flex-col h-full">

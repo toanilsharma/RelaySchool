@@ -555,10 +555,10 @@ export default function LogicSandbox() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="flex-1 flex w-full max-w-[1600px] mx-auto p-4 md:p-6 gap-6 h-full"
+                            className="flex-1 flex flex-col lg:flex-row w-full max-w-[1600px] mx-auto p-4 md:p-6 gap-6 h-full lg:overflow-hidden overflow-y-auto"
                         >
                             {/* --- TOOLBAR --- */}
-                            <div className="w-64 shrink-0 flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="w-full lg:w-64 shrink-0 flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
                                 
                                 {/* Simulator Controls */}
                                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-3">
@@ -608,7 +608,7 @@ export default function LogicSandbox() {
                             </div>
 
                             {/* --- CANVAS --- */}
-                            <div className="flex-1 bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-inner overflow-hidden relative">
+                            <div className="flex-1 min-h-[400px] bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-inner overflow-hidden relative">
                                 {/* SVG Layer for wires */}
                                 <svg ref={svgRef} className="absolute inset-0 w-full h-full pointer-events-none z-10" onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
                                     {renderWires()}

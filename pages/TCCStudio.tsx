@@ -830,6 +830,13 @@ const SimulatorView = ({ isActive }) => {
     const [footerOpen, setFooterOpen] = useState(false);
     const [settingsTab, setSettingsTab] = useState('params'); // 'params' | 'analysis'
 
+    useEffect(() => {
+        if (window.innerWidth < 768) {
+            setLeftPanelOpen(false);
+            setRightPanelOpen(false);
+        }
+    }, []);
+
     // Coordination Analysis State
     const [analysisPair, setAnalysisPair] = useState({ up: null, down: null });
     const [ctiParams, setCtiParams] = useState({ breakerTime: 0.08, relayOvershoot: 0.05, safetyMargin: 0.07 });
@@ -929,6 +936,7 @@ const SimulatorView = ({ isActive }) => {
         };
         setDevices([...devices, newDev]);
         setSelectedId(id);
+        if (window.innerWidth < 768) setLeftPanelOpen(false);
         setRightPanelOpen(true);
         setSettingsTab('params');
     };
@@ -940,8 +948,13 @@ const SimulatorView = ({ isActive }) => {
         setDevices(JSON.parse(JSON.stringify(s.devices)));
         setSelectedId(s.devices[0].id);
         setFaultAmps(2000);
-        setLeftPanelOpen(true);
-        setRightPanelOpen(true);
+        if (window.innerWidth < 768) {
+            setLeftPanelOpen(false);
+            setRightPanelOpen(false);
+        } else {
+            setLeftPanelOpen(true);
+            setRightPanelOpen(true);
+        }
     };
 
     // Math Helpers
@@ -1077,7 +1090,7 @@ const SimulatorView = ({ isActive }) => {
                 {dev.showBand && !isEquipment && !isFuse && !isSnapshot && dMin && <path d={`${dMin} ${dMax} Z`} fill={dev.color} fillOpacity="0.1" stroke="none" />}
                 <path d={d} fill="none" stroke={dev.color} strokeWidth={strokeWidth} strokeDasharray={strokeDash}
                     className={`transition-all duration-200 ${isSnapshot ? '' : 'cursor-pointer hover:stroke-[4px] hover:opacity-100 shadow-xl'} ${isSelected ? 'opacity-100' : 'opacity-80'}`}
-                    onClick={(e) => { if (!isSnapshot) { e.stopPropagation(); setSelectedId(dev.id); if (!rightPanelOpen) setRightPanelOpen(true); } }}
+                    onClick={(e) => { if (!isSnapshot) { e.stopPropagation(); setSelectedId(dev.id); if (window.innerWidth < 768) setLeftPanelOpen(false); if (!rightPanelOpen) setRightPanelOpen(true); } }}
                 />
                 {!isEquipment && !isSnapshot && (
                     <text x={handlePickX + 5} y={dims.h - 20} fill={dev.color} fontSize="10" fontWeight="bold" className="pointer-events-none select-none shadow-sm">{dev.name}{fuseLabel}</text>
@@ -1235,7 +1248,10 @@ const SimulatorView = ({ isActive }) => {
             {/* HEADER TOOLBAR */}
             <div className="h-10 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-2 shadow-sm z-20 shrink-0 overflow-x-auto custom-scrollbar">
                 <div className="flex items-center gap-2">
-                    <button onClick={() => setLeftPanelOpen(!leftPanelOpen)} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!leftPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
+                    <button onClick={() => {
+                        if (!leftPanelOpen && window.innerWidth < 768) setRightPanelOpen(false);
+                        setLeftPanelOpen(!leftPanelOpen);
+                    }} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!leftPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
                         {leftPanelOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
                     </button>
                     <div className="relative group">
@@ -1283,7 +1299,10 @@ const SimulatorView = ({ isActive }) => {
                     </button>
 
                     <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1 hidden lg:block"></div>
-                    <button onClick={() => setRightPanelOpen(!rightPanelOpen)} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
+                    <button onClick={() => {
+                        if (!rightPanelOpen && window.innerWidth < 768) setLeftPanelOpen(false);
+                        setRightPanelOpen(!rightPanelOpen);
+                    }} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
                         {rightPanelOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
                     </button>
                 </div>
@@ -1292,7 +1311,7 @@ const SimulatorView = ({ isActive }) => {
             {/* MAIN WORKSPACE */}
             <div className="flex flex-1 overflow-hidden relative">
                 {/* LEFT: INTELLIGENT REPORT */}
-                <div className={`border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col z-10 shrink-0 transition-all duration-300 ease-in-out ${leftPanelOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full opacity-0 overflow-hidden'}`}>
+                <div className={`absolute md:relative z-40 h-full border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 transition-all duration-300 ease-in-out ${leftPanelOpen ? 'w-full md:w-72 translate-x-0' : 'w-0 -translate-x-full opacity-0 overflow-hidden'}`}>
                     <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
                         <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2 tracking-wider"><Clock className="w-3 h-3 text-slate-400" /> Coordination Check</span>
                     </div>
@@ -1392,7 +1411,7 @@ const SimulatorView = ({ isActive }) => {
                 </div>
 
                 {/* RIGHT: SETTINGS PANEL */}
-                <div className={`border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col z-10 shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out ${rightPanelOpen ? 'w-80 translate-x-0' : 'w-0 translate-x-full opacity-0 overflow-hidden'}`}>
+                <div className={`absolute right-0 md:relative z-40 h-full border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out ${rightPanelOpen ? 'w-full md:w-80 translate-x-0' : 'w-0 translate-x-full opacity-0 overflow-hidden'}`}>
 
                     {/* TABS */}
                     <div className="flex p-1 m-4 mb-0 bg-slate-100 dark:bg-slate-800 rounded-lg">

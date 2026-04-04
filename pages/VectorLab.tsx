@@ -414,12 +414,170 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
     };
 
     return (
-        <div className="max-w-[1600px] w-full h-auto lg:h-full mx-auto p-4 lg:p-6 flex flex-col pb-8">
-            {/* CONTROL DECK */}
-            <div className="flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-4">
+        <div className="max-w-[1600px] w-full lg:h-full mx-auto p-3 lg:p-6">
+            {/* MOBILE LAYOUT: Simple stacked blocks, no grid/flex height tricks */}
+            <div className="lg:hidden space-y-4 pb-8">
+                {/* 1. Phasor Diagram FIRST on mobile */}
+                <div className={`rounded-2xl border p-1 shadow-2xl relative overflow-hidden h-[360px] sm:h-[400px] ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-900 border-slate-800'}`}>
+                    <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-20"></div>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-[1px] h-full bg-slate-800"></div>
+                        <div className="h-[1px] w-full bg-slate-800 absolute"></div>
+                    </div>
+                    <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full relative z-10 p-2">
+                        <circle cx={center} cy={center} r={maxMag * 0.25 * scale} fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="4,4" />
+                        <circle cx={center} cy={center} r={maxMag * 0.5 * scale} fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="4,4" />
+                        <circle cx={center} cy={center} r={maxMag * 0.75 * scale} fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="4,4" />
+                        <circle cx={center} cy={center} r={maxMag * 1.0 * scale} fill="none" stroke="#475569" strokeWidth="1" />
+                        {phasors.map(p => {
+                            const drawAng = p.ang + (isRotating ? rotOffset : 0);
+                            const tipX = center + p.mag * scale * Math.cos(toRad(-drawAng));
+                            const tipY = center + p.mag * scale * Math.sin(toRad(-drawAng));
+                            return (
+                                <g key={p.id}>
+                                    <line x1={center} y1={center} x2={tipX} y2={tipY} stroke={p.color} strokeWidth="3" strokeLinecap="round" />
+                                    <circle cx={tipX} cy={tipY} r="6" fill={p.color} />
+                                    <text x={center + (p.mag * scale + 20) * Math.cos(toRad(-drawAng))} y={center + (p.mag * scale + 20) * Math.sin(toRad(-drawAng))} fill={p.color} fontSize="12" fontWeight="bold" textAnchor="middle" alignmentBaseline="middle">{p.label}</text>
+                                </g>
+                            );
+                        })}
+                        {showResultant && (
+                            <g>
+                                <line x1={center} y1={center} x2={center + resultant.x * scale} y2={center - resultant.y * scale} stroke="#10b981" strokeWidth="2" strokeDasharray="6,4" />
+                                <text x={center + resultant.x * scale + 10} y={center - resultant.y * scale} fill="#10b981" fontSize="10" fontWeight="bold">3I0</text>
+                            </g>
+                        )}
+                    </svg>
+                    <div className="absolute bottom-2 left-2 right-2 flex justify-between items-end pointer-events-none z-20">
+                        <div className="bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-2 text-[10px] text-slate-400 shadow-md pointer-events-auto">
+                            <div>Scale: 1.0 pu = {(1 / scale * 50).toFixed(1)} px</div>
+                            <div>Ref: {refVoltage}V / {systemFreq}Hz</div>
+                        </div>
+                        <div className="bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-2 shadow-md pointer-events-auto">
+                            <label className="flex items-center gap-1.5 text-[10px] text-white cursor-pointer">
+                                <input type="checkbox" checked={showResultant} onChange={e => setShowResultant(e.target.checked)} className="accent-emerald-500 w-3.5 h-3.5" />
+                                Residual
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 2. Quick Presets - immediately accessible */}
+                <div className={`rounded-2xl p-4 border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Quick Simulations</label>
+                    <div className="grid grid-cols-3 gap-2">
+                        <button onClick={() => loadPreset('balanced')} className="p-3 text-[11px] font-bold bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 active:scale-95 transition-transform">Balanced</button>
+                        <button onClick={() => loadPreset('ag-fault')} className="p-3 text-[11px] font-bold bg-red-50 text-red-700 rounded-lg border border-red-200 active:scale-95 transition-transform">A-G Fault</button>
+                        <button onClick={() => loadPreset('bc-fault')} className="p-3 text-[11px] font-bold bg-amber-50 text-amber-700 rounded-lg border border-amber-200 active:scale-95 transition-transform">B-C Fault</button>
+                        <button onClick={() => loadPreset('llg-fault')} className="p-3 text-[11px] font-bold bg-orange-50 text-orange-700 rounded-lg border border-orange-200 active:scale-95 transition-transform">LLG Fault</button>
+                        <button onClick={() => loadPreset('open-c')} className="p-3 text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 col-span-2 active:scale-95 transition-transform">Open Phase</button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <button onClick={() => setIsRotating(!isRotating)} className={`flex-1 min-w-[120px] p-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all ${isRotating ? 'bg-red-500 text-white' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                            {isRotating ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Stop</> : <><RotateCcw className="w-3.5 h-3.5" /> Animate {systemFreq}Hz</>}
+                        </button>
+                        <button onClick={copyShareLink} className="p-3 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 active:scale-95"><Share2 className="w-4 h-4" /></button>
+                        <button onClick={copyContextForLLM} className="p-3 rounded-lg text-xs font-bold bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5 active:scale-95"><BrainCircuit className="w-4 h-4" /> AI</button>
+                    </div>
+                </div>
+
+                {/* 3. Vector Inputs - all sliders fully visible, no scroll trap */}
+                <div className={`rounded-2xl p-4 border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className={`font-bold text-sm uppercase tracking-wider flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                            <Sliders className="w-4 h-4 text-blue-500" /> Vector Inputs
+                        </h3>
+                        <button onClick={() => setPhasors([...phasors, { id: Date.now().toString(), mag: 1, ang: 0, color: '#8b5cf6', label: 'Aux' }])} className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg"><Plus className="w-4 h-4" /></button>
+                    </div>
+                    <div className="space-y-3">
+                        {phasors.map((p, i) => (
+                            <div key={p.id} className={`p-3 rounded-xl border ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded-full border-2 border-white/20" style={{ backgroundColor: p.color }}></div>
+                                        <input value={p.label} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, label: e.target.value } : x))} className={`bg-transparent font-bold text-sm w-28 outline-none ${isDark ? 'text-white' : 'text-slate-900'}`} />
+                                    </div>
+                                    {i > 2 && <Trash2 className="w-4 h-4 text-slate-400 cursor-pointer hover:text-red-500" onClick={() => setPhasors(prev => prev.filter(x => x.id !== p.id))} />}
+                                </div>
+                                <div className="space-y-4">
+                                    <Slider label="Magnitude" unit=" A" min={0} max={20} step={0.1} value={p.mag} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, mag: Number(e.target.value) } : x))} color="blue" />
+                                    <Slider label="Angle" unit="°" min={0} max={360} value={p.ang} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, ang: Number(e.target.value) } : x))} color="blue" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 4. Symmetrical Components */}
+                <div className={`rounded-2xl border p-4 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <h3 className="font-bold text-xs uppercase tracking-wider flex items-center gap-2 mb-3 text-purple-600"><Layers className="w-4 h-4" /> Symmetrical Components</h3>
+                    {seqComponents ? (
+                        <div className="space-y-3">
+                            <div className={`flex justify-between items-center p-2.5 rounded-lg border-l-4 border-slate-400 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                                <span className="text-xs font-bold text-slate-500">Zero Seq (I0)</span>
+                                <span className={`font-mono text-sm font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{seqComponents.I0.mag.toFixed(2)} ∠ {seqComponents.I0.ang.toFixed(1)}°</span>
+                            </div>
+                            <div className={`flex justify-between items-center p-2.5 rounded-lg border-l-4 border-blue-500 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                                <span className="text-xs font-bold text-slate-500">Pos Seq (I1)</span>
+                                <span className={`font-mono text-sm font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{seqComponents.I1.mag.toFixed(2)} ∠ {seqComponents.I1.ang.toFixed(1)}°</span>
+                            </div>
+                            <div className={`flex justify-between items-center p-2.5 rounded-lg border-l-4 border-red-500 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                                <span className="text-xs font-bold text-slate-500">Neg Seq (I2)</span>
+                                <span className={`font-mono text-sm font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{seqComponents.I2.mag.toFixed(2)} ∠ {seqComponents.I2.ang.toFixed(1)}°</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 text-right">
+                                Unbalance (I2/I1): <strong className={seqComponents.I2.mag / seqComponents.I1.mag > 0.2 ? 'text-red-500' : 'text-green-500'}>{((seqComponents.I2.mag / (seqComponents.I1.mag || 1)) * 100).toFixed(1)}%</strong>
+                            </div>
+                            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase">Visual Magnitude Compare</div>
+                                {[{ label: 'I0 (Zero)', mag: seqComponents.I0.mag, color: '#64748b' }, { label: 'I1 (Positive)', mag: seqComponents.I1.mag, color: '#3b82f6' }, { label: 'I2 (Negative)', mag: seqComponents.I2.mag, color: '#ef4444' }].map(s => {
+                                    const maxBar = Math.max(seqComponents.I0.mag, seqComponents.I1.mag, seqComponents.I2.mag, 0.01);
+                                    return (
+                                        <div key={s.label} className="flex items-center gap-2">
+                                            <span className="text-[9px] font-mono w-20 text-slate-500 shrink-0">{s.label}</span>
+                                            <div className={`flex-1 h-3 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(s.mag / maxBar) * 100}%`, backgroundColor: s.color }} />
+                                            </div>
+                                            <span className="text-[9px] font-mono w-12 text-right text-slate-500">{s.mag.toFixed(1)}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-xs text-slate-400 italic text-center py-4">Requires 3-Phase Input</div>
+                    )}
+                </div>
+
+                {/* 5. Power Monitor */}
+                <div className={`rounded-2xl border p-4 shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="font-bold text-xs uppercase tracking-wider flex items-center gap-2 text-amber-600"><Zap className="w-4 h-4" /> Power Monitor</h3>
+                        <div className={`text-[10px] px-2 py-1 rounded text-slate-500 ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>Ref: {refVoltage}V</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className={`text-center p-3 rounded-xl ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                            <div className="text-[9px] text-slate-400 uppercase font-bold">Active (P)</div>
+                            <div className={`text-lg font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{(totalP / 1000).toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kW</span></div>
+                        </div>
+                        <div className={`text-center p-3 rounded-xl ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                            <div className="text-[9px] text-slate-400 uppercase font-bold">Reactive (Q)</div>
+                            <div className={`text-lg font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{(totalQ / 1000).toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kVAR</span></div>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-xs items-center"><span className="text-slate-500">Apparent Power (S)</span><span className="font-mono font-bold">{(totalS / 1000).toFixed(2)} kVA</span></div>
+                        <div className="flex justify-between text-xs items-center"><span className="text-slate-500">Power Factor</span><span className={`font-mono font-bold ${pf < 0.85 ? 'text-red-500' : 'text-green-500'}`}>{pf.toFixed(3)} {totalQ >= 0 ? 'Lag' : 'Lead'}</span></div>
+                        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-2"><div className={`h-full ${pf < 0.85 ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${pf * 100}%` }}></div></div>
+                    </div>
+                </div>
+            </div>
+
+            {/* DESKTOP LAYOUT: Original 3-column grid */}
+            <div className="hidden lg:grid lg:grid-cols-3 gap-4 h-full min-h-0">
 
                 {/* LEFT: Inputs */}
-                <div className={`rounded-2xl p-4 lg:p-5 border shadow-sm flex flex-col h-[450px] lg:h-full lg:min-h-0 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`rounded-2xl p-5 border shadow-sm flex flex-col h-full min-h-0 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <div className="flex justify-between items-center mb-4 shrink-0">
                         <h3 className={`font-bold text-sm uppercase tracking-wider flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                             <Sliders className="w-4 h-4 text-blue-500" /> Vector Inputs
@@ -428,48 +586,23 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                             <Plus className="w-4 h-4" />
                         </button>
                     </div>
-
-                    <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar lg:min-h-0">
+                    <div className="flex-1 overflow-y-auto space-y-3 pr-2 min-h-0">
                         {phasors.map((p, i) => (
                             <div key={p.id} className={`group p-3 rounded-xl border transition-colors ${isDark ? 'bg-slate-950 border-slate-800 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:border-blue-300'}`}>
                                 <div className="flex justify-between items-center mb-2">
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color }}></div>
-                                        <input
-                                            value={p.label}
-                                            onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, label: e.target.value } : x))}
-                                            className={`bg-transparent font-bold text-xs w-24 outline-none focus:text-blue-600 ${isDark ? 'text-white' : 'text-slate-900'}`}
-                                        />
+                                        <input value={p.label} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, label: e.target.value } : x))} className={`bg-transparent font-bold text-xs w-24 outline-none focus:text-blue-600 ${isDark ? 'text-white' : 'text-slate-900'}`} />
                                     </div>
                                     {i > 2 && <Trash2 className="w-3 h-3 text-slate-400 cursor-pointer hover:text-red-500" onClick={() => setPhasors(prev => prev.filter(x => x.id !== p.id))} />}
                                 </div>
-
                                 <div className="space-y-4">
-                                    <Slider
-                                        label="Magnitude"
-                                        unit=" A"
-                                        min={0}
-                                        max={20}
-                                        step={0.1}
-                                        value={p.mag}
-                                        onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, mag: Number(e.target.value) } : x))}
-                                        color="blue"
-                                    />
-                                    <Slider
-                                        label="Angle"
-                                        unit="°"
-                                        min={0}
-                                        max={360}
-                                        value={p.ang}
-                                        onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, ang: Number(e.target.value) } : x))}
-                                        color="blue"
-                                    />
+                                    <Slider label="Magnitude" unit=" A" min={0} max={20} step={0.1} value={p.mag} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, mag: Number(e.target.value) } : x))} color="blue" />
+                                    <Slider label="Angle" unit="°" min={0} max={360} value={p.ang} onChange={e => setPhasors(prev => prev.map(x => x.id === p.id ? { ...x, ang: Number(e.target.value) } : x))} color="blue" />
                                 </div>
                             </div>
                         ))}
                     </div>
-
-                    {/* Presets Toolbar */}
                     <div className={`mt-4 pt-4 border-t shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Quick Simulations</label>
                         <div className="grid grid-cols-4 gap-2">
@@ -477,28 +610,22 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                             <button onClick={() => loadPreset('ag-fault')} className="p-2 text-[10px] font-bold bg-red-50 text-red-700 rounded hover:bg-red-100 border border-red-200">A-G Fault</button>
                             <button onClick={() => loadPreset('bc-fault')} className="p-2 text-[10px] font-bold bg-amber-50 text-amber-700 rounded hover:bg-amber-100 border border-amber-200">B-C Fault</button>
                             <button onClick={() => loadPreset('llg-fault')} className="p-2 text-[10px] font-bold bg-orange-50 text-orange-700 rounded hover:bg-orange-100 border border-orange-200">LLG Fault</button>
-                            <button onClick={() => loadPreset('open-c')} className="p-2 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 col-span-4 lg:col-span-1">Open Ph</button>
+                            <button onClick={() => loadPreset('open-c')} className="p-2 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">Open Ph</button>
                         </div>
                     </div>
-
-                    {/* Play/Stop Rotation */}
                     <div className={`mt-4 pt-4 border-t shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
                         <div className="flex gap-2">
                             <button onClick={() => setIsRotating(!isRotating)} className={`flex-1 p-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${isRotating ? 'bg-red-500 text-white' : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'}`}>
                                 {isRotating ? <><RefreshCw className="w-3 h-3 animate-spin" /> Stop Rotation</> : <><RotateCcw className="w-3 h-3" /> Animate {systemFreq}Hz</>}
                             </button>
-                            <button onClick={copyShareLink} className="p-2.5 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700" title="Copy share link">
-                                <Share2 className="w-4 h-4" />
-                            </button>
-                            <button onClick={copyContextForLLM} className="p-2.5 rounded-lg text-xs font-bold bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all flex items-center gap-2" title="Export for AI">
-                                <BrainCircuit className="w-4 h-4" /> <span>Export to AI</span>
-                            </button>
+                            <button onClick={copyShareLink} className="p-2.5 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700" title="Copy share link"><Share2 className="w-4 h-4" /></button>
+                            <button onClick={copyContextForLLM} className="p-2.5 rounded-lg text-xs font-bold bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all flex items-center gap-2" title="Export for AI"><BrainCircuit className="w-4 h-4" /> <span>Export to AI</span></button>
                         </div>
                     </div>
                 </div>
 
                 {/* CENTER: Visualization */}
-                <div className={`rounded-2xl border p-1 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden h-[400px] lg:h-full ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-900 border-slate-800'}`}>
+                <div className={`rounded-2xl border p-1 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-900 border-slate-800'}`}>
                     {/* Graph Background always dark or specialized graphic */}
                     <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-20"></div>
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -591,7 +718,7 @@ const SimulatorModule = ({ isDark }: { isDark: boolean }) => {
                 </div>
 
                 {/* RIGHT: Analysis Panel */}
-                <div className="flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2 min-h-0">
+                <div className="flex flex-col gap-4 overflow-y-auto pr-2 min-h-0">
 
                     {/* 1. Sequence Components (The "Pro" feature) */}
                     <div className={`rounded-2xl border p-4 lg:p-5 shadow-sm shrink-0 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -716,7 +843,7 @@ export default function VectorLab() {
     const isDark = useThemeObserver();
 
     return (
-        <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+        <div className={`min-h-screen lg:h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
             <PageSEO 
                 title="Vector Lab | Phasor & Symmetrical Components Simulator" 
                 description="Master phasor diagrams and symmetrical components with our interactive Vector Lab. Simulate A-G, B-C, and LLG faults with real-time vector visualization." 
@@ -783,11 +910,11 @@ export default function VectorLab() {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 overflow-hidden relative pb-16 md:pb-0">
+            <div className="flex-1 overflow-y-auto lg:overflow-hidden relative pb-16 md:pb-0">
                 {activeTab === 'theory' && <TheoryModule isDark={isDark} />}
 
                 {/* Simulator: Wrapped in overflow-y-auto for vertical scrolling */}
-                <div className={activeTab === 'simulator' ? 'block h-full overflow-y-auto' : 'hidden'}>
+                <div className={activeTab === 'simulator' ? 'block lg:h-full overflow-y-auto' : 'hidden'}>
                     <SimulatorModule isDark={isDark} />
                     <div className="h-24 md:hidden w-full shrink-0"></div>
                 </div>
