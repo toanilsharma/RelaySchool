@@ -289,15 +289,30 @@ export default function RelaySimUltra() {
         setDynamicTest({ running: false, phase: 'idle', trajectory: [], timer: null });
     };
 
-    const handleSvgClick = (e: React.MouseEvent) => {
-        if (dynamicTest.running) return; // Don't allow clicks during dynamic test
+    const handleSvgInteraction = useCallback((clientX: number, clientY: number) => {
+        if (dynamicTest.running) return;
         if (!svgRef.current) return;
         const rect = svgRef.current.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const clickY = e.clientY - rect.top;
-        const r = (clickX - CENTER) / SCALE;
-        const x = -(clickY - CENTER) / SCALE;
+        // Map screen coordinates to SVG viewBox coordinates
+        const scaleX = CANVAS_SIZE / rect.width;
+        const scaleY = CANVAS_SIZE / rect.height;
+        const svgX = (clientX - rect.left) * scaleX;
+        const svgY = (clientY - rect.top) * scaleY;
+        const r = (svgX - CENTER) / SCALE;
+        const x = -(svgY - CENTER) / SCALE;
         setFault({ r, x });
+    }, [dynamicTest.running, setFault]);
+
+    const handleSvgClick = (e: React.MouseEvent) => {
+        handleSvgInteraction(e.clientX, e.clientY);
+    };
+
+    const handleSvgTouch = (e: React.TouchEvent) => {
+        e.preventDefault(); // Prevent scroll/zoom on touch
+        if (e.touches.length > 0) {
+            const touch = e.touches[0];
+            handleSvgInteraction(touch.clientX, touch.clientY);
+        }
     };
 
     const startQuiz = (difficulty: string) => {
@@ -361,176 +376,181 @@ export default function RelaySimUltra() {
     };
 
     return (
-        <div className={`min-h-screen font-sans flex flex-col overflow-hidden transition-colors duration-500 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${isTripping ? 'animate-trip' : ''}`}>
+        <div className={`min-h-screen h-screen font-sans flex flex-col overflow-hidden transition-colors duration-500 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${isTripping ? 'animate-trip' : ''}`}>
             <PageSEO 
                 title="Distance Lab (ANSI 21)" 
                 description="Professional distance protection simulator. Master R-X diagrams, Mho and Quadrilateral characteristics." 
                 url="/distancelab" 
             />
 
-            <header className={`h-20 backdrop-blur-xl border-b px-8 flex items-center justify-between z-30 transition-colors duration-500 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-white/80 border-slate-200 shadow-sm'}`}>
-                <div className="flex items-center gap-5">
-                    <div className="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg">
-                        <Target className="w-6 h-6" />
+            {/* HEADER */}
+            <header className={`h-14 shrink-0 backdrop-blur-xl border-b px-3 lg:px-6 flex items-center justify-between z-30 transition-colors duration-500 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-white/80 border-slate-200 shadow-sm'}`}>
+                <div className="flex items-center gap-3">
+                    <div className="bg-indigo-600 p-1.5 lg:p-2 rounded-lg lg:rounded-xl text-white shadow-lg">
+                        <Target className="w-4 h-4 lg:w-5 lg:h-5" />
                     </div>
-                    <div>
-                        <h1 className="font-black text-2xl tracking-tighter text-adaptive">DISTANCE <span className="text-indigo-400">LAB</span></h1>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest">
-                            <span>RelaySim Ultra v2.5</span>
-                            <span className="w-1 h-1 bg-slate-700 rounded-full" />
-                            <span>IEEE C37.113 Compliant</span>
+                    <div className="min-w-0">
+                        <h1 className="font-black text-sm lg:text-lg tracking-tighter">DISTANCE <span className="text-indigo-400">LAB</span></h1>
+                        <div className="flex items-center gap-1 text-[7px] lg:text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                            <span>v2.5</span>
+                            <span className="w-0.5 h-0.5 bg-slate-600 rounded-full" />
+                            <span className="hidden sm:inline">IEEE C37.113</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="hidden lg:flex items-center gap-4">
-                    <AICopyButton state={{ settings, fault, status }} toolName="Distance Protection Lab / ANSI 21" />
+                {/* TAB BAR - placed in center of header */}
+                <div className={`flex rounded-lg border p-0.5 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
+                    {['sim', 'theory', 'quiz', 'missions'].map(t => (
+                        <button key={t} onClick={() => setActiveTab(t)} 
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === t ? 'bg-indigo-600 text-white shadow-md' : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'}`}>
+                            {t === 'sim' ? <Sliders className="w-3.5 h-3.5" /> : t === 'theory' ? <BookOpen className="w-3.5 h-3.5" /> : t === 'quiz' ? <BrainCircuit className="w-3.5 h-3.5" /> : <Shield className="w-3.5 h-3.5" />}
+                            <span className="hidden sm:inline">{t}</span>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                    <div className="hidden lg:block">
+                        <AICopyButton state={{ settings, fault, status }} toolName="Distance Protection Lab / ANSI 21" />
+                    </div>
                     <button onClick={() => setSettings({ ...settings, charType: 'MHO', z1Reach: 8.0, z2Reach: 12.0, z3Reach: 18.0, mta: 75 })} 
-                            className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-[10px] font-black tracking-widest hover:bg-slate-800 transition-all">
-                        <RefreshCw className="w-4 h-4 inline mr-2" /> RESET
+                            className={`p-1.5 lg:px-3 lg:py-1.5 rounded-lg text-[9px] font-black tracking-widest transition-all flex items-center shrink-0 border ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-600'}`}>
+                        <RefreshCw className="w-3.5 h-3.5 lg:mr-1.5" /> <span className="hidden lg:inline">RESET</span>
                     </button>
-                    <div className="h-10 w-px bg-slate-800 mx-2" />
-                    <div className={`flex items-center gap-3 px-5 py-2 rounded-xl border-2 transition-all ${status.trip ? 'bg-red-950/20 border-red-500 text-red-500 animate-pulse' : 'bg-emerald-950/20 border-emerald-500 text-emerald-500'}`}>
-                        <div className={`w-2.5 h-2.5 rounded-full ${status.trip ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-                        <span className="text-[10px] font-black tracking-widest uppercase">{status.trip ? `TRIP: ${status.zone}` : 'MONITORING'}</span>
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border-2 transition-all text-[9px] font-black tracking-widest uppercase ${status.trip ? 'bg-red-950/30 border-red-500 text-red-400 animate-pulse' : 'bg-emerald-950/30 border-emerald-600 text-emerald-400'}`}>
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${status.trip ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                        <span>{status.trip ? `TRIP: ${status.zone}` : <span className="hidden sm:inline">OK</span>}</span>
                     </div>
                 </div>
             </header>
 
-            <div className="flex-1 flex overflow-hidden">
-                {/* R-X DIAGRAM AREA */}
-                <div className={`flex-1 relative p-8 flex items-center justify-center overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#020617]' : 'bg-slate-200/50'}`}>
-                    <div className="absolute top-10 left-1/2 -translate-x-1/2 font-mono text-[10px] text-slate-600 font-black tracking-[0.2em]">+ jX (REACTANCE Ω)</div>
-                    <div className="absolute top-1/2 right-10 -translate-y-1/2 font-mono text-[10px] text-slate-600 font-black tracking-[0.2em] rotate-90">+ R (RESISTANCE Ω)</div>
-                    
-                    <div className={`relative group p-2 md:p-4 rounded-[3rem] border backdrop-blur-sm shadow-2xl transition-colors duration-500 ${isDark ? 'bg-slate-900/20 border-slate-800/50' : 'bg-white border-slate-200'} max-h-[80vh] flex items-center justify-center`}>
-                        <svg 
-                            ref={svgRef}
-                            viewBox={`0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}`}
-                            onClick={handleSvgClick}
-                            className="w-full h-auto max-w-[500px] max-h-[60vh] cursor-crosshair rounded-full overflow-hidden"
-                        >
-                            <defs>
-                                <pattern id="subgrid" width="10" height="10" patternUnits="userSpaceOnUse">
-                                    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#1e293b" strokeWidth="0.5" />
-                                </pattern>
-                                <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                                    <rect width="50" height="50" fill="url(#subgrid)" />
-                                    <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#334155" strokeWidth="1" />
-                                </pattern>
-                            </defs>
-                            <rect width="100%" height="100%" fill="url(#grid)" />
-                            <line x1="0" y1={CENTER} x2={CANVAS_SIZE} y2={CENTER} stroke="#475569" strokeWidth="2" />
-                            <line x1={CENTER} y1="0" x2={CENTER} y2={CANVAS_SIZE} stroke="#475569" strokeWidth="2" />
+            {/* MAIN CONTENT AREA - fills remaining viewport height */}
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden" style={{ height: 'calc(100vh - 3.5rem)' }}>
 
-                            <g className="text-emerald-500/30 group-hover:text-emerald-500/40 transition-colors">
-                                {settings.charType === 'MHO' ? getMhoPath(settings.z3Reach, settings.mta) : getQuadPath(settings.z3Reach, settings.quadResReach * 1.2, settings.mta, settings.tilt)}
-                            </g>
-                            <g className="text-amber-500/40 group-hover:text-amber-500/50 transition-colors">
-                                {settings.charType === 'MHO' ? getMhoPath(settings.z2Reach, settings.mta) : getQuadPath(settings.z2Reach, settings.quadResReach, settings.mta, settings.tilt)}
-                            </g>
-                            <g className="text-red-500/50 group-hover:text-red-500/60 transition-colors">
-                                {settings.charType === 'MHO' ? getMhoPath(settings.z1Reach, settings.mta) : getQuadPath(settings.z1Reach, settings.quadResReach * 0.8, settings.mta, settings.tilt)}
-                            </g>
+                {/* === SIM TAB: Side-by-side R-X + Controls === */}
+                {activeTab === 'sim' && (
+                    <>
+                        {/* R-X DIAGRAM AREA */}
+                        <div className={`w-full lg:flex-1 relative flex items-center justify-center overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#020617]' : 'bg-slate-100'}`} style={{ minHeight: '40vh' }}>
+                            <div className={`absolute top-3 left-1/2 -translate-x-1/2 font-mono text-[8px] lg:text-[9px] font-bold tracking-[0.15em] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>+ jX (REACTANCE Ω)</div>
+                            <div className={`absolute top-1/2 right-1 lg:right-4 -translate-y-1/2 font-mono text-[8px] lg:text-[9px] font-bold tracking-[0.15em] rotate-90 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>+ R (RESISTANCE Ω)</div>
+                            
+                            <div className={`relative group p-1 lg:p-3 rounded-2xl lg:rounded-[2rem] border backdrop-blur-sm shadow-2xl transition-colors duration-500 ${isDark ? 'bg-slate-900/20 border-slate-800/50' : 'bg-white border-slate-200'} max-w-[90%] lg:max-w-[min(80%,420px)] flex items-center justify-center mx-auto`}>
+                                <svg 
+                                    ref={svgRef}
+                                    viewBox={`0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}`}
+                                    onClick={handleSvgClick}
+                                    onTouchStart={handleSvgTouch}
+                                    onTouchMove={handleSvgTouch}
+                                    className="w-full h-auto cursor-crosshair rounded-full overflow-hidden touch-none"
+                                >
+                                    <defs>
+                                        <pattern id="subgrid" width="10" height="10" patternUnits="userSpaceOnUse">
+                                            <path d="M 10 0 L 0 0 0 10" fill="none" stroke={isDark ? '#1e293b' : '#cbd5e1'} strokeWidth="0.5" />
+                                        </pattern>
+                                        <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                                            <rect width="50" height="50" fill="url(#subgrid)" />
+                                            <path d="M 50 0 L 0 0 0 50" fill="none" stroke={isDark ? '#334155' : '#94a3b8'} strokeWidth="1" />
+                                        </pattern>
+                                    </defs>
+                                    <rect width="100%" height="100%" fill="url(#grid)" />
+                                    <line x1="0" y1={CENTER} x2={CANVAS_SIZE} y2={CENTER} stroke={isDark ? '#475569' : '#64748b'} strokeWidth="2" />
+                                    <line x1={CENTER} y1="0" x2={CENTER} y2={CANVAS_SIZE} stroke={isDark ? '#475569' : '#64748b'} strokeWidth="2" />
 
-                            {/* Arc Resistance Vector (orange dashed) */}
-                            {arcSettings.enabled && apparentZ && (
-                                <g>
-                                    {/* Line impedance vector */}
-                                    <line
-                                        x1={CENTER} y1={CENTER}
-                                        x2={CENTER + arcSettings.faultLocation * arcSettings.lineR * SCALE}
-                                        y2={CENTER - arcSettings.faultLocation * arcSettings.lineX * SCALE}
-                                        stroke="#22d3ee" strokeWidth="2" strokeDasharray="4,3" opacity={0.6}
-                                    />
-                                    {/* Arc resistance horizontal shift */}
-                                    <line
-                                        x1={CENTER + arcSettings.faultLocation * arcSettings.lineR * SCALE}
-                                        y1={CENTER - arcSettings.faultLocation * arcSettings.lineX * SCALE}
-                                        x2={CENTER + apparentZ.r * SCALE}
-                                        y2={CENTER - apparentZ.x * SCALE}
-                                        stroke="#f97316" strokeWidth="2.5" strokeDasharray="6,3"
-                                    />
-                                    {/* Arc R label */}
-                                    <text
-                                        x={CENTER + (arcSettings.faultLocation * arcSettings.lineR + apparentZ.r) / 2 * SCALE}
-                                        y={CENTER - apparentZ.x * SCALE - 8}
-                                        fill="#f97316" fontSize="9" fontWeight="bold" textAnchor="middle"
-                                    >R_arc = {arcResistanceOhms.toFixed(2)}Ω</text>
-                                    {/* Apparent Z marker */}
-                                    <circle cx={CENTER + apparentZ.r * SCALE} cy={CENTER - apparentZ.x * SCALE} r="6" fill="#f97316" stroke="white" strokeWidth="2" />
-                                </g>
-                            )}
+                                    <g className="text-emerald-500/30 group-hover:text-emerald-500/40 transition-colors">
+                                        {settings.charType === 'MHO' ? getMhoPath(settings.z3Reach, settings.mta) : getQuadPath(settings.z3Reach, settings.quadResReach * 1.2, settings.mta, settings.tilt)}
+                                    </g>
+                                    <g className="text-amber-500/40 group-hover:text-amber-500/50 transition-colors">
+                                        {settings.charType === 'MHO' ? getMhoPath(settings.z2Reach, settings.mta) : getQuadPath(settings.z2Reach, settings.quadResReach, settings.mta, settings.tilt)}
+                                    </g>
+                                    <g className="text-red-500/50 group-hover:text-red-500/60 transition-colors">
+                                        {settings.charType === 'MHO' ? getMhoPath(settings.z1Reach, settings.mta) : getQuadPath(settings.z1Reach, settings.quadResReach * 0.8, settings.mta, settings.tilt)}
+                                    </g>
 
-                            {/* Mutual Coupling Z0m indicator */}
-                            {mutualCoupling.enabled && mutualZ && (
-                                <g opacity={0.5}>
-                                    <line x1={CENTER} y1={CENTER} x2={CENTER + mutualZ.r * SCALE} y2={CENTER - mutualZ.x * SCALE} stroke="#a855f7" strokeWidth="2" strokeDasharray="3,3" />
-                                    <text x={CENTER + mutualZ.r * SCALE + 5} y={CENTER - mutualZ.x * SCALE} fill="#a855f7" fontSize="8" fontWeight="bold">Z0m</text>
-                                </g>
-                            )}
+                                    {/* Arc Resistance Vector (orange dashed) */}
+                                    {arcSettings.enabled && apparentZ && (
+                                        <g>
+                                            <line
+                                                x1={CENTER} y1={CENTER}
+                                                x2={CENTER + arcSettings.faultLocation * arcSettings.lineR * SCALE}
+                                                y2={CENTER - arcSettings.faultLocation * arcSettings.lineX * SCALE}
+                                                stroke="#22d3ee" strokeWidth="2" strokeDasharray="4,3" opacity={0.6}
+                                            />
+                                            <line
+                                                x1={CENTER + arcSettings.faultLocation * arcSettings.lineR * SCALE}
+                                                y1={CENTER - arcSettings.faultLocation * arcSettings.lineX * SCALE}
+                                                x2={CENTER + apparentZ.r * SCALE}
+                                                y2={CENTER - apparentZ.x * SCALE}
+                                                stroke="#f97316" strokeWidth="2.5" strokeDasharray="6,3"
+                                            />
+                                            <text
+                                                x={CENTER + (arcSettings.faultLocation * arcSettings.lineR + apparentZ.r) / 2 * SCALE}
+                                                y={CENTER - apparentZ.x * SCALE - 8}
+                                                fill="#f97316" fontSize="9" fontWeight="bold" textAnchor="middle"
+                                            >R_arc = {arcResistanceOhms.toFixed(2)}Ω</text>
+                                            <circle cx={CENTER + apparentZ.r * SCALE} cy={CENTER - apparentZ.x * SCALE} r="6" fill="#f97316" stroke="white" strokeWidth="2" />
+                                        </g>
+                                    )}
 
-                            {/* Dynamic Test Trajectory Trail */}
-                            {dynamicTest.running && dynamicTest.trajectory.length > 0 && (
-                                <polyline
-                                    points={dynamicTest.trajectory.map(p => `${CENTER + p.r * SCALE},${CENTER - p.x * SCALE}`).join(' ')}
-                                    fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="2,2" opacity={0.4}
-                                />
-                            )}
+                                    {/* Mutual Coupling Z0m indicator */}
+                                    {mutualCoupling.enabled && mutualZ && (
+                                        <g opacity={0.5}>
+                                            <line x1={CENTER} y1={CENTER} x2={CENTER + mutualZ.r * SCALE} y2={CENTER - mutualZ.x * SCALE} stroke="#a855f7" strokeWidth="2" strokeDasharray="3,3" />
+                                            <text x={CENTER + mutualZ.r * SCALE + 5} y={CENTER - mutualZ.x * SCALE} fill="#a855f7" fontSize="8" fontWeight="bold">Z0m</text>
+                                        </g>
+                                    )}
 
-                            <motion.line x1={CENTER} y1={CENTER} x2={CENTER + fault.r * SCALE} y2={CENTER - fault.x * SCALE} stroke="#6366f1" strokeWidth="3" strokeDasharray="6,4" animate={{ x2: CENTER + fault.r * SCALE, y2: CENTER - fault.x * SCALE }} transition={{ type: "spring", stiffness: 300, damping: 30 }} />
-                            <motion.circle cx={CENTER + fault.r * SCALE} cy={CENTER - fault.x * SCALE} r="8" className={`${status.trip ? 'fill-red-500 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.5)]' : 'fill-indigo-500 shadow-lg'}`} animate={{ cx: CENTER + fault.r * SCALE, cy: CENTER - fault.x * SCALE }} transition={{ type: "spring", stiffness: 300, damping: 30 }} />
-                        </svg>
+                                    {/* Dynamic Test Trajectory Trail */}
+                                    {dynamicTest.running && dynamicTest.trajectory.length > 0 && (
+                                        <polyline
+                                            points={dynamicTest.trajectory.map(p => `${CENTER + p.r * SCALE},${CENTER - p.x * SCALE}`).join(' ')}
+                                            fill="none" stroke="#facc15" strokeWidth="1.5" strokeDasharray="2,2" opacity={0.4}
+                                        />
+                                    )}
 
-                        {/* Dynamic Test Phase Badge */}
-                        {dynamicTest.running && (
-                            <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border animate-pulse ${
-                                dynamicTest.phase === 'prefault' ? 'bg-emerald-950/80 border-emerald-500 text-emerald-400' :
-                                dynamicTest.phase === 'fault' ? 'bg-red-950/80 border-red-500 text-red-400' :
-                                'bg-blue-950/80 border-blue-500 text-blue-400'
-                            }`}>
-                                ⚡ {dynamicTest.phase === 'prefault' ? 'Pre-Fault (Load)' : dynamicTest.phase === 'fault' ? 'FAULT IN ZONE' : 'Post-Fault Recovery'}
+                                    <motion.line x1={CENTER} y1={CENTER} x2={CENTER + fault.r * SCALE} y2={CENTER - fault.x * SCALE} stroke="#6366f1" strokeWidth="3" strokeDasharray="6,4" animate={{ x2: CENTER + fault.r * SCALE, y2: CENTER - fault.x * SCALE }} transition={{ type: "spring", stiffness: 300, damping: 30 }} />
+                                    <motion.circle cx={CENTER + fault.r * SCALE} cy={CENTER - fault.x * SCALE} r="8" className={`${status.trip ? 'fill-red-500 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.5)]' : 'fill-indigo-500 shadow-lg'}`} animate={{ cx: CENTER + fault.r * SCALE, cy: CENTER - fault.x * SCALE }} transition={{ type: "spring", stiffness: 300, damping: 30 }} />
+                                </svg>
+
+                                {/* Dynamic Test Phase Badge */}
+                                {dynamicTest.running && (
+                                    <div className={`absolute top-2 left-2 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border animate-pulse ${
+                                        dynamicTest.phase === 'prefault' ? 'bg-emerald-950/80 border-emerald-500 text-emerald-400' :
+                                        dynamicTest.phase === 'fault' ? 'bg-red-950/80 border-red-500 text-red-400' :
+                                        'bg-blue-950/80 border-blue-500 text-blue-400'
+                                    }`}>
+                                        ⚡ {dynamicTest.phase === 'prefault' ? 'Pre-Fault' : dynamicTest.phase === 'fault' ? 'FAULT' : 'Recovery'}
+                                    </div>
+                                )}
+
+                                {/* Impedance readout overlay */}
+                                <div className={`absolute bottom-2 left-2 lg:bottom-4 lg:left-4 p-2 lg:p-3 border rounded-lg backdrop-blur-xl shadow-lg space-y-1 pointer-events-none transition-colors duration-500 ${isDark ? 'bg-slate-950/90 border-slate-700' : 'bg-white/90 border-slate-300'}`}>
+                                    <div className="flex justify-between gap-3"><span className={`text-[7px] lg:text-[9px] font-black uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>R:</span> <Odometer value={fault.r} format={v => `${v.toFixed(2)} Ω`} className="font-mono text-[9px] lg:text-[11px] font-bold" /></div>
+                                    <div className="flex justify-between gap-3"><span className={`text-[7px] lg:text-[9px] font-black uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>jX:</span> <Odometer value={fault.x} format={v => `${v.toFixed(2)} Ω`} className="font-mono text-[9px] lg:text-[11px] font-bold" /></div>
+                                    <div className={`h-px ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
+                                    <div className="flex justify-between gap-3"><span className="text-[7px] lg:text-[9px] font-black text-indigo-400 uppercase">|Z|:</span> <Odometer value={Math.sqrt(fault.r**2 + fault.x**2)} format={v => `${v.toFixed(2)} Ω`} className="font-mono text-[10px] lg:text-xs font-black text-indigo-400" /></div>
+                                    <div className="flex justify-between gap-3"><span className="text-[7px] lg:text-[9px] font-black text-indigo-400 uppercase">∠Z:</span> <Odometer value={Math.atan2(fault.x, fault.r) * RAD_TO_DEG} format={v => `${v.toFixed(1)}°`} className="font-mono text-[10px] lg:text-xs font-black text-indigo-400" /></div>
+                                    {arcSettings.enabled && <>
+                                        <div className={`h-px ${isDark ? 'bg-orange-800/30' : 'bg-orange-200'}`} />
+                                        <div className="flex justify-between gap-3"><span className="text-[7px] lg:text-[9px] font-black text-orange-400 uppercase">R_arc:</span> <span className="font-mono text-[9px] lg:text-[11px] font-black text-orange-400">{arcResistanceOhms.toFixed(2)} Ω</span></div>
+                                    </>}
+                                </div>
                             </div>
-                        )}
-
-                        <div className={`absolute bottom-10 left-10 p-5 border rounded-2xl backdrop-blur-xl shadow-2xl space-y-3 pointer-events-none transition-colors duration-500 ${isDark ? 'bg-slate-950/90 border-slate-800' : 'bg-white/90 border-slate-200'}`}>
-                            <div className="flex justify-between gap-6"><span className="text-[10px] font-black text-slate-500 uppercase">Input R:</span> <Odometer value={fault.r} format={v => `${v.toFixed(2)} Ω`} className="font-mono text-xs font-bold text-adaptive" /></div>
-                            <div className="flex justify-between gap-6"><span className="text-[10px] font-black text-slate-500 uppercase">Input jX:</span> <Odometer value={fault.x} format={v => `${v.toFixed(2)} Ω`} className="font-mono text-xs font-bold text-adaptive" /></div>
-                            <div className="h-px bg-slate-800" />
-                            <div className="flex justify-between gap-6"><span className="text-[10px] font-black text-indigo-400 uppercase">Magnitude |Z|:</span> <Odometer value={Math.sqrt(fault.r**2 + fault.x**2)} format={v => `${v.toFixed(2)} Ω`} className="font-mono text-sm font-black text-indigo-400" /></div>
-                            <div className="flex justify-between gap-6"><span className="text-[10px] font-black text-indigo-400 uppercase">Angle ∠Z:</span> <Odometer value={Math.atan2(fault.x, fault.r) * RAD_TO_DEG} format={v => `${v.toFixed(1)}°`} className="font-mono text-sm font-black text-indigo-400" /></div>
-                            {arcSettings.enabled && <>
-                                <div className="h-px bg-orange-800/30" />
-                                <div className="flex justify-between gap-6"><span className="text-[10px] font-black text-orange-400 uppercase">R_arc:</span> <span className="font-mono text-xs font-black text-orange-400">{arcResistanceOhms.toFixed(2)} Ω</span></div>
-                            </>}
                         </div>
-                    </div>
-                </div>
 
-                {/* SIDEBAR CONTROLS */}
-                <div className={`w-full lg:w-[360px] xl:w-[420px] border-l flex flex-col z-20 shadow-[-20px_0_50px_rgba(0,0,0,0.3)] transition-colors duration-500 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className={`flex border-b p-1 transition-colors duration-500 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
-                        {['sim', 'theory', 'quiz', 'missions'].map(t => (
-                            <button key={t} onClick={() => setActiveTab(t)} 
-                                className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${activeTab === t ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}>
-                                {t === 'sim' ? <Sliders className="w-5 h-5" /> : t === 'theory' ? <BookOpen className="w-5 h-5" /> : t === 'quiz' ? <BrainCircuit className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
-                                <span className="text-[10px] font-black uppercase tracking-widest">{t}</span>
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth custom-scrollbar">
-                        {activeTab === 'sim' && (
-                            <div className="space-y-4">
+                        {/* SIM CONTROLS PANEL (right side on desktop, below on mobile) */}
+                        <div className={`w-full lg:w-[340px] xl:w-[380px] shrink-0 border-t lg:border-t-0 lg:border-l flex flex-col overflow-y-auto z-20 transition-colors duration-500 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <div className="p-3 lg:p-4 space-y-3 lg:space-y-4">
                                 <Card isDark={isDark} noPadding>
-                                    <div className="p-4">
-                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <div className="p-3 lg:p-4">
+                                        <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                             <Shield className="w-4 h-4 text-indigo-500" /> <JargonTooltip text="Protection Reach" explanation="The distance along the line that a relay zone is programmed to protect based on calculated impedance." />
                                         </h3>
-                                        <div className="space-y-4">
+                                        <div className="space-y-3">
                                             <div className="grid grid-cols-2 gap-2">
-                                                <button onClick={() => setSettings({...settings, charType: 'MHO'})} className={`py-3 rounded-xl text-[10px] font-black border transition-all ${settings.charType === 'MHO' ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-slate-800/50 border-slate-700 text-slate-500'}`}>MHO CIRCLE</button>
-                                                <button onClick={() => setSettings({...settings, charType: 'QUAD'})} className={`py-3 rounded-xl text-[10px] font-black border transition-all ${settings.charType === 'QUAD' ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-slate-800/50 border-slate-700 text-slate-500'}`}>QUADRILATERAL</button>
+                                                <button onClick={() => setSettings({...settings, charType: 'MHO'})} className={`py-2.5 rounded-xl text-[10px] font-black border transition-all ${settings.charType === 'MHO' ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : isDark ? 'bg-slate-800/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>MHO CIRCLE</button>
+                                                <button onClick={() => setSettings({...settings, charType: 'QUAD'})} className={`py-2.5 rounded-xl text-[10px] font-black border transition-all ${settings.charType === 'QUAD' ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : isDark ? 'bg-slate-800/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>QUADRILATERAL</button>
                                             </div>
                                             <Slider label="Line/Torque Angle (MTA)" unit="°" min={30} max={90} step={1} value={settings.mta} onChange={(e) => setSettings({...settings, mta: Number(e.target.value)})} color="blue" />
                                             <Slider label="Zone 1 Reach" unit=" Ω" min={1} max={25} step={0.5} value={settings.z1Reach} onChange={(e) => setSettings({...settings, z1Reach: Number(e.target.value)})} color="red" />
@@ -545,14 +565,14 @@ export default function RelaySimUltra() {
 
                                 {/* ARC RESISTANCE & ADVANCED MODELING */}
                                 <Card isDark={isDark} noPadding>
-                                    <div className="p-4">
-                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <div className="p-3 lg:p-4">
+                                        <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                             <Flame className="w-4 h-4 text-orange-500" /> Arc Resistance & Infeed
                                         </h3>
                                         <div className="space-y-3">
                                             <button
                                                 onClick={() => setArcSettings(prev => ({...prev, enabled: !prev.enabled}))}
-                                                className={`w-full py-2 rounded-lg text-[10px] font-black border transition-all ${arcSettings.enabled ? 'bg-orange-600 border-orange-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-500'}`}
+                                                className={`w-full py-2 rounded-lg text-[10px] font-black border transition-all ${arcSettings.enabled ? 'bg-orange-600 border-orange-500 text-white' : isDark ? 'bg-slate-800/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}
                                             >
                                                 {arcSettings.enabled ? '● ARC RESISTANCE ON' : '○ ENABLE ARC MODELING'}
                                             </button>
@@ -562,10 +582,10 @@ export default function RelaySimUltra() {
                                                     <Slider label="Fault Current" unit=" A" min={500} max={20000} step={100} value={arcSettings.faultCurrent} onChange={e => setArcSettings(s => ({...s, faultCurrent: Number(e.target.value)}))} color="orange" />
                                                     <Slider label="Infeed Ratio" unit="" min={1} max={5} step={0.1} value={arcSettings.infeedRatio} onChange={e => setArcSettings(s => ({...s, infeedRatio: Number(e.target.value)}))} color="orange" />
                                                     <Slider label="Fault Location" unit=" p.u." min={0} max={1} step={0.05} value={arcSettings.faultLocation} onChange={e => setArcSettings(s => ({...s, faultLocation: Number(e.target.value)}))} color="orange" />
-                                                    <div className="p-2 bg-orange-950/30 border border-orange-800/30 rounded-lg">
-                                                        <div className="text-[9px] text-orange-400 font-bold">Warrington: R_arc = 28710 × gap / I^1.4</div>
-                                                        <div className="text-[10px] text-orange-300 font-mono font-black mt-1">R_arc = {arcResistanceOhms.toFixed(3)} Ω</div>
-                                                        {apparentZ && <div className="text-[10px] text-orange-300 font-mono mt-0.5">Z_app = {apparentZ.r.toFixed(2)} + j{apparentZ.x.toFixed(2)} Ω</div>}
+                                                    <div className={`p-2 rounded-lg border ${isDark ? 'bg-orange-950/30 border-orange-800/30' : 'bg-orange-50 border-orange-200'}`}>
+                                                        <div className={`text-[9px] font-bold ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>Warrington: R_arc = 28710 × gap / I^1.4</div>
+                                                        <div className={`text-[10px] font-mono font-black mt-1 ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>R_arc = {arcResistanceOhms.toFixed(3)} Ω</div>
+                                                        {apparentZ && <div className={`text-[10px] font-mono mt-0.5 ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>Z_app = {apparentZ.r.toFixed(2)} + j{apparentZ.x.toFixed(2)} Ω</div>}
                                                     </div>
                                                 </div>
                                             )}
@@ -575,13 +595,13 @@ export default function RelaySimUltra() {
 
                                 {/* MUTUAL COUPLING */}
                                 <Card isDark={isDark} noPadding>
-                                    <div className="p-4">
-                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <div className="p-3 lg:p-4">
+                                        <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                             <GitBranch className="w-4 h-4 text-purple-500" /> Mutual Coupling (Z0m)
                                         </h3>
                                         <button
                                             onClick={() => setMutualCoupling(prev => ({...prev, enabled: !prev.enabled}))}
-                                            className={`w-full py-2 rounded-lg text-[10px] font-black border transition-all ${mutualCoupling.enabled ? 'bg-purple-600 border-purple-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-500'}`}
+                                            className={`w-full py-2 rounded-lg text-[10px] font-black border transition-all ${mutualCoupling.enabled ? 'bg-purple-600 border-purple-500 text-white' : isDark ? 'bg-slate-800/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}
                                         >
                                             {mutualCoupling.enabled ? '● PARALLEL LINE COUPLED' : '○ ENABLE MUTUAL COUPLING'}
                                         </button>
@@ -590,7 +610,7 @@ export default function RelaySimUltra() {
                                                 <Slider label="Z0 Self R" unit=" Ω" min={0.5} max={10} step={0.1} value={mutualCoupling.z0R} onChange={e => setMutualCoupling(s => ({...s, z0R: Number(e.target.value)}))} color="purple" />
                                                 <Slider label="Z0 Self X" unit=" Ω" min={1} max={30} step={0.5} value={mutualCoupling.z0X} onChange={e => setMutualCoupling(s => ({...s, z0X: Number(e.target.value)}))} color="purple" />
                                                 <Slider label="Coupling Factor" unit="" min={0.3} max={0.9} step={0.05} value={mutualCoupling.couplingFactor} onChange={e => setMutualCoupling(s => ({...s, couplingFactor: Number(e.target.value)}))} color="purple" />
-                                                {mutualZ && <div className="p-2 bg-purple-950/30 border border-purple-800/30 rounded-lg text-[10px] text-purple-300 font-mono">Z0m = {mutualZ.r.toFixed(2)} + j{mutualZ.x.toFixed(2)} Ω</div>}
+                                                {mutualZ && <div className={`p-2 rounded-lg border text-[10px] font-mono ${isDark ? 'bg-purple-950/30 border-purple-800/30 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-700'}`}>Z0m = {mutualZ.r.toFixed(2)} + j{mutualZ.x.toFixed(2)} Ω</div>}
                                             </div>
                                         )}
                                     </div>
@@ -598,11 +618,11 @@ export default function RelaySimUltra() {
 
                                 {/* DYNAMIC SEQUENCE TEST (IEC 60255-121) */}
                                 <Card isDark={isDark} noPadding>
-                                    <div className="p-4">
-                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <div className="p-3 lg:p-4">
+                                        <h3 className={`text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                             <Activity className="w-4 h-4 text-yellow-500" /> IEC 60255-121 Dynamic Test
                                         </h3>
-                                        <p className="text-[10px] text-slate-400 mb-3 leading-relaxed">Simulates Pre-Fault → Fault → Post-Fault trajectory on the R-X plane to test dynamic relay response.</p>
+                                        <p className={`text-[10px] mb-3 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Simulates Pre-Fault → Fault → Post-Fault trajectory on the R-X plane.</p>
                                         {!dynamicTest.running ? (
                                             <button onClick={startDynamicTest} className="w-full py-2.5 bg-yellow-600 hover:bg-yellow-500 text-black rounded-lg text-[10px] font-black tracking-widest flex items-center justify-center gap-2">
                                                 <Play className="w-3 h-3" /> START DYNAMIC TEST
@@ -615,68 +635,75 @@ export default function RelaySimUltra() {
                                     </div>
                                 </Card>
 
+                                {/* Compact Engineering Reference */}
                                 <Card isDark={isDark} noPadding>
-                                    <div className="p-4 bg-slate-950/30">
-                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <div className={`p-3 lg:p-4 ${isDark ? 'bg-slate-950/30' : 'bg-slate-50'}`}>
+                                        <h3 className={`text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                             <Info className="w-4 h-4 text-indigo-400" /> <JargonTooltip text="Engineering Reference" explanation="Key mathematical and theoretical principles for distance protection configuration." />
                                         </h3>
-                                        <div className="space-y-3">
-                                            <div className="p-3 bg-slate-900 border border-indigo-500/20 rounded-xl">
-                                                <div className="text-[10px] font-black text-indigo-400 uppercase mb-2">Impedance Formula</div>
-                                                <LaTeX math="Z = \frac{\overline{V}}{\overline{I} } = R + jX" />
-                                            </div>
-                                            <p className="text-[10px] text-slate-400 leading-relaxed italic">
-                                                Click on the R-X diagram to simulate a fault. If the impedance phasor falls inside the characteristic, the relay will initiate a trip sequence according to the graded zones.
-                                            </p>
+                                        <div className={`p-2 rounded-lg border mb-2 ${isDark ? 'bg-slate-900 border-indigo-500/20' : 'bg-white border-indigo-200'}`}>
+                                            <div className="text-[9px] font-black text-indigo-400 uppercase mb-1">Impedance Formula</div>
+                                            <LaTeX math="Z = \frac{\overline{V}}{\overline{I} } = R + jX" />
                                         </div>
+                                        <p className={`text-[10px] leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                                            Click on the R-X diagram to simulate a fault. If the impedance phasor falls inside the characteristic, the relay will trip.
+                                        </p>
                                     </div>
                                 </Card>
                             </div>
-                        )}
+                        </div>
+                    </>
+                )}
 
-                        {activeTab === 'theory' && (
-                            <div className="animate-in fade-in slide-in-from-right-4">
-                                <TheoryLibrary 
-                                    title="Distance Protection (21)" 
-                                    description="Understanding the impedance principle and coordination zones." 
-                                    sections={DISTANCE_THEORY_CONTENT} 
-                                />
-                            </div>
-                        )}
-                        
-                        {activeTab === 'quiz' && (
+                {/* === THEORY TAB: Full width content === */}
+                {activeTab === 'theory' && (
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="max-w-4xl mx-auto p-4 lg:p-8 animate-in fade-in">
+                            <TheoryLibrary 
+                                title="Distance Protection (21)" 
+                                description="Understanding the impedance principle and coordination zones." 
+                                sections={DISTANCE_THEORY_CONTENT} 
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* === QUIZ TAB: Full width content === */}
+                {activeTab === 'quiz' && (
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="max-w-2xl mx-auto p-4 lg:p-8">
                             <div className="space-y-6">
                                 {!quizState.active ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-center p-8 space-y-6">
+                                    <div className="flex flex-col items-center justify-center text-center py-12 space-y-6">
                                         <div className="bg-indigo-600/10 p-6 rounded-full border-4 border-indigo-600/20">
                                             <BrainCircuit className="w-12 h-12 text-indigo-500" />
                                         </div>
-                                        <h3 className="text-xl font-black">Knowledge Check</h3>
-                                        <p className="text-sm text-slate-400">Select difficulty to begin assessment. 5 questions per session.</p>
-                                        <div className="grid grid-cols-1 w-full gap-3">
+                                        <h3 className="text-2xl font-black">Knowledge Check</h3>
+                                        <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Select difficulty to begin assessment. 5 questions per session.</p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 w-full max-w-lg gap-3">
                                             {['easy', 'medium', 'hard'].map(d => (
-                                                <button key={d} onClick={() => startQuiz(d)} className="py-4 bg-slate-800 border border-slate-700 rounded-2xl font-black text-xs tracking-widest uppercase hover:bg-slate-700 transition-all">{d} Mode</button>
+                                                <button key={d} onClick={() => startQuiz(d)} className={`py-4 border rounded-2xl font-black text-xs tracking-widest uppercase transition-all ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700 shadow-sm'}`}>{d} Mode</button>
                                             ))}
                                         </div>
                                     </div>
                                 ) : quizState.showResult ? (
-                                    <div className="flex flex-col items-center justify-center p-8 text-center space-y-6">
+                                    <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
                                         <Trophy className="w-16 h-16 text-yellow-500" />
-                                        <h3 className="text-2xl font-black">Score: {quizState.score}/5</h3>
-                                        <button onClick={() => setQuizState({...quizState, active: false})} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs tracking-widest uppercase shadow-lg">Try Again</button>
+                                        <h3 className="text-3xl font-black">Score: {quizState.score}/5</h3>
+                                        <button onClick={() => setQuizState({...quizState, active: false})} className="w-full max-w-xs py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs tracking-widest uppercase shadow-lg hover:bg-indigo-500 transition-all">Try Again</button>
                                     </div>
                                 ) : (
                                     <div className="space-y-6">
-                                        <div className="flex justify-between items-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase">Q {quizState.currentIdx + 1} of 5</span>
+                                        <div className={`flex justify-between items-center p-4 rounded-2xl border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                                            <span className={`text-[10px] font-black uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Q {quizState.currentIdx + 1} of 5</span>
                                             <span className="text-[10px] font-black text-indigo-400 tracking-widest uppercase">{quizState.difficulty} Mode</span>
                                         </div>
                                         <Card isDark={isDark}>
-                                            <p className="text-sm font-bold text-white mb-6 uppercase tracking-tight">{quizState.questions[quizState.currentIdx].q}</p>
+                                            <p className={`text-sm font-bold mb-6 ${isDark ? 'text-white' : 'text-slate-800'}`}>{quizState.questions[quizState.currentIdx].q}</p>
                                             <div className="space-y-3">
                                                 {quizState.questions[quizState.currentIdx].options.map((opt: string, i: number) => (
                                                     <button key={i} onClick={() => handleQuizAnswer(i)} disabled={!!quizState.feedback} 
-                                                        className={`w-full p-4 rounded-xl text-xs font-bold text-left transition-all border ${quizState.feedback ? (i === quizState.questions[quizState.currentIdx].a ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : (quizState.feedback.correct === false && i === quizState.questions[quizState.currentIdx].a ? 'bg-emerald-500/10 border-emerald-500/50' : 'bg-slate-800/50 border-slate-700 opacity-50')) : 'bg-slate-800/50 border-slate-700 hover:border-indigo-500'}`}>
+                                                        className={`w-full p-4 rounded-xl text-xs font-bold text-left transition-all border ${quizState.feedback ? (i === quizState.questions[quizState.currentIdx].a ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : (quizState.feedback.correct === false && i === quizState.questions[quizState.currentIdx].a ? 'bg-emerald-500/10 border-emerald-500/50' : `${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'} opacity-50`)) : `${isDark ? 'bg-slate-800/50 border-slate-700 hover:border-indigo-500' : 'bg-white border-slate-200 hover:border-indigo-500 shadow-sm'}`}`}>
                                                         {opt}
                                                     </button>
                                                 ))}
@@ -685,43 +712,38 @@ export default function RelaySimUltra() {
                                         {quizState.feedback && (
                                             <div className={`p-4 rounded-2xl border ${quizState.feedback.correct ? 'bg-emerald-950/20 border-emerald-500 text-emerald-400' : 'bg-red-950/20 border-red-500 text-red-400'}`}>
                                                 <p className="text-xs font-black uppercase mb-2">{quizState.feedback.text}</p>
-                                                <p className="text-xs opacity-70 mb-4">{quizState.feedback.explanation}</p>
-                                                <button onClick={nextQuestion} className="w-full py-3 bg-white text-black rounded-xl text-[10px] font-black tracking-widest uppercase">Continue</button>
+                                                <p className="text-xs opacity-80 mb-4">{quizState.feedback.explanation}</p>
+                                                <button onClick={nextQuestion} className={`w-full py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${isDark ? 'bg-white text-black hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>Continue</button>
                                             </div>
                                         )}
                                     </div>
                                 )}
                             </div>
-                        )}
+                        </div>
+                    </div>
+                )}
 
-                        {activeTab === 'missions' && (
-                            <div className="space-y-4">
+                {/* === MISSIONS TAB: Full width content === */}
+                {activeTab === 'missions' && (
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="max-w-3xl mx-auto p-4 lg:p-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {MISSIONS.map(m => (
                                     <Card key={m.id} isDark={isDark} noPadding>
-                                        <div className="p-6">
+                                        <div className="p-5">
                                             <div className="flex justify-between items-start mb-2">
-                                                <h4 className="text-xs font-black text-white uppercase">{m.title}</h4>
-                                                <Shield className="w-4 h-4 text-indigo-500" />
+                                                <h4 className={`text-xs font-black uppercase ${isDark ? 'text-white' : 'text-slate-800'}`}>{m.title}</h4>
+                                                <Shield className="w-4 h-4 text-indigo-500 shrink-0" />
                                             </div>
-                                            <p className="text-[10px] text-slate-500 mb-4 leading-relaxed">{m.desc}</p>
-                                            <button onClick={() => { setActiveMission(m); setActiveTab('sim'); }} className="w-full py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-[10px] font-black tracking-widest hover:bg-slate-700">START MISSION</button>
+                                            <p className={`text-[10px] mb-4 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{m.desc}</p>
+                                            <button onClick={() => { setActiveMission(m); setActiveTab('sim'); }} className={`w-full py-2.5 border rounded-xl text-[10px] font-black tracking-widest transition-all ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-700'}`}>START MISSION</button>
                                         </div>
                                     </Card>
                                 ))}
                             </div>
-                        )}
-                    </div>
-
-                    <div className="p-6 border-t border-slate-800 bg-slate-950/50">
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">SYSTEM STABILITY</span>
-                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">HEALTHY</span>
-                        </div>
-                        <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                            <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
