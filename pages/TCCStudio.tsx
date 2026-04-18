@@ -830,6 +830,11 @@ const SimulatorView = ({ isActive }) => {
     const [footerOpen, setFooterOpen] = useState(false);
     const [settingsTab, setSettingsTab] = useState('params'); // 'params' | 'analysis'
 
+    // Mobile States
+    const [mobileTab, setMobileTab] = useState('graph'); // 'graph' | 'settings' | 'analytics'
+    const [showScenariosModal, setShowScenariosModal] = useState(false);
+    const [panStart, setPanStart] = useState(null);
+
     useEffect(() => {
         if (window.innerWidth < 768) {
             setLeftPanelOpen(false);
@@ -1090,15 +1095,25 @@ const SimulatorView = ({ isActive }) => {
                 {dev.showBand && !isEquipment && !isFuse && !isSnapshot && dMin && <path d={`${dMin} ${dMax} Z`} fill={dev.color} fillOpacity="0.1" stroke="none" />}
                 <path d={d} fill="none" stroke={dev.color} strokeWidth={strokeWidth} strokeDasharray={strokeDash}
                     className={`transition-all duration-200 ${isSnapshot ? '' : 'cursor-pointer hover:stroke-[4px] hover:opacity-100 shadow-xl'} ${isSelected ? 'opacity-100' : 'opacity-80'}`}
-                    onClick={(e) => { if (!isSnapshot) { e.stopPropagation(); setSelectedId(dev.id); if (window.innerWidth < 768) setLeftPanelOpen(false); if (!rightPanelOpen) setRightPanelOpen(true); } }}
+                    onClick={(e) => { if (!isSnapshot) { e.stopPropagation(); setSelectedId(dev.id); if (typeof window !== 'undefined' && window.innerWidth < 768) { setMobileTab('settings'); setSettingsTab('params'); } if (!rightPanelOpen) setRightPanelOpen(true); } }}
                 />
                 {!isEquipment && !isSnapshot && (
                     <text x={handlePickX + 5} y={dims.h - 20} fill={dev.color} fontSize="10" fontWeight="bold" className="pointer-events-none select-none shadow-sm">{dev.name}{fuseLabel}</text>
                 )}
                 {isSelected && !dev.locked && !isEquipment && !isFuse && (
                     <g>
-                        <rect x={handlePickX - 5} y={dims.h - 12} width={10} height={12} fill={dev.color} stroke="white" strokeWidth="1" className="cursor-ew-resize hover:scale-125 transition-transform" onMouseDown={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('PICKUP'); }} />
-                        <circle cx={handleTDSX} cy={handleTDSY} r={5} fill={dev.color} stroke="white" strokeWidth="2" className="cursor-ns-resize hover:scale-125 transition-transform" onMouseDown={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('TDS'); }} />
+                        <g className="cursor-ew-resize hover:scale-125 transition-transform" transform={`translate(${handlePickX}, ${dims.h - 6})`} 
+                           onMouseDown={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('PICKUP'); }}
+                           onTouchStart={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('PICKUP'); }}>
+                            <rect x={-15} y={-24} width={30} height={30} fill="transparent" />
+                            <rect x={-5} y={-6} width={10} height={12} fill={dev.color} stroke="white" strokeWidth="1" />
+                        </g>
+                        <g className="cursor-ns-resize hover:scale-125 transition-transform" transform={`translate(${handleTDSX}, ${handleTDSY})`}
+                           onMouseDown={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('TDS'); }}
+                           onTouchStart={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('TDS'); }}>
+                            <circle r={20} fill="transparent" />
+                            <circle r={5} fill={dev.color} stroke="white" strokeWidth="2" />
+                        </g>
                     </g>
                 )}
             </g>
@@ -1159,9 +1174,12 @@ const SimulatorView = ({ isActive }) => {
         }
 
         return (
-            <g className="group cursor-ew-resize" onMouseDown={(e) => { e.stopPropagation(); setDraggingId('FAULT'); setDragType('FAULT'); }}>
-                <line x1={x} y1={0} x2={x} y2={dims.h} stroke="#ef4444" strokeWidth="2" strokeDasharray="4,4" className="opacity-70 group-hover:opacity-100 transition-opacity" />
-                <polygon points={`${x},0 ${x - 6},10 ${x + 6},10`} fill="#ef4444" className="drop-shadow-md group-hover:scale-125 transition-transform origin-top" />
+            <g className="group cursor-ew-resize" 
+               onMouseDown={(e) => { e.stopPropagation(); setDraggingId('FAULT'); setDragType('FAULT'); }}
+               onTouchStart={(e) => { e.stopPropagation(); setDraggingId('FAULT'); setDragType('FAULT'); }}>
+                <rect x={x - 20} y={0} width={40} height={dims.h} fill="transparent" />
+                <line x1={x} y1={0} x2={x} y2={dims.h} stroke="#ef4444" strokeWidth="2" strokeDasharray="4,4" className="opacity-70 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <polygon points={`${x},0 ${x - 6},10 ${x + 6},10`} fill="#ef4444" className="drop-shadow-md group-hover:scale-125 transition-transform origin-top pointer-events-none" />
                 <text x={x + 8} y={20} fill="#ef4444" fontSize="11" fontWeight="bold" className="pointer-events-none select-none">Fault: {faultAmps.toFixed(0)}A</text>
                 {/* Arc Flash HRC indicator */}
                 {arcFlashInfo && (
@@ -1177,13 +1195,29 @@ const SimulatorView = ({ isActive }) => {
         );
     };
 
-    const handleMouseMove = (e) => {
+    const handlePointerAction = (clientX, clientY) => {
         if (!graphRef.current) return;
         const rect = graphRef.current.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
+        const mx = clientX - rect.left;
+        const my = clientY - rect.top;
         const curAmps = fromPxX(mx);
         const curTime = fromPxY(my);
+
+        if (dragType === 'PAN' && panStart) {
+            const dxPx = mx - panStart.x;
+            const dyPx = my - panStart.y;
+            const shiftX = Math.pow(10, (dxPx / dims.w) * (logMaxX - logMinX));
+            const shiftY = Math.pow(10, (-dyPx / dims.h) * (logMaxY - logMinY));
+            setView(v => ({
+                minX: Math.max(1, v.minX / shiftX),
+                maxX: Math.min(100000, v.maxX / shiftX),
+                minY: Math.max(0.001, v.minY / shiftY),
+                maxY: Math.min(10000, v.maxY / shiftY)
+            }));
+            setPanStart({ x: mx, y: my });
+            return;
+        }
+
         setCursor({ x: curAmps, y: curTime });
         if (!draggingId) return;
         if (dragType === 'FAULT') { setFaultAmps(Math.max(view.minX, Math.min(curAmps, view.maxX))); }
@@ -1196,6 +1230,23 @@ const SimulatorView = ({ isActive }) => {
             }
         }
     };
+
+    const handleMouseMove = (e) => handlePointerAction(e.clientX, e.clientY);
+    const handleTouchMove = (e) => {
+        e.preventDefault(); // Prevent native scroll while interacting with graph
+        handlePointerAction(e.touches[0].clientX, e.touches[0].clientY);
+    };
+
+    const startPan = (clientX, clientY) => {
+        if (!draggingId || dragType === 'PAN') {
+            if (!graphRef.current) return;
+            const rect = graphRef.current.getBoundingClientRect();
+            setDragType('PAN');
+            setDraggingId('PAN');
+            setPanStart({ x: clientX - rect.left, y: clientY - rect.top });
+        }
+    };
+
 
     const coordinationReport = useMemo(() => {
         const active = devices.filter(d => d.visible);
@@ -1241,32 +1292,44 @@ const SimulatorView = ({ isActive }) => {
     return (
         <section className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden select-none font-sans"
             style={{ display: isActive ? 'flex' : 'none' }}
-            onMouseMove={handleMouseMove} onMouseUp={() => setDraggingId(null)} onMouseLeave={() => { setDraggingId(null); setCursor(null); }}>
+            onMouseMove={handleMouseMove} 
+            onTouchMove={handleTouchMove}
+            onMouseUp={() => setDraggingId(null)} 
+            onTouchEnd={() => setDraggingId(null)}
+            onMouseLeave={() => { setDraggingId(null); setCursor(null); }}>
 
             {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
-            {/* HEADER TOOLBAR */}
-            <div className="h-10 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-2 shadow-sm z-20 shrink-0 overflow-x-auto custom-scrollbar">
-                <div className="flex items-center gap-2">
-                    <button onClick={() => {
-                        if (!leftPanelOpen && window.innerWidth < 768) setRightPanelOpen(false);
-                        setLeftPanelOpen(!leftPanelOpen);
-                    }} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!leftPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
-                        {leftPanelOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
-                    </button>
-                    <div className="relative group">
-                        <button className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-[11px] font-bold transition-colors whitespace-nowrap">
-                            <Layers className="w-3 h-3 text-blue-500" /> Scenarios <ChevronDown className="w-3 h-3" />
-                        </button>
-                        <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl hidden group-hover:block z-50 p-1">
+            {showScenariosModal && (
+                <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden">
+                        <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 shrink-0">
+                            <h3 className="font-black text-lg flex items-center gap-2 text-slate-900 dark:text-white"><Layers className="w-5 h-5 text-blue-500"/> Scenarios Library</h3>
+                            <button onClick={() => setShowScenariosModal(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"><X className="w-5 h-5 cursor-pointer"/></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-2">
                             {SCENARIOS.map((s, i) => (
-                                <button key={s.id} onClick={() => loadScenario(i)} className="w-full text-left p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded transition-colors">
-                                    <div className="font-bold text-xs text-slate-800 dark:text-slate-200">{s.name}</div>
-                                    <div className="text-[10px] text-slate-500 mt-0.5">{s.description}</div>
+                                <button key={s.id} onClick={() => { loadScenario(i); setShowScenariosModal(false); }} className="w-full text-left p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors border-b border-slate-100 dark:border-slate-800/50 last:border-0">
+                                    <div className="font-bold text-sm text-slate-800 dark:text-slate-200">{s.name}</div>
+                                    <div className="text-xs text-slate-500 mt-1">{s.description}</div>
                                 </button>
                             ))}
                         </div>
                     </div>
+                </div>
+            )}
+
+            <div className="flex h-10 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 items-center justify-between px-2 shadow-sm z-20 shrink-0 overflow-x-auto custom-scrollbar">
+                <div className="flex items-center gap-2">
+                    <button onClick={() => {
+                        if (!leftPanelOpen && window.innerWidth < 768) setRightPanelOpen(false);
+                        setLeftPanelOpen(!leftPanelOpen);
+                    }} className={`hidden md:block p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!leftPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
+                        {leftPanelOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+                    </button>
+                    <button onClick={() => setShowScenariosModal(true)} className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-[11px] font-bold transition-colors whitespace-nowrap">
+                        <Layers className="w-3 h-3 text-blue-500" /> Scenarios <ChevronDown className="w-3 h-3" />
+                    </button>
                 </div>
 
                 <div className="flex items-center gap-1.5 ml-auto">
@@ -1302,16 +1365,17 @@ const SimulatorView = ({ isActive }) => {
                     <button onClick={() => {
                         if (!rightPanelOpen && window.innerWidth < 768) setLeftPanelOpen(false);
                         setRightPanelOpen(!rightPanelOpen);
-                    }} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
+                    }} className={`hidden md:block p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
                         {rightPanelOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
                     </button>
                 </div>
             </div>
 
-            {/* MAIN WORKSPACE */}
             <div className="flex flex-1 overflow-hidden relative">
                 {/* LEFT: INTELLIGENT REPORT */}
-                <div className={`absolute md:relative z-40 h-full border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 transition-all duration-300 ease-in-out ${leftPanelOpen ? 'w-full md:w-72 translate-x-0' : 'w-0 -translate-x-full opacity-0 overflow-hidden'}`}>
+                <div className={`absolute md:relative z-40 h-full border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 transition-all duration-300 ease-in-out flex flex-col ${
+                    mobileTab === 'analytics' ? 'max-md:w-full max-md:translate-x-0 max-md:pt-1' : 'max-md:hidden max-md:-translate-x-full'
+                } ${leftPanelOpen ? 'md:w-72 md:translate-x-0' : 'md:w-0 md:-translate-x-full md:opacity-0 md:overflow-hidden'}`}>
                     <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
                         <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2 tracking-wider"><Clock className="w-3 h-3 text-slate-400" /> Coordination Check</span>
                     </div>
@@ -1381,8 +1445,12 @@ const SimulatorView = ({ isActive }) => {
                 </div>
 
                 {/* CENTER: INTERACTIVE GRAPH */}
-                <div className="flex-1 bg-slate-100 dark:bg-slate-950 relative overflow-hidden cursor-crosshair flex flex-col">
-                    <div ref={graphRef} className="flex-1 relative m-2 bg-white dark:bg-black rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner overflow-hidden">
+                <div className={`flex-1 bg-slate-100 dark:bg-slate-950 relative cursor-crosshair flex flex-col transition-all overflow-hidden ${
+                    mobileTab === 'graph' ? 'max-md:w-full max-md:translate-x-0' : 'max-md:hidden'
+                }`}>
+                    <div ref={graphRef} className="flex-1 relative m-2 bg-white dark:bg-black rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner overflow-hidden" 
+                         onMouseDown={(e) => startPan(e.clientX, e.clientY)}
+                         onTouchStart={(e) => startPan(e.touches[0].clientX, e.touches[0].clientY)}>
                         <svg width={dims.w} height={dims.h} className="absolute inset-0 block">
                             {GridLines}
                             {snapshots.map(snap => snap.devices.map((dev: any) => (
@@ -1410,16 +1478,17 @@ const SimulatorView = ({ isActive }) => {
                     </div>
                 </div>
 
-                {/* RIGHT: SETTINGS PANEL */}
-                <div className={`absolute right-0 md:relative z-40 h-full border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out ${rightPanelOpen ? 'w-full md:w-80 translate-x-0' : 'w-0 translate-x-full opacity-0 overflow-hidden'}`}>
+                <div className={`absolute right-0 md:relative z-40 h-full border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out flex flex-col ${
+                    mobileTab === 'settings' ? 'max-md:w-full max-md:translate-x-0 max-md:pt-1' : 'max-md:hidden max-md:w-0 max-md:translate-x-full'
+                } ${rightPanelOpen ? 'md:w-80 md:translate-x-0' : 'md:w-0 md:translate-x-full md:opacity-0 md:overflow-hidden'}`}>
 
                     {/* TABS */}
-                    <div className="flex p-1 m-4 mb-0 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                        <button onClick={() => setSettingsTab('params')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${settingsTab === 'params' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Parameters</button>
-                        <button onClick={() => setSettingsTab('analysis')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${settingsTab === 'analysis' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Coordinator</button>
-                    </div>
+                                    <div className="flex m-4 mb-0 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                                        <button onClick={() => setSettingsTab('params')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${settingsTab === 'params' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Parameters</button>
+                                        <button onClick={() => setSettingsTab('analysis')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${settingsTab === 'analysis' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Coordinator</button>
+                                    </div>
 
-                    {settingsTab === 'params' && (
+                                    {settingsTab === 'params' && (
                         selectedDevice ? (
                             <>
                                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-between items-center">

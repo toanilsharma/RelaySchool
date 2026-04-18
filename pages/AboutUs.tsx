@@ -101,8 +101,7 @@ const AboutUs = () => {
             <Award className="w-5 h-5 text-amber-500" /> Created By
           </h2>
           <p>
-            RelaySchool is created and maintained by <strong>Anil Sharma</strong>, a power system protection engineer 
-            based in Vadodara, Gujarat, India. The platform is built from hands-on industry experience in relay engineering, 
+            RelaySchool is created and maintained by <strong>Anil Sharma</strong>, a reliability and maintenance expert in industrial Electrical and Instrumentation field in Gujarat, India having experience of more than 25 years. The platform is built from hands-on industry experience in relay engineering, 
             commissioning, and protection coordination — with a passion for making these concepts interactive and accessible 
             to engineers worldwide.
           </p>
