@@ -1765,7 +1765,7 @@ const TCCStudio = () => {
     const [mode, setMode] = useState('simulator'); // 'theory' | 'simulator' | 'quiz'
 
     return (
-        <main className="h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans">
+        <main className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 flex flex-col font-sans">
             <PageSEO
                 title="TCC Studio PRO"
                 description="Interactive Time-Current Coordination (TCC) Studio for power system protection engineering. Coordinate IEC and ANSI overcurrent relays."

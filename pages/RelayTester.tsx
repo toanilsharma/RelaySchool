@@ -624,7 +624,7 @@ export default function RelayTesterApp() {
     ];
 
     return (
-        <div className={`h-screen flex flex-col font-sans transition-all duration-500 selection:bg-indigo-500/30 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+        <div className={`min-h-[100dvh] flex flex-col font-sans transition-all duration-500 selection:bg-indigo-500/30 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
             <PageSEO 
                 title="Relay Tester (ANSI 51)" 
                 description="Professional relay testing simulator (IEC 60255 / IEEE C37.90). Test pickup, timing, and harmonic blocking for protective relays." 

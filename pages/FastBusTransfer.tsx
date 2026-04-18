@@ -955,7 +955,7 @@ export default function FastBusTransferApp() {
   const isDark = useThemeObserver();
 
   return (
-    <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+    <div className={`min-h-[100dvh] flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
       <PageSEO 
         title="Fast Bus Transfer (FBT) Simulator | RelaySchool"
         description="Comprehensive motor bus transfer (ANSI 50BT) simulator. Explore fast, in-phase, and residual transfer modes for industrial power system continuity."

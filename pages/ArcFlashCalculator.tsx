@@ -413,7 +413,7 @@ export default function App() {
     ];
 
     return (
-        <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#0f172a] text-slate-200' : 'bg-slate-100 text-slate-800'}`}>
+        <div className={`min-h-[100dvh] flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#0f172a] text-slate-200' : 'bg-slate-100 text-slate-800'}`}>
             <PageSEO 
                 title="Arc Flash Hazard Analysis (IEEE 1584) | RelaySchool"
                 description="Interactive IEEE 1584 arc flash incident energy calculator. Determine safety boundaries and PPE categories for industrial power systems."

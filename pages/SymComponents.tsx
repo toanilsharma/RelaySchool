@@ -760,7 +760,7 @@ const SymComponents = () => {
   const isDark = useThemeObserver();
 
   return (
-    <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+    <div className={`min-h-[100dvh] flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
 <SEO title="Sym Components" description="Interactive Power System simulation and engineering tool: Sym Components." url="/symcomponents" />
 
       

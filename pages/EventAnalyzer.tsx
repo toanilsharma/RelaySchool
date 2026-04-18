@@ -443,7 +443,7 @@ export default function App() {
     };
 
     return (
-        <div className="bg-slate-950 min-h-screen text-slate-100 font-sans flex flex-col selection:bg-blue-900 selection:text-white overflow-x-hidden">
+        <div className="bg-slate-950 min-h-screen text-slate-100 font-sans flex flex-col selection:bg-blue-900 selection:text-white max-w-[100vw] overflow-x-clip">
             <PageSEO 
                 title="COMTRADE Event Analyzer & Fault Recorder | RelaySchool"
                 description="Professional fault record analysis tool. Visualize transient oscillography, phasors, and protection element performance."

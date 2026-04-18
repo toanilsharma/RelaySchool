@@ -679,7 +679,7 @@ export default function ForensicLabApp() {
     const isDark = useThemeObserver();
 
     return (
-        <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+        <div className={`min-h-[100dvh] flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
             <PageSEO 
                 title="Forensic Lab: Symmetrical Components Simulator | RelaySchool"
                 description="Power system fault analysis lab using Symmetrical Components (Fortescue). Analyze IA/IB/IC and VA/VB/VC phasors in real-time."

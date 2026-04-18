@@ -754,7 +754,7 @@ export default function App() {
     ];
 
     return (
-        <div className={`h-screen flex flex-col font-sans transition-colors duration-500 ${isDark ? 'bg-[#020617] text-slate-100' : 'bg-slate-50 text-slate-900'} selection:bg-blue-500/30 ${isTripping ? 'animate-trip' : ''}`}>
+        <div className={`min-h-[100dvh] flex flex-col font-sans transition-colors duration-500 ${isDark ? 'bg-[#020617] text-slate-100' : 'bg-slate-50 text-slate-900'} selection:bg-blue-500/30 ${isTripping ? 'animate-trip' : ''}`}>
             <PageSEO 
                 title="Autorecloser SCADA Simulator (ANSI 79) | RelaySchool"
                 description="Interactive SCADA simulator for autorecloser protection. Visualize shot sequences, dead times, and reclaim timers for power grid stability."

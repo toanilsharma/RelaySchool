@@ -655,7 +655,7 @@ export default function CTVTCalculator() {
     ];
 
     return (
-        <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+        <div className={`min-h-[100dvh] flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
             <PageSEO 
                 title="CT/VT Sizing & Accuracy Calculator | RelaySchool"
                 description="Professional instrument transformer sizing tool. Compliant with IEEE C57.13 and IEC 61869-2. Calculate knee voltage and transient saturation."

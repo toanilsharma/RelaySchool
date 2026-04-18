@@ -723,7 +723,7 @@ export default function App() {
       </header>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden h-[calc(100vh-5rem)] relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950">
+      <main className="flex-1 overflow-y-auto overflow-x-clip max-w-[100vw] h-[calc(100vh-5rem)] relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950">
         <AnimatePresence mode="wait">
           {activeTab === 'simulator' && <motion.div key="sim" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="h-full"><SimulationView /></motion.div>}
           {activeTab === 'theory' && <motion.div key="theory" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="h-full"><TheoryView /></motion.div>}

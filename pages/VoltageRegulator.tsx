@@ -382,7 +382,7 @@ export default function VoltageRegulator() {
     ];
 
     return (
-        <div className={`min-h-screen font-sans selection:bg-indigo-500/30 overflow-x-hidden transition-colors duration-500 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-900'} ${isTripping ? 'animate-trip' : ''}`}>
+        <div className={`min-h-screen font-sans selection:bg-indigo-500/30 transition-colors duration-500 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-900'} ${isTripping ? 'animate-trip' : ''}`}>
             <PageSEO 
                 title="Voltage Regulator Simulator (ANSI 90)"
                 description="Professional OLTC and Voltage Regulator simulator. Master deadband logic, time delay integration, and ANSI C84.1 compliance."

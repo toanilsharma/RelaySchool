@@ -477,7 +477,7 @@ export default function OvercurrentSim() {
   ];
 
   return (
-    <div className={`min-h-screen transition-colors duration-500 font-sans selection:bg-indigo-500/30 overflow-x-hidden ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${isTripping ? 'animate-trip' : ''}`}>
+    <div className={`min-h-screen transition-colors duration-500 font-sans selection:bg-indigo-500/30 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${isTripping ? 'animate-trip' : ''}`}>
       <PageSEO 
         title="Overcurrent Simulator (ANSI 50/51)"
         description="Professional IEEE C37.112 and IEC 60255 overcurrent relay simulator. Master TCC curves and protection coordination."
@@ -512,7 +512,7 @@ export default function OvercurrentSim() {
         </div>
       </header>
 
-      <main className="w-full mx-auto p-4 lg:p-6 h-[calc(100vh-5rem-2.5rem)] overflow-y-auto overflow-x-hidden">
+      <main className="w-full mx-auto p-4 lg:p-6 h-[calc(100vh-5rem-2.5rem)] overflow-y-auto overflow-x-clip max-w-[100vw]">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="h-full">
             {activeTab === 'simulator' && (

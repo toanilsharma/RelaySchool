@@ -767,7 +767,7 @@ export default function DifferentialProtectionApp() {
     }, []);
 
     return (
-        <div className={`h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+        <div className={`min-h-[100dvh] flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
             <PageSEO 
                 title="Transformer Differential (87T) Dual-Slope Simulator | RelaySchool"
                 description="Master differential protection slopes. Visualize restrained vs. unrestrained regions, CT saturation effects, and inrush logic."

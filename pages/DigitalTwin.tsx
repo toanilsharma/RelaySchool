@@ -565,7 +565,7 @@ export default function App() {
   const selectedNode = nodes.find(n => n.id === selectedId);
 
   return (
-    <div className="h-screen bg-[#020617] text-slate-200 font-sans overflow-hidden flex flex-col selection:bg-cyan-500/30">
+    <div className="min-h-[100dvh] bg-[#020617] text-slate-200 font-sans overflow-hidden flex flex-col selection:bg-cyan-500/30">
       <PageSEO 
         title="Digital Twin | Substation Automation & Mesh Network Simulator"
         description="Interact with a live digital twin of a 132/33kV substation. Simulate bus faults, ring network load sharing, and IEC 61850 GOOSE communications."

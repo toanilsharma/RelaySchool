@@ -227,7 +227,7 @@ export default function BreakerFailure() {
     const [sid, setSid] = usePersistentState('bf_scenario', 'normal');
 
     return (
-        <div className={`min-h-screen transition-colors duration-500 font-sans selection:bg-red-500/30 overflow-x-hidden md:overflow-visible ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${isTripping ? 'animate-trip' : ''}`}>
+        <div className={`min-h-screen transition-colors duration-500 font-sans selection:bg-red-500/30 max-w-[100vw] overflow-x-clip md:overflow-visible ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${isTripping ? 'animate-trip' : ''}`}>
             <PageSEO title="BFGuard PRO: Breaker Failure Protection" description="Industrial IEEE C37.119 simulator. Analyze breaker failure timing, retrip logic, and fault clearing sequences." url="/breakerfailure" />
             
             <header className={`h-24 border-b px-10 flex items-center justify-between sticky top-0 z-50 transition-colors duration-500 ${isDark ? 'bg-slate-950/80 border-slate-800 backdrop-blur-xl' : 'bg-white/80 border-slate-200 backdrop-blur-xl shadow-sm'}`}>

@@ -319,7 +319,7 @@ export default function BusbarProtection() {
     ];
 
     return (
-        <div className={`min-h-screen transition-colors duration-500 font-sans selection:bg-indigo-500/30 overflow-x-hidden ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${isTripping ? 'animate-trip' : ''}`}>
+        <div className={`min-h-screen transition-colors duration-500 font-sans selection:bg-indigo-500/30 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${isTripping ? 'animate-trip' : ''}`}>
             <PageSEO 
                 title="Busbar Protection Simulator (ANSI 87B)"
                 description="Professional busbar differential simulator. Master high-impedance and low-impedance 87B logic and CT saturation security."

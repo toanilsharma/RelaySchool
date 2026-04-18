@@ -237,7 +237,7 @@ export default function LineDiffSim() {
                 </div>
             </header>
 
-            <main className="w-full mx-auto p-4 lg:p-6 h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden">
+            <main className="w-full mx-auto p-4 lg:p-6 h-[calc(100vh-6rem)] overflow-y-auto overflow-x-clip max-w-[100vw]">
                 <AnimatePresence mode="wait">
                     <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full">
                         {activeTab === 'simulator' && (

@@ -673,7 +673,7 @@ export default function TransformerProtection() {
     ];
 
     return (
-        <div className={`h-screen flex flex-col font-sans transition-colors duration-500 overflow-hidden relative ${isDark ? 'bg-[#030712] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+        <div className={`min-h-[100dvh] flex flex-col font-sans transition-colors duration-500 overflow-hidden relative ${isDark ? 'bg-[#030712] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
             <PageSEO 
                 title="Transformer Protection Simulator (87T)"
                 description="Master transformer differential protection with our interactive 87T simulator. Learn about vector groups, inrush harmonics, and slope characteristics."
