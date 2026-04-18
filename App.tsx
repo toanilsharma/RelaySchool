@@ -7,7 +7,7 @@ import Footer from './components/Footer';
 import CookieConsent from './components/CookieConsent';
 import AICoach from './components/AICoach';
 import ErrorBoundary from './components/ErrorBoundary';
-import { Menu, Loader2, Command } from 'lucide-react';
+import { Menu, Loader2, Command, Monitor, Expand } from 'lucide-react';
 import { CommandPalette } from './components/UI/CommandPalette';
 
 import { GET_ALL_APP_ROUTES, STATIC_ROUTES } from './routes';
@@ -110,8 +110,15 @@ const App = () => {
       <BrowserRouter>
         <ScrollToTop />
         <RouteTracker />
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans antialiased selection:bg-blue-50 selection:text-white transition-colors duration-300">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans antialiased selection:bg-blue-50 selection:text-white transition-colors duration-300 flex flex-col">
           <CommandPalette />
+          
+          {/* UNIVERSAL DESKTOP WARNING BANNER */}
+          <div className="bg-indigo-600 dark:bg-indigo-900 border-b border-indigo-700 dark:border-indigo-950 text-white text-[10px] sm:text-xs font-bold py-1.5 px-3 text-center flex items-center justify-center gap-2 shadow-sm shrink-0 w-full z-[100] relative">
+            <Expand className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-90 shrink-0" />
+            <span className="truncate uppercase tracking-wider">Simulators require a large screen. Best viewed on Laptop, Tablet, or using Desktop Mode.</span>
+          </div>
+
           <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white sticky top-0 z-30 shadow-md">
             <Link to="/" onClick={() => setMobileMenuOpen(false)} className="font-bold text-lg flex items-center gap-2 hover:text-blue-400 transition-colors">RelaySchool</Link>
             <div className="flex items-center gap-3">

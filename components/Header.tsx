@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, Zap, Layers, BookOpen, LayoutDashboard, Menu, X, Sun, Moon, Settings } from 'lucide-react';
+import { Activity, Zap, Layers, BookOpen, LayoutDashboard, Menu, X, Sun, Moon, Settings, Monitor } from 'lucide-react';
 
 interface HeaderProps {
     theme: 'dark' | 'light';
