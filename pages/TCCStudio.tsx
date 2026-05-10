@@ -1529,7 +1529,45 @@ const SimulatorView = ({ isActive }) => {
                     </div>
 
                     {/* Tab content — fixed container for all tabs */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                    <div className="flex-1 flex flex-col overflow-hidden">
+
+                    {/* DEVICE NAVIGATOR - Directly addresses user need for visibility of all devices */}
+                    <div className="mx-2 mt-2 flex flex-col bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0">
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest p-2 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50 flex justify-between items-center">
+                            <span className="flex items-center gap-1.5"><Activity className="w-3 h-3" /> Active Devices ({devices.length}/7)</span>
+                            <span className="text-[8px] opacity-60">Click to Select</span>
+                        </div>
+                        <div className="max-h-48 overflow-y-auto custom-scrollbar p-1.5 space-y-1 bg-white/30 dark:bg-black/10">
+                            {devices.map(dev => (
+                                <button
+                                    key={dev.id}
+                                    onClick={() => {
+                                        setSelectedId(dev.id);
+                                        setSettingsTab('params');
+                                        if (window.innerWidth < 768) setMobileTab('settings');
+                                    }}
+                                    className={`w-full flex items-center gap-3 p-1.5 rounded-lg transition-all border ${
+                                        selectedId === dev.id 
+                                            ? 'bg-white dark:bg-slate-700 border-blue-500 shadow-sm ring-1 ring-blue-500/10' 
+                                            : 'bg-transparent border-transparent hover:bg-white/50 dark:hover:bg-slate-700/30'
+                                    }`}
+                                >
+                                    <div className="w-3 h-3 rounded-full shrink-0 shadow-inner" style={{ backgroundColor: dev.color }}></div>
+                                    <div className="flex-1 text-left overflow-hidden">
+                                        <div className={`text-[10px] font-bold truncate ${selectedId === dev.id ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-200'}`}>{dev.name}</div>
+                                        <div className="text-[9px] text-slate-400 font-mono">
+                                            {dev.pickup}A | {dev.tds} {dev.type === 'Fuse' ? 'Rating' : 'TMS'}
+                                        </div>
+                                    </div>
+                                    {dev.locked && <Lock className="w-2.5 h-2.5 text-slate-300" />}
+                                    {selectedId === dev.id && <div className="w-1 h-3 bg-blue-500 rounded-full animate-pulse"></div>}
+                                </button>
+                            ))}
+                            {devices.length === 0 && (
+                                <div className="py-4 text-center text-[10px] text-slate-400 italic">No devices added yet.</div>
+                            )}
+                        </div>
+                    </div>
 
                     {settingsTab === 'params' && (
                         selectedDevice ? (
