@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Activity, Plus, Trash2, AlertTriangle, CheckCircle, Search,
     ZoomIn, ZoomOut, Maximize, RotateCcw, Save, Settings,
@@ -9,7 +10,7 @@ import {
     Maximize2, Minimize2, BrainCircuit, School, Calculator, ArrowRight,
     Trophy, XCircle, RefreshCw, Flame, Factory, Gauge, GitCompare,
     ArrowUpFromLine, ArrowDownToLine, Ruler, Menu, Book, MousePointerClick, Share2,
-    Sliders, Smartphone, Sparkles, Filter
+    Sliders, Smartphone, Sparkles, Filter, ArrowLeft
 } from 'lucide-react';
 import Slider from '../components/Slider';
 import { useThemeObserver } from '../hooks/useThemeObserver';
@@ -835,6 +836,27 @@ const SimulatorView = ({ isActive }) => {
     const [showScenariosModal, setShowScenariosModal] = useState(false);
     const [panStart, setPanStart] = useState(null);
 
+    // Guided Tour State
+    const TOUR_STEPS = [
+        { id: 'welcome', title: 'Welcome to TCC Studio!', desc: 'This tool lets you plot Time-Current Characteristic curves and verify relay coordination. Let\'s walk through the key steps.', position: 'center' },
+        { id: 'add-device', title: 'Step 1: Add Devices', desc: 'Click the blue "+ Add Device" button in the toolbar to add overcurrent relays or fuses. You can add up to 7 devices.', target: 'toolbar-right', position: 'below' },
+        { id: 'adjust', title: 'Step 2: Adjust Settings', desc: 'Select a device curve on the graph, then use the Settings panel on the right to change Pickup (Is), Time Dial (TMS), and Curve Type.', target: 'right-panel', position: 'left' },
+        { id: 'fault-line', title: 'Step 3: Drag the Fault Line', desc: 'The red dashed line represents a simulated fault current. Drag it left/right to test different fault levels and see how each device responds.', target: 'graph-area', position: 'center' },
+        { id: 'sequence', title: 'Step 4: Check Results', desc: 'Switch to the SEQUENCE tab on the right panel to see trip order, time margins, and CTI violation warnings — the coordination report.', target: 'right-panel', position: 'left' },
+        { id: 'scenarios', title: 'Bonus: Load Scenarios', desc: 'Click "Scenarios" to load pre-built coordination studies (e.g., Feeder + Substation) and learn by example. You can also Reset anytime.', target: 'toolbar-left', position: 'below' },
+    ];
+    const [tourStep, setTourStep] = useState(-1); // -1 = tour not active
+    const isTourActive = tourStep >= 0 && tourStep < TOUR_STEPS.length;
+
+    // Show tour on first visit
+    useEffect(() => {
+        const seen = localStorage.getItem('tcc-tour-seen');
+        if (!seen) {
+            setTourStep(0);
+            localStorage.setItem('tcc-tour-seen', 'true');
+        }
+    }, []);
+
     useEffect(() => {
         if (window.innerWidth < 768) {
             setLeftPanelOpen(false);
@@ -856,6 +878,18 @@ const SimulatorView = ({ isActive }) => {
     const graphRef = useRef(null);
     const [draggingId, setDraggingId] = useState(null);
     const [dragType, setDragType] = useState(null);
+
+    // Global event listeners to guarantee dragging stops even if mouse leaves the SVG area
+    useEffect(() => {
+        if (!draggingId) return;
+        const handleUp = () => { setDraggingId(null); setDragType(null); };
+        window.addEventListener('pointerup', handleUp);
+        window.addEventListener('pointercancel', handleUp);
+        return () => {
+            window.removeEventListener('pointerup', handleUp);
+            window.removeEventListener('pointercancel', handleUp);
+        };
+    }, [draggingId]);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -948,6 +982,19 @@ const SimulatorView = ({ isActive }) => {
 
     const updateDevice = (id, patch) => setDevices(prev => prev.map(d => d.id === id ? { ...d, ...patch } : d));
     const removeDevice = (id) => { setDevices(prev => prev.filter(d => d.id !== id)); if (selectedId === id) setSelectedId(null); };
+
+    // Reset everything to clean slate
+    const resetAll = () => {
+        setDevices([]);
+        setSnapshots([]);
+        setSelectedId(null);
+        setFaultAmps(2000);
+        setView({ minX: 10, maxX: 100000, minY: 0.01, maxY: 1000 });
+        setAnalysisPair({ up: null, down: null });
+        setSettingsTab('params');
+        setFooterOpen(false);
+    };
+
     const loadScenario = (idx) => {
         const s = SCENARIOS[idx];
         setDevices(JSON.parse(JSON.stringify(s.devices)));
@@ -1103,14 +1150,14 @@ const SimulatorView = ({ isActive }) => {
                 {isSelected && !dev.locked && !isEquipment && !isFuse && (
                     <g>
                         <g className="cursor-ew-resize hover:scale-125 transition-transform" transform={`translate(${handlePickX}, ${dims.h - 6})`} 
-                           onMouseDown={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('PICKUP'); }}
-                           onTouchStart={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('PICKUP'); }}>
+                           onPointerDown={(e) => { e.stopPropagation(); e.target.setPointerCapture(e.pointerId); setDraggingId(dev.id); setDragType('PICKUP'); }}
+                           onPointerUp={(e) => { e.target.releasePointerCapture(e.pointerId); setDraggingId(null); }}>
                             <rect x={-15} y={-24} width={30} height={30} fill="transparent" />
                             <rect x={-5} y={-6} width={10} height={12} fill={dev.color} stroke="white" strokeWidth="1" />
                         </g>
                         <g className="cursor-ns-resize hover:scale-125 transition-transform" transform={`translate(${handleTDSX}, ${handleTDSY})`}
-                           onMouseDown={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('TDS'); }}
-                           onTouchStart={(e) => { e.stopPropagation(); setDraggingId(dev.id); setDragType('TDS'); }}>
+                           onPointerDown={(e) => { e.stopPropagation(); e.target.setPointerCapture(e.pointerId); setDraggingId(dev.id); setDragType('TDS'); }}
+                           onPointerUp={(e) => { e.target.releasePointerCapture(e.pointerId); setDraggingId(null); }}>
                             <circle r={20} fill="transparent" />
                             <circle r={5} fill={dev.color} stroke="white" strokeWidth="2" />
                         </g>
@@ -1175,8 +1222,8 @@ const SimulatorView = ({ isActive }) => {
 
         return (
             <g className="group cursor-ew-resize" 
-               onMouseDown={(e) => { e.stopPropagation(); setDraggingId('FAULT'); setDragType('FAULT'); }}
-               onTouchStart={(e) => { e.stopPropagation(); setDraggingId('FAULT'); setDragType('FAULT'); }}>
+               onPointerDown={(e) => { e.stopPropagation(); e.target.setPointerCapture(e.pointerId); setDraggingId('FAULT'); setDragType('FAULT'); }}
+               onPointerUp={(e) => { e.target.releasePointerCapture(e.pointerId); setDraggingId(null); }}>
                 <rect x={x - 20} y={0} width={40} height={dims.h} fill="transparent" />
                 <line x1={x} y1={0} x2={x} y2={dims.h} stroke="#ef4444" strokeWidth="2" strokeDasharray="4,4" className="opacity-70 group-hover:opacity-100 transition-opacity pointer-events-none" />
                 <polygon points={`${x},0 ${x - 6},10 ${x + 6},10`} fill="#ef4444" className="drop-shadow-md group-hover:scale-125 transition-transform origin-top pointer-events-none" />
@@ -1231,11 +1278,7 @@ const SimulatorView = ({ isActive }) => {
         }
     };
 
-    const handleMouseMove = (e) => handlePointerAction(e.clientX, e.clientY);
-    const handleTouchMove = (e) => {
-        e.preventDefault(); // Prevent native scroll while interacting with graph
-        handlePointerAction(e.touches[0].clientX, e.touches[0].clientY);
-    };
+    const handlePointerMove = (e) => handlePointerAction(e.clientX, e.clientY);
 
     const startPan = (clientX, clientY) => {
         if (!draggingId || dragType === 'PAN') {
@@ -1291,14 +1334,61 @@ const SimulatorView = ({ isActive }) => {
 
     return (
         <section className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden select-none font-sans"
-            style={{ display: isActive ? 'flex' : 'none' }}
-            onMouseMove={handleMouseMove} 
-            onTouchMove={handleTouchMove}
-            onMouseUp={() => setDraggingId(null)} 
-            onTouchEnd={() => setDraggingId(null)}
-            onMouseLeave={() => { setDraggingId(null); setCursor(null); }}>
+            style={{ display: isActive ? 'flex' : 'none', touchAction: 'none' }}
+            onPointerMove={handlePointerMove}>
 
             {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+
+            {/* GUIDED TOUR OVERLAY */}
+            {isTourActive && (
+                <div className="fixed inset-0 z-[100] pointer-events-none" style={{ isolation: 'isolate' }}>
+                    {/* Dimmed backdrop */}
+                    <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={() => setTourStep(-1)} />
+                    {/* Tour card */}
+                    <div className={`absolute pointer-events-auto animate-fade-in ${
+                        TOUR_STEPS[tourStep].position === 'center' ? 'inset-0 flex items-center justify-center' :
+                        TOUR_STEPS[tourStep].position === 'below' ? 'top-24 left-1/2 -translate-x-1/2' :
+                        'top-1/2 right-4 md:right-[340px] -translate-y-1/2'
+                    }`}>
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800/50 p-6 max-w-sm w-[90vw] md:w-full">
+                            {/* Step indicator */}
+                            <div className="flex items-center gap-1.5 mb-3">
+                                {TOUR_STEPS.map((_, i) => (
+                                    <div key={i} className={`h-1.5 rounded-full transition-all ${
+                                        i === tourStep ? 'w-6 bg-blue-600' : i < tourStep ? 'w-3 bg-blue-300' : 'w-3 bg-slate-200 dark:bg-slate-700'
+                                    }`} />
+                                ))}
+                                <span className="ml-auto text-[10px] text-slate-400 font-mono">{tourStep + 1}/{TOUR_STEPS.length}</span>
+                            </div>
+                            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-blue-500" />
+                                {TOUR_STEPS[tourStep].title}
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">
+                                {TOUR_STEPS[tourStep].desc}
+                            </p>
+                            <div className="flex items-center justify-between">
+                                <button onClick={() => setTourStep(-1)} className="text-xs text-slate-400 hover:text-slate-600 font-bold uppercase tracking-wider transition-colors">
+                                    Skip Tour
+                                </button>
+                                <div className="flex gap-2">
+                                    {tourStep > 0 && (
+                                        <button onClick={() => setTourStep(tourStep - 1)} className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                                            Back
+                                        </button>
+                                    )}
+                                    <button onClick={() => {
+                                        if (tourStep < TOUR_STEPS.length - 1) setTourStep(tourStep + 1);
+                                        else setTourStep(-1);
+                                    }} className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-md transition-all active:scale-95">
+                                        {tourStep < TOUR_STEPS.length - 1 ? 'Next →' : '✓ Start Building!'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showScenariosModal && (
                 <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
@@ -1322,19 +1412,28 @@ const SimulatorView = ({ isActive }) => {
             <div className="flex h-10 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 items-center justify-between px-2 shadow-sm z-20 shrink-0 overflow-x-auto custom-scrollbar">
                 <div className="flex items-center gap-2">
                     <button onClick={() => {
-                        if (!leftPanelOpen && window.innerWidth < 768) setRightPanelOpen(false);
-                        setLeftPanelOpen(!leftPanelOpen);
-                    }} className={`hidden md:block p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!leftPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
-                        {leftPanelOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+                        if (!document.fullscreenElement) {
+                            document.documentElement.requestFullscreen().catch(e => console.error(e));
+                        } else {
+                            if (document.exitFullscreen) document.exitFullscreen();
+                        }
+                    }} className="hidden md:flex p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Focus Mode">
+                        <Maximize2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setShowScenariosModal(true)} className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-[11px] font-bold transition-colors whitespace-nowrap">
-                        <Layers className="w-3 h-3 text-blue-500" /> Scenarios <ChevronDown className="w-3 h-3" />
+                    <button onClick={() => setShowScenariosModal(true)} className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded text-[11px] font-bold transition-colors whitespace-nowrap" title="Load or Save Scenarios">
+                        <Layers className="w-3 h-3 text-amber-500" /> Scenarios <ChevronDown className="w-3 h-3" />
                     </button>
                 </div>
 
                 <div className="flex items-center gap-1.5 ml-auto">
-                    <button onClick={() => setShowHelp(true)} className="hidden sm:flex items-center gap-1 px-2 py-1 text-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded text-[10px] font-bold transition-colors uppercase whitespace-nowrap">
+                    <button onClick={() => setShowHelp(true)} className="hidden sm:flex items-center gap-1 px-2 py-1 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded text-[10px] font-bold transition-colors uppercase whitespace-nowrap" title="View Help & Legend">
                         <Info className="w-3 h-3" /> Help
+                    </button>
+                    <button onClick={() => setTourStep(0)} className="hidden sm:flex items-center gap-1 px-2 py-1 text-violet-600 bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded text-[10px] font-bold transition-colors uppercase whitespace-nowrap" title="Start guided step-by-step tutorial">
+                        <Sparkles className="w-3 h-3" /> Guide
+                    </button>
+                    <button onClick={resetAll} className="hidden sm:flex items-center gap-1 px-2 py-1 text-rose-600 bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 rounded text-[10px] font-bold transition-colors uppercase whitespace-nowrap" title="Clear all devices and reset to blank canvas">
+                        <RotateCcw className="w-3 h-3" /> Reset
                     </button>
                     <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div>
                     <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
@@ -1347,17 +1446,17 @@ const SimulatorView = ({ isActive }) => {
                         <span className="text-[9px] font-mono font-bold text-slate-500">{devices.length}/7</span>
                         <span className="text-[8px] text-slate-400">dev</span>
                     </div>
-                    <button onClick={addDevice} disabled={devices.length >= 7} className={`px-2 py-1 text-white rounded text-[10px] font-bold flex items-center gap-1 shadow-sm transition-all active:scale-95 uppercase whitespace-nowrap ${devices.length >= 7 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}>
+                    <button onClick={addDevice} disabled={devices.length >= 7} className={`px-2 py-1 text-white rounded text-[10px] font-bold flex items-center gap-1 shadow-sm transition-all active:scale-95 uppercase whitespace-nowrap ${devices.length >= 7 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`} title="Add a new Relay or Fuse">
                         <Plus className="w-3 h-3" /> <span className="hidden sm:inline">Add Device</span>
                     </button>
                     <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div>
-                    <button onClick={saveSnapshot} className="hidden sm:flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                    <button onClick={saveSnapshot} className="hidden sm:flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-bold text-slate-600 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors border border-slate-200 dark:border-slate-700 whitespace-nowrap" title="Save current curve as background snapshot">
                         <Save className="w-3 h-3" /> Snapshot
                     </button>
                     {snapshots.length > 0 && <button onClick={clearSnapshots} className="p-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Clear Snapshots"><Trash2 className="w-3.5 h-3.5" /></button>}
 
                     <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div>
-                    <button onClick={copyContextForLLM} className="hidden lg:flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded text-[10px] uppercase font-bold transition-colors whitespace-nowrap">
+                    <button onClick={copyContextForLLM} className="hidden lg:flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded text-[10px] uppercase font-bold transition-colors whitespace-nowrap" title="Export study context for AI assistant">
                         <BrainCircuit className="w-3 h-3" /> Export to AI
                     </button>
 
@@ -1365,92 +1464,38 @@ const SimulatorView = ({ isActive }) => {
                     <button onClick={() => {
                         if (!rightPanelOpen && window.innerWidth < 768) setLeftPanelOpen(false);
                         setRightPanelOpen(!rightPanelOpen);
-                    }} className={`hidden md:block p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`}>
+                    }} className={`hidden md:block p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${!rightPanelOpen ? 'text-blue-600' : 'text-slate-400'}`} title="Toggle Settings Panel">
                         {rightPanelOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
                     </button>
                 </div>
             </div>
 
             <div className="flex flex-1 overflow-hidden relative">
-                {/* LEFT: INTELLIGENT REPORT */}
-                <div className={`absolute md:relative z-40 h-full border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 transition-all duration-300 ease-in-out flex flex-col ${
-                    mobileTab === 'analytics' ? 'max-md:w-full max-md:translate-x-0 max-md:pt-1' : 'max-md:hidden max-md:-translate-x-full'
-                } ${leftPanelOpen ? 'md:w-72 md:translate-x-0' : 'md:w-0 md:-translate-x-full md:opacity-0 md:overflow-hidden'}`}>
-                    <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2 tracking-wider"><Clock className="w-3 h-3 text-slate-400" /> Coordination Check</span>
-                    </div>
-                    {/* CTI Validation Banner */}
-                    {coordinationReport.length > 0 && (
-                        <div className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 border-b ${coordinationReport.some(r => r.violation) ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
-                            {coordinationReport.some(r => r.violation) ? <><AlertOctagon className="w-3 h-3" /> CTI Check: FAIL — Margins below {reqMargin}s</> : <><CheckCircle2 className="w-3 h-3" /> CTI Check: PASS — All margins ≥ {reqMargin}s</>}
-                        </div>
-                    )}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar relative">
-                        <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-slate-200 dark:bg-slate-800"></div>
-                        {coordinationReport.length > 0 ? coordinationReport.map((item, i) => (
-                            <div key={i} className="relative pl-10 animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
-                                {item.type === 'TRIP' ? (
-                                    <div className="relative group">
-                                        <div className="absolute -left-[30px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4 border-white dark:border-slate-900 shadow-sm z-10" style={{ backgroundColor: item.color }}></div>
-                                        <div className="p-2 rounded-lg border bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer" style={{ borderColor: item.color }} onClick={() => setSelectedId(item.id)}>
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex flex-col"><span className="text-xs font-bold text-slate-700 dark:text-slate-200">{item.name}</span><span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-0.5">Trip Initiated</span></div>
-                                                <span className="font-mono text-xs font-black text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded">{item.time.toFixed(3)}s</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="my-1 flex flex-col gap-1">
-                                        <div className="flex items-center gap-2">
-                                            {item.type === 'VIOLATION' ? (
-                                                <div className="text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-sm flex items-center gap-1.5 bg-red-100 text-red-800 border-red-300 dark:bg-red-900/40 dark:text-red-200">
-                                                    <Flame className="w-3 h-3" /> Violation
-                                                </div>
-                                            ) : (
-                                                <div className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-sm flex items-center gap-1.5 ${item.violation ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400' : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400'}`}>
-                                                    {item.violation ? <AlertOctagon className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />} Margin: {item.val.toFixed(3)}s
-                                                </div>
-                                            )}
-                                        </div>
-                                        {item.violation && <div className="text-[10px] text-red-600 italic bg-red-50/50 p-1 rounded border-l-2 border-red-400">{item.msg}</div>}
-                                    </div>
-                                )}
-                            </div>
-                        )) : (
-                            <div className="flex flex-col items-center justify-center h-40 text-slate-400 text-xs text-center px-6"><AlertTriangle className="w-8 h-8 mb-2 opacity-20" />No devices operate at {faultAmps}A. <br />Drag the Red Fault Line to test.</div>
-                        )}
-                    </div>
-                    {/* Export Report & Share Button */}
-                    <div className="px-3 py-2 border-t border-slate-200 dark:border-slate-800 flex gap-2">
-                        {coordinationReport.length > 0 && (
-                            <button onClick={() => {
-                                const lines = coordinationReport.map(r => r.type === 'TRIP' ? `TRIP: ${r.name} at ${r.time.toFixed(3)}s` : r.type === 'VIOLATION' ? `!! ${r.msg}` : `   Margin: ${r.val.toFixed(3)}s ${r.violation ? '(FAIL)' : '(OK)'}`);
-                                downloadTextFile(`TCC Coordination Report @ ${faultAmps}A\n${lines.join('\n')}`, 'TCC_Coordination_Report.txt');
-                            }} className="flex-1 py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors">
-                                <Download className="w-3 h-3" /> Export Report
-                            </button>
-                        )}
-                        <button onClick={copyShareLink} className="flex-1 py-1.5 px-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold flex items-center justify-center gap-1 transition-colors">
-                            <Share2 className="w-3 h-3" /> Share
-                        </button>
-                    </div>
-                    <div className="p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Visible Devices</div>
-                        <div className="flex flex-wrap gap-2">
-                            {devices.map(d => (
-                                <button key={d.id} onClick={() => updateDevice(d.id, { visible: !d.visible })} className={`w-3 h-3 rounded-full transition-all border ${d.visible ? 'opacity-100 scale-100' : 'opacity-30 scale-75 grayscale'}`} style={{ backgroundColor: d.color, borderColor: d.color }} title={d.name} />
-                            ))}
-                        </div>
-                    </div>
-                </div>
+                {/* LEFT PANEL REMOVED FOR WORKSPACE EXPANSION */}
 
                 {/* CENTER: INTERACTIVE GRAPH */}
                 <div className={`flex-1 bg-slate-100 dark:bg-slate-950 relative cursor-crosshair flex flex-col transition-all overflow-hidden ${
                     mobileTab === 'graph' ? 'max-md:w-full max-md:translate-x-0' : 'max-md:hidden'
                 }`}>
                     <div ref={graphRef} className="flex-1 relative m-2 bg-white dark:bg-black rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner overflow-hidden" 
-                         onMouseDown={(e) => startPan(e.clientX, e.clientY)}
-                         onTouchStart={(e) => startPan(e.touches[0].clientX, e.touches[0].clientY)}>
+                         onPointerDown={(e) => { if (e.target === e.currentTarget || e.target.tagName === 'svg' || e.target.tagName === 'line' || e.target.tagName === 'rect') startPan(e.clientX, e.clientY); }}
+                         onPointerUp={() => { setDraggingId(null); setDragType(null); }}>
+                        {devices.length === 0 && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                                <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800/50 flex flex-col items-center gap-4 text-center max-w-sm pointer-events-auto">
+                                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center animate-bounce">
+                                        <Plus className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">Step 1: Add a Device</h3>
+                                        <p className="text-sm text-slate-500 font-medium">Click "Add Device" or load a Scenario from the toolbar to start your coordination study.</p>
+                                    </div>
+                                    <button onClick={addDevice} className="mt-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 uppercase tracking-wider text-sm">
+                                        <Plus className="w-4 h-4" /> Add First Relay
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                         <svg width={dims.w} height={dims.h} className="absolute inset-0 block">
                             {GridLines}
                             {snapshots.map(snap => snap.devices.map((dev: any) => (
@@ -1483,19 +1528,23 @@ const SimulatorView = ({ isActive }) => {
                 } ${rightPanelOpen ? 'md:w-80 md:translate-x-0' : 'md:w-0 md:translate-x-full md:opacity-0 md:overflow-hidden'}`}>
 
                     {/* TABS */}
-                                    <div className="flex m-4 mb-0 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-                                        <button onClick={() => setSettingsTab('params')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${settingsTab === 'params' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Parameters</button>
-                                        <button onClick={() => setSettingsTab('analysis')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${settingsTab === 'analysis' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Coordinator</button>
-                                    </div>
+                    <div className="flex m-2 mb-0 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                        <button onClick={() => setSettingsTab('params')} className={`flex-1 py-1 text-[10px] uppercase font-bold rounded transition-all ${settingsTab === 'params' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Settings</button>
+                        <button onClick={() => setSettingsTab('analysis')} className={`flex-1 py-1 text-[10px] uppercase font-bold rounded transition-all ${settingsTab === 'analysis' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Pair</button>
+                        <button onClick={() => setSettingsTab('sequence')} className={`flex-1 py-1 text-[10px] uppercase font-bold rounded transition-all ${settingsTab === 'sequence' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Sequence</button>
+                    </div>
 
-                                    {settingsTab === 'params' && (
+                    {/* Tab content — fixed container for all tabs */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+
+                    {settingsTab === 'params' && (
                         selectedDevice ? (
                             <>
-                                <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-between items-center">
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: selectedDevice.color }}></div><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{selectedDevice.type} Settings</span></div>
-                                    {!selectedDevice.locked && <button onClick={() => removeDevice(selectedDevice.id)} className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>}
+                                <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-between items-center">
+                                    <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: selectedDevice.color }}></div><span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{selectedDevice.type} Settings</span></div>
+                                    {!selectedDevice.locked && <button onClick={() => removeDevice(selectedDevice.id)} className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-md transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>}
                                 </div>
-                                <div className="p-5 space-y-6 flex-1 overflow-y-auto">
+                                <div className="p-3 space-y-4 flex-1 overflow-y-auto text-sm">
                                     {selectedDevice.locked ? (
                                         <div className="text-center p-6 text-slate-500 text-xs italic bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
                                             <Lock className="w-8 h-8 mx-auto mb-2 opacity-20" />
@@ -1563,7 +1612,7 @@ const SimulatorView = ({ isActive }) => {
                     )}
 
                     {settingsTab === 'analysis' && (
-                        <div className="flex flex-col h-full overflow-hidden">
+                        <div className="flex flex-col overflow-hidden">
                             <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                                     <GitCompare className="w-4 h-4" /> Pair Analysis
@@ -1810,6 +1859,57 @@ const SimulatorView = ({ isActive }) => {
                         </div>
                     )}
 
+                    {settingsTab === 'sequence' && (
+                        <div className="flex flex-col overflow-hidden">
+                            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2 tracking-wider"><Clock className="w-3 h-3 text-slate-400" /> Coordination Sequence</span>
+                            </div>
+                            {/* CTI Validation Banner */}
+                            {coordinationReport.length > 0 && (
+                                <div className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 border-b ${coordinationReport.some(r => r.violation) ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
+                                    {coordinationReport.some(r => r.violation) ? <><AlertOctagon className="w-3 h-3" /> CTI Check: FAIL</> : <><CheckCircle2 className="w-3 h-3" /> CTI Check: PASS</>}
+                                </div>
+                            )}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar relative">
+                                <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-slate-200 dark:bg-slate-800"></div>
+                                {coordinationReport.length > 0 ? coordinationReport.map((item, i) => (
+                                    <div key={i} className="relative pl-10 animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+                                        {item.type === 'TRIP' ? (
+                                            <div className="relative group">
+                                                <div className="absolute -left-[30px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4 border-white dark:border-slate-900 shadow-sm z-10" style={{ backgroundColor: item.color }}></div>
+                                                <div className="p-2 rounded-lg border bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer" style={{ borderColor: item.color }} onClick={() => setSelectedId(item.id)}>
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="flex flex-col"><span className="text-xs font-bold text-slate-700 dark:text-slate-200">{item.name}</span><span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-0.5">Trip Initiated</span></div>
+                                                        <span className="font-mono text-xs font-black text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded">{item.time.toFixed(3)}s</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="my-1 flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    {item.type === 'VIOLATION' ? (
+                                                        <div className="text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-sm flex items-center gap-1.5 bg-red-100 text-red-800 border-red-300 dark:bg-red-900/40 dark:text-red-200">
+                                                            <Flame className="w-3 h-3" /> Violation
+                                                        </div>
+                                                    ) : (
+                                                        <div className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-sm flex items-center gap-1.5 ${item.violation ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400' : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400'}`}>
+                                                            {item.violation ? <AlertOctagon className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />} Margin: {item.val.toFixed(3)}s
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {item.violation && <div className="text-[10px] text-red-600 italic bg-red-50/50 p-1 rounded border-l-2 border-red-400">{item.msg}</div>}
+                                            </div>
+                                        )}
+                                    </div>
+                                )) : (
+                                    <div className="flex flex-col items-center justify-center h-40 text-slate-400 text-xs text-center px-6"><AlertTriangle className="w-8 h-8 mb-2 opacity-20" />No devices operate at {faultAmps}A. <br />Drag the Red Fault Line to test.</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    </div>{/* end tab content container */}
+
                 </div>
             </div>
 
@@ -1845,6 +1945,9 @@ const TCCStudio = () => {
             {/* Top Navigation Bar */}
             <div className="h-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-between px-3 z-50">
                 <div className="flex items-center gap-2">
+                    <Link to="/dashboard" className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors mr-1 hidden md:block" title="Back to Dashboard">
+                        <ArrowLeft className="w-4 h-4" />
+                    </Link>
                     <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 rounded-lg text-white shadow-sm">
                         <Activity className="w-4 h-4" />
                     </div>
@@ -1882,7 +1985,7 @@ const TCCStudio = () => {
             {/* Content Area */}
             <div className="flex-1 overflow-hidden relative">
                 {mode === 'theory' && (
-                    <div className="h-full overflow-hidden bg-slate-50 dark:bg-slate-950">
+                    <div className="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 custom-scrollbar">
                         <TheoryModule />
                     </div>
                 )}
