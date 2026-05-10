@@ -2,10 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Odometer from './Odometer';
 
+interface Marker {
+  value: number;
+  label: string;
+  color: string; // e.g. 'bg-emerald-500'
+}
+
 interface SliderProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   unit?: string;
   color?: string; // 'blue', 'emerald', 'red', 'purple', 'amber'
+  markers?: Marker[];
 }
 
 export default function Slider({ label, unit = '', color = 'blue', className = '', ...props }: SliderProps) {
@@ -81,6 +88,19 @@ export default function Slider({ label, unit = '', color = 'blue', className = '
             
             {/* Custom Fill */}
             <div className={`absolute left-0 h-1.5 rounded-full ${props.disabled ? 'bg-slate-400' : bgMap[color as keyof typeof bgMap] || 'bg-blue-500'}`} style={{ width: `${thumbPos}%` }} />
+            
+            {/* Markers */}
+            {props.markers?.map((m, i) => {
+                const min = Number(props.min || 0);
+                const max = Number(props.max || 100);
+                const pos = ((m.value - min) / (max - min)) * 100;
+                if (pos < 0 || pos > 100) return null;
+                return (
+                    <div key={i} className="absolute top-0 bottom-0 flex flex-col items-center pointer-events-none z-20" style={{ left: `calc(${pos}% + ${8 - (pos/100) * 16}px)` }}>
+                        <div className={`w-0.5 h-full ${m.color}`} />
+                    </div>
+                );
+            })}
             
             {/* Custom Thumb */}
             <div 

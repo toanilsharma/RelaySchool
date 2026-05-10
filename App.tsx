@@ -61,7 +61,7 @@ const AnimatedPages = () => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
-        className="flex-1"
+        className="flex-1 flex flex-col h-full"
       >
         <Suspense fallback={<LoadingSpinner />}>
           <Routes location={location} key={location.pathname}>
@@ -124,7 +124,7 @@ const AppLayout = ({ theme, toggleTheme, mobileMenuOpen, setMobileMenuOpen }: an
   const isFullscreenApp = location.pathname === '/tcc';
 
   return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans antialiased selection:bg-blue-50 selection:text-white transition-colors duration-300 flex flex-col">
+        <div className={`bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans antialiased selection:bg-blue-50 selection:text-white transition-colors duration-300 flex flex-col ${isFullscreenApp ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
           <CommandPalette />
           
           {/* UNIVERSAL DESKTOP WARNING BANNER */}
@@ -154,7 +154,7 @@ const AppLayout = ({ theme, toggleTheme, mobileMenuOpen, setMobileMenuOpen }: an
           
           {!isFullscreenApp && <Sidebar theme={theme} toggleTheme={toggleTheme} isOpen={mobileMenuOpen} closeMobileMenu={() => setMobileMenuOpen(false)} />}
           
-          <main id="main-content" className={`${isFullscreenApp ? 'w-full p-0 h-[100dvh] overflow-hidden' : 'md:ml-64 p-4 md:p-8 lg:p-10 min-h-screen'} animate-fade-in flex flex-col`}>
+          <main id="main-content" className={`${isFullscreenApp ? 'w-full p-0 flex-1 h-0 overflow-hidden' : 'md:ml-64 p-4 md:p-8 lg:p-10 min-h-screen'} animate-fade-in flex flex-col`}>
             <AnimatedPages />
             {!isFullscreenApp && <Footer />}
           </main>
