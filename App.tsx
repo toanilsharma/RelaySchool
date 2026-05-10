@@ -154,7 +154,7 @@ const AppLayout = ({ theme, toggleTheme, mobileMenuOpen, setMobileMenuOpen }: an
           
           {!isFullscreenApp && <Sidebar theme={theme} toggleTheme={toggleTheme} isOpen={mobileMenuOpen} closeMobileMenu={() => setMobileMenuOpen(false)} />}
           
-          <main id="main-content" className={`${isFullscreenApp ? 'w-full p-0 h-[100dvh] overflow-hidden' : 'md:ml-64 p-4 md:p-8 lg:p-10'} animate-fade-in min-h-screen flex flex-col`}>
+          <main id="main-content" className={`${isFullscreenApp ? 'w-full p-0 h-[100dvh] overflow-hidden' : 'md:ml-64 p-4 md:p-8 lg:p-10 min-h-screen'} animate-fade-in flex flex-col`}>
             <AnimatedPages />
             {!isFullscreenApp && <Footer />}
           </main>

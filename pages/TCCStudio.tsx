@@ -1451,16 +1451,10 @@ const SimulatorView = ({ isActive }) => {
                     </button>
                     <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div>
                     <button onClick={saveSnapshot} className="hidden sm:flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-bold text-slate-600 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors border border-slate-200 dark:border-slate-700 whitespace-nowrap" title="Save current curve as background snapshot">
-                        <Save className="w-3 h-3" /> Snapshot
+                        <Save className="w-3 h-3" /> Take Screenshot
                     </button>
-                    {snapshots.length > 0 && <button onClick={clearSnapshots} className="p-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Clear Snapshots"><Trash2 className="w-3.5 h-3.5" /></button>}
+                    {snapshots.length > 0 && <button onClick={clearSnapshots} className="p-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Clear Screenshots"><Trash2 className="w-3.5 h-3.5" /></button>}
 
-                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div>
-                    <button onClick={copyContextForLLM} className="hidden lg:flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded text-[10px] uppercase font-bold transition-colors whitespace-nowrap" title="Export study context for AI assistant">
-                        <BrainCircuit className="w-3 h-3" /> Export to AI
-                    </button>
-
-                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1 hidden lg:block"></div>
                     <button onClick={() => {
                         if (!rightPanelOpen && window.innerWidth < 768) setLeftPanelOpen(false);
                         setRightPanelOpen(!rightPanelOpen);
@@ -1933,8 +1927,14 @@ const SimulatorView = ({ isActive }) => {
 const TCCStudio = () => {
     const [mode, setMode] = useState('simulator'); // 'theory' | 'simulator' | 'quiz'
 
+    const tabs = [
+        { id: 'theory', label: 'Theory', icon: <BookOpen className="w-3.5 h-3.5" />, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+        { id: 'simulator', label: 'Simulator', icon: <Activity className="w-3.5 h-3.5" />, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+        { id: 'quiz', label: 'Quiz', icon: <Trophy className="w-3.5 h-3.5" />, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+    ];
+
     return (
-        <main className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 flex flex-col font-sans">
+        <main className="h-full bg-slate-50 dark:bg-slate-950 flex flex-col font-sans overflow-hidden">
             <PageSEO
                 title="TCC Studio PRO"
                 description="Interactive Time-Current Coordination (TCC) Studio for power system protection engineering. Coordinate IEC and ANSI overcurrent relays."
@@ -1942,17 +1942,17 @@ const TCCStudio = () => {
                 schema={tccSchema}
             />
 
-            {/* Top Navigation Bar */}
-            <div className="h-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-between px-3 z-50">
+            {/* Top Navigation Bar — STICKY so it's always accessible */}
+            <div className="h-11 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-between px-3 z-50 sticky top-0">
                 <div className="flex items-center gap-2">
-                    <Link to="/dashboard" className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors mr-1 hidden md:block" title="Back to Dashboard">
+                    <Link to="/dashboard" className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors mr-1" title="Back to Dashboard">
                         <ArrowLeft className="w-4 h-4" />
                     </Link>
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 rounded-lg text-white shadow-sm">
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 rounded-lg text-white shadow-sm hidden sm:block">
                         <Activity className="w-4 h-4" />
                     </div>
                     <div className="flex items-center flex-wrap gap-x-2">
-                        <h1 className="font-black text-sm leading-none tracking-tight text-slate-900 dark:text-white">TCC Studio <span className="text-blue-600">PRO</span></h1>
+                        <h1 className="font-black text-sm leading-none tracking-tight text-slate-900 dark:text-white hidden sm:block">TCC Studio <span className="text-blue-600">PRO</span></h1>
                         <span className="hidden lg:flex items-center gap-1.5">
                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest hidden xl:inline">Protection Suite v2.0</span>
                             <span className="w-1 h-1 bg-slate-400 rounded-full opacity-50 hidden xl:inline"></span>
@@ -1961,23 +1961,21 @@ const TCCStudio = () => {
                     </div>
                 </div>
 
+                {/* Tab Switcher — always visible */}
                 <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
-                    {[
-                        { id: 'theory', label: 'Theory', icon: <BookOpen className="w-3 h-3" /> },
-                        { id: 'simulator', label: 'Simulator', icon: <Activity className="w-3 h-3" /> },
-                        { id: 'quiz', label: 'Quiz', icon: <Trophy className="w-3 h-3" /> },
-                    ].map(tab => (
+                    {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setMode(tab.id)}
-                            className={`flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-bold transition-all ${mode === tab.id ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                            title={`Switch to ${tab.label}`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold transition-all ${mode === tab.id ? `bg-white dark:bg-slate-900 ${tab.color} shadow-sm ring-1 ring-slate-200 dark:ring-slate-700` : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
                             {tab.icon} <span className="hidden sm:inline">{tab.label}</span>
                         </button>
                     ))}
                 </div>
 
-                <div className="w-16 hidden md:block">
+                <div className="w-10 md:w-16 shrink-0">
                     {/* Spacer to balance title */}
                 </div>
             </div>
@@ -1985,7 +1983,14 @@ const TCCStudio = () => {
             {/* Content Area */}
             <div className="flex-1 overflow-hidden relative">
                 {mode === 'theory' && (
-                    <div className="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 custom-scrollbar">
+                    <div className="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 custom-scrollbar relative">
+                        {/* Floating navigation banner */}
+                        <div className="sticky top-0 z-30 bg-gradient-to-r from-amber-50 to-amber-100/80 dark:from-amber-900/20 dark:to-amber-950/30 border-b border-amber-200 dark:border-amber-800/50 backdrop-blur-md px-4 py-2 flex items-center justify-between">
+                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center gap-2"><BookOpen className="w-3.5 h-3.5" /> You are viewing Theory</span>
+                            <button onClick={() => setMode('simulator')} className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95">
+                                <Activity className="w-3 h-3" /> Open Simulator <ArrowRight className="w-3 h-3" />
+                            </button>
+                        </div>
                         <TheoryModule />
                     </div>
                 )}
@@ -1994,7 +1999,14 @@ const TCCStudio = () => {
                 <SimulatorView isActive={mode === 'simulator'} />
 
                 {mode === 'quiz' && (
-                    <div className="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
+                    <div className="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 custom-scrollbar relative">
+                        {/* Floating navigation banner */}
+                        <div className="sticky top-0 z-30 bg-gradient-to-r from-emerald-50 to-emerald-100/80 dark:from-emerald-900/20 dark:to-emerald-950/30 border-b border-emerald-200 dark:border-emerald-800/50 backdrop-blur-md px-4 py-2 flex items-center justify-between">
+                            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-2"><Trophy className="w-3.5 h-3.5" /> You are in Quiz Mode</span>
+                            <button onClick={() => setMode('simulator')} className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95">
+                                <Activity className="w-3 h-3" /> Open Simulator <ArrowRight className="w-3 h-3" />
+                            </button>
+                        </div>
                         <QuizModule />
                     </div>
                 )}
