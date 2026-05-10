@@ -6,7 +6,7 @@ import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import CookieConsent from './components/CookieConsent';
 import ErrorBoundary from './components/ErrorBoundary';
-import { Menu, Loader2, Command, Monitor, Expand } from 'lucide-react';
+import { Menu, Loader2, Command, Monitor, Expand, X } from 'lucide-react';
 import { CommandPalette } from './components/UI/CommandPalette';
 
 import { GET_ALL_APP_ROUTES, STATIC_ROUTES } from './routes';
@@ -88,16 +88,27 @@ const DesktopWarningBanner = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const hasSeen = localStorage.getItem('hasSeenDesktopWarning');
+    // Show banner only if it hasn't been dismissed in this session
+    const hasSeen = sessionStorage.getItem('hasSeenDesktopWarning');
     if (!hasSeen) {
-      setIsVisible(true);
-      localStorage.setItem('hasSeenDesktopWarning', 'true');
-      const timer = setTimeout(() => {
+      const showTimer = setTimeout(() => setIsVisible(true), 1000);
+      
+      const hideTimer = setTimeout(() => {
         setIsVisible(false);
-      }, 10000);
-      return () => clearTimeout(timer);
+        sessionStorage.setItem('hasSeenDesktopWarning', 'true');
+      }, 9000); // 1s delay + 8s display = 9s total
+
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(hideTimer);
+      };
     }
   }, []);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    sessionStorage.setItem('hasSeenDesktopWarning', 'true');
+  };
 
   return (
     <AnimatePresence>
@@ -106,13 +117,19 @@ const DesktopWarningBanner = () => {
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="bg-indigo-600 dark:bg-indigo-900 border-b border-indigo-700 dark:border-indigo-950 text-white text-[10px] sm:text-xs font-bold px-3 text-center flex items-center justify-center gap-2 shadow-sm shrink-0 w-full z-[100] relative overflow-hidden"
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          className="bg-blue-600 dark:bg-indigo-900 text-white text-[10px] sm:text-xs font-bold px-3 text-center flex items-center justify-between gap-2 shadow-lg shrink-0 w-full z-[100] relative overflow-hidden"
         >
-          <div className="py-1.5 flex items-center justify-center gap-2 w-full">
-            <Expand className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-90 shrink-0" />
-            <span className="truncate uppercase tracking-wider">Simulators require a large screen. Best viewed on Laptop, Tablet, or using Desktop Mode.</span>
+          <div className="flex-1 py-2 flex items-center justify-center gap-2">
+            <Monitor className="w-3.5 h-3.5 opacity-90 animate-pulse" />
+            <span className="uppercase tracking-wider">Simulators require a large screen. Best viewed on Laptop, Tablet, or Desktop Mode.</span>
           </div>
+          <button 
+            onClick={handleClose}
+            className="p-1 hover:bg-white/20 rounded-full transition-colors shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </motion.div>
       )}
     </AnimatePresence>

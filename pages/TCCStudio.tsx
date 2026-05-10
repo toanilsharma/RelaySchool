@@ -1149,15 +1149,15 @@ const SimulatorView = ({ isActive }) => {
                 )}
                 {isSelected && !dev.locked && !isEquipment && !isFuse && (
                     <g>
-                        <g className="cursor-ew-resize hover:scale-125 transition-transform" transform={`translate(${handlePickX}, ${dims.h - 6})`} 
-                           onPointerDown={(e) => { e.stopPropagation(); e.target.setPointerCapture(e.pointerId); setDraggingId(dev.id); setDragType('PICKUP'); }}
-                           onPointerUp={(e) => { e.target.releasePointerCapture(e.pointerId); setDraggingId(null); }}>
+                        <g className="cursor-ew-resize hover:scale-125 transition-transform" transform={`translate(${handlePickX}, ${dims.h - 6})`}
+                            onPointerDown={(e) => { e.stopPropagation(); (e.target as Element).setPointerCapture(e.pointerId); setDraggingId(dev.id); setDragType('PICKUP'); }}
+                            onPointerUp={(e) => { (e.target as Element).releasePointerCapture(e.pointerId); setDraggingId(null); }}>
                             <rect x={-15} y={-24} width={30} height={30} fill="transparent" />
                             <rect x={-5} y={-6} width={10} height={12} fill={dev.color} stroke="white" strokeWidth="1" />
                         </g>
                         <g className="cursor-ns-resize hover:scale-125 transition-transform" transform={`translate(${handleTDSX}, ${handleTDSY})`}
-                           onPointerDown={(e) => { e.stopPropagation(); e.target.setPointerCapture(e.pointerId); setDraggingId(dev.id); setDragType('TDS'); }}
-                           onPointerUp={(e) => { e.target.releasePointerCapture(e.pointerId); setDraggingId(null); }}>
+                            onPointerDown={(e) => { e.stopPropagation(); (e.target as Element).setPointerCapture(e.pointerId); setDraggingId(dev.id); setDragType('TDS'); }}
+                            onPointerUp={(e) => { (e.target as Element).releasePointerCapture(e.pointerId); setDraggingId(null); }}>
                             <circle r={20} fill="transparent" />
                             <circle r={5} fill={dev.color} stroke="white" strokeWidth="2" />
                         </g>
@@ -1221,9 +1221,9 @@ const SimulatorView = ({ isActive }) => {
         }
 
         return (
-            <g className="group cursor-ew-resize" 
-               onPointerDown={(e) => { e.stopPropagation(); e.target.setPointerCapture(e.pointerId); setDraggingId('FAULT'); setDragType('FAULT'); }}
-               onPointerUp={(e) => { e.target.releasePointerCapture(e.pointerId); setDraggingId(null); }}>
+            <g className="group cursor-ew-resize"
+                onPointerDown={(e) => { e.stopPropagation(); (e.target as Element).setPointerCapture(e.pointerId); setDraggingId('FAULT'); setDragType('FAULT'); }}
+                onPointerUp={(e) => { (e.target as Element).releasePointerCapture(e.pointerId); setDraggingId(null); }}>
                 <rect x={x - 20} y={0} width={40} height={dims.h} fill="transparent" />
                 <line x1={x} y1={0} x2={x} y2={dims.h} stroke="#ef4444" strokeWidth="2" strokeDasharray="4,4" className="opacity-70 group-hover:opacity-100 transition-opacity pointer-events-none" />
                 <polygon points={`${x},0 ${x - 6},10 ${x + 6},10`} fill="#ef4444" className="drop-shadow-md group-hover:scale-125 transition-transform origin-top pointer-events-none" />
@@ -1336,13 +1336,13 @@ const SimulatorView = ({ isActive }) => {
                 const nextTrip = trips[i + 1];
                 const margin = nextTrip.time - trip.time;
                 const isViolation = margin < reqMargin;
-                report.push({ 
-                    type: 'MARGIN', 
-                    val: margin, 
-                    violation: isViolation, 
-                    msg: isViolation 
-                        ? `Miscoordination! Stage ${i+2} (${nextTrip.name}) trips too close to Stage ${i+1}. IEEE 242 recommends ≥${reqMargin}s.` 
-                        : `Selective Coordination OK. Margin of ${margin.toFixed(3)}s meets IEEE standard.` 
+                report.push({
+                    type: 'MARGIN',
+                    val: margin,
+                    violation: isViolation,
+                    msg: isViolation
+                        ? `Miscoordination! Stage ${i + 2} (${nextTrip.name}) trips too close to Stage ${i + 1}. IEEE 242 recommends ≥${reqMargin}s.`
+                        : `Selective Coordination OK. Margin of ${margin.toFixed(3)}s meets IEEE standard.`
                 });
             }
         }
@@ -1364,18 +1364,16 @@ const SimulatorView = ({ isActive }) => {
                     {/* Dimmed backdrop */}
                     <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={() => setTourStep(-1)} />
                     {/* Tour card */}
-                    <div className={`absolute pointer-events-auto animate-fade-in ${
-                        TOUR_STEPS[tourStep].position === 'center' ? 'inset-0 flex items-center justify-center' :
-                        TOUR_STEPS[tourStep].position === 'below' ? 'top-24 left-1/2 -translate-x-1/2' :
-                        'top-1/2 right-4 md:right-[340px] -translate-y-1/2'
-                    }`}>
+                    <div className={`absolute pointer-events-auto animate-fade-in ${TOUR_STEPS[tourStep].position === 'center' ? 'inset-0 flex items-center justify-center' :
+                            TOUR_STEPS[tourStep].position === 'below' ? 'top-24 left-1/2 -translate-x-1/2' :
+                                'top-1/2 right-4 md:right-[340px] -translate-y-1/2'
+                        }`}>
                         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800/50 p-6 max-w-sm w-[90vw] md:w-full">
                             {/* Step indicator */}
                             <div className="flex items-center gap-1.5 mb-3">
                                 {TOUR_STEPS.map((_, i) => (
-                                    <div key={i} className={`h-1.5 rounded-full transition-all ${
-                                        i === tourStep ? 'w-6 bg-blue-600' : i < tourStep ? 'w-3 bg-blue-300' : 'w-3 bg-slate-200 dark:bg-slate-700'
-                                    }`} />
+                                    <div key={i} className={`h-1.5 rounded-full transition-all ${i === tourStep ? 'w-6 bg-blue-600' : i < tourStep ? 'w-3 bg-blue-300' : 'w-3 bg-slate-200 dark:bg-slate-700'
+                                        }`} />
                                 ))}
                                 <span className="ml-auto text-[10px] text-slate-400 font-mono">{tourStep + 1}/{TOUR_STEPS.length}</span>
                             </div>
@@ -1413,8 +1411,8 @@ const SimulatorView = ({ isActive }) => {
                 <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
                     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden">
                         <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 shrink-0">
-                            <h3 className="font-black text-lg flex items-center gap-2 text-slate-900 dark:text-white"><Layers className="w-5 h-5 text-blue-500"/> Scenarios Library</h3>
-                            <button onClick={() => setShowScenariosModal(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"><X className="w-5 h-5 cursor-pointer"/></button>
+                            <h3 className="font-black text-lg flex items-center gap-2 text-slate-900 dark:text-white"><Layers className="w-5 h-5 text-blue-500" /> Scenarios Library</h3>
+                            <button onClick={() => setShowScenariosModal(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"><X className="w-5 h-5 cursor-pointer" /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2">
                             {SCENARIOS.map((s, i) => (
@@ -1487,12 +1485,16 @@ const SimulatorView = ({ isActive }) => {
                 {/* LEFT PANEL REMOVED FOR WORKSPACE EXPANSION */}
 
                 {/* CENTER: INTERACTIVE GRAPH */}
-                <div className={`flex-1 bg-slate-100 dark:bg-slate-950 relative cursor-crosshair flex flex-col transition-all overflow-hidden ${
-                    mobileTab === 'graph' ? 'max-md:w-full max-md:translate-x-0' : 'max-md:hidden'
-                }`}>
-                    <div ref={graphRef} className="flex-1 relative m-2 bg-white dark:bg-black rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner overflow-hidden" 
-                         onPointerDown={(e) => { if (e.target === e.currentTarget || e.target.tagName === 'svg' || e.target.tagName === 'line' || e.target.tagName === 'rect') startPan(e.clientX, e.clientY); }}
-                         onPointerUp={() => { setDraggingId(null); setDragType(null); }}>
+                <div className={`flex-1 bg-slate-100 dark:bg-slate-950 relative cursor-crosshair flex flex-col transition-all overflow-hidden ${mobileTab === 'graph' ? 'max-md:w-full max-md:translate-x-0' : 'max-md:hidden'
+                    }`}>
+                    <div ref={graphRef} className="flex-1 relative m-2 bg-white dark:bg-black rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner overflow-hidden"
+                        onPointerDown={(e) => {
+                            const target = e.target as Element;
+                            if (e.target === e.currentTarget || target.tagName === 'svg' || target.tagName === 'line' || target.tagName === 'rect') {
+                                startPan(e.clientX, e.clientY);
+                            }
+                        }}
+                        onPointerUp={() => { setDraggingId(null); setDragType(null); }}>
                         {devices.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                                 <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800/50 flex flex-col items-center gap-4 text-center max-w-sm pointer-events-auto">
@@ -1549,9 +1551,8 @@ const SimulatorView = ({ isActive }) => {
                     </div>
                 </div>
 
-                <div className={`absolute right-0 md:relative z-40 h-full border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out flex flex-col ${
-                    mobileTab === 'settings' ? 'max-md:w-full max-md:translate-x-0 max-md:pt-1' : 'max-md:hidden max-md:w-0 max-md:translate-x-full'
-                } ${rightPanelOpen ? 'md:w-80 md:translate-x-0' : 'md:w-0 md:translate-x-full md:opacity-0 md:overflow-hidden'}`}>
+                <div className={`absolute right-0 md:relative z-40 h-full border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out flex flex-col ${mobileTab === 'settings' ? 'max-md:w-full max-md:translate-x-0 max-md:pt-1' : 'max-md:hidden max-md:w-0 max-md:translate-x-full'
+                    } ${rightPanelOpen ? 'md:w-80 md:translate-x-0' : 'md:w-0 md:translate-x-full md:opacity-0 md:overflow-hidden'}`}>
 
                     {/* TABS */}
                     <div className="flex m-2 mb-0 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
@@ -1585,11 +1586,10 @@ const SimulatorView = ({ isActive }) => {
                                     setSelectedId(dev.id);
                                     if (window.innerWidth < 768) setMobileTab('settings');
                                 }}
-                                className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all min-w-[50px] border ${
-                                    selectedId === dev.id 
-                                        ? 'bg-blue-600 border-blue-500 shadow-md scale-105 z-10' 
+                                className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all min-w-[50px] border ${selectedId === dev.id
+                                        ? 'bg-blue-600 border-blue-500 shadow-md scale-105 z-10'
                                         : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-60 hover:opacity-100'
-                                }`}
+                                    }`}
                                 title={dev.name}
                             >
                                 <div className="w-4 h-4 rounded-full shadow-inner border border-white/20" style={{ backgroundColor: dev.color }}></div>
@@ -1603,498 +1603,496 @@ const SimulatorView = ({ isActive }) => {
                     {/* Tab content — fixed container for all tabs */}
                     <div className="flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
 
-                    {settingsTab === 'params' && (
-                        selectedDevice ? (
-                            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                                <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-between items-center shrink-0">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: selectedDevice.color }}></div>
-                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{selectedDevice.name}</span>
-                                    </div>
-                                    {!selectedDevice.locked && <button onClick={() => removeDevice(selectedDevice.id)} className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-md transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>}
-                                </div>
-                                <div className="p-3 space-y-4 flex-1 overflow-y-auto text-sm custom-scrollbar pb-10">
-                                    {selectedDevice.locked ? (
-                                        <div className="text-center p-6 text-slate-500 text-xs italic bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                                            <Lock className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                                            This is a protected system curve (Damage or Start Limit). It cannot be edited in this view.
+                        {settingsTab === 'params' && (
+                            selectedDevice ? (
+                                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                                    <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-between items-center shrink-0">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: selectedDevice.color }}></div>
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{selectedDevice.name}</span>
                                         </div>
-                                    ) : (
-                                        <>
-                                            <div className="space-y-4">
-                                                <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Device Name</label><input type="text" value={selectedDevice.name} onChange={(e) => updateDevice(selectedDevice.id, { name: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">CT Ratio</label>
-                                                        <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2">
-                                                            <select value={selectedDevice.ctRatio} onChange={(e) => updateDevice(selectedDevice.id, { ctRatio: Number(e.target.value) })} className="w-full bg-transparent border-none py-1.5 text-xs font-mono font-bold outline-none appearance-none">
-                                                                {[50, 100, 150, 200, 250, 300, 400, 500, 600, 800, 900, 1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000].map(r => <option key={r} value={r}>{r}</option>)}
-                                                            </select>
-                                                            <span className="text-[10px] text-slate-400 font-bold ml-1">:1</span>
+                                        {!selectedDevice.locked && <button onClick={() => removeDevice(selectedDevice.id)} className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-md transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>}
+                                    </div>
+                                    <div className="p-3 space-y-4 flex-1 overflow-y-auto text-sm custom-scrollbar pb-10">
+                                        {selectedDevice.locked ? (
+                                            <div className="text-center p-6 text-slate-500 text-xs italic bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                                                <Lock className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                                This is a protected system curve (Damage or Start Limit). It cannot be edited in this view.
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="space-y-4">
+                                                    <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Device Name</label><input type="text" value={selectedDevice.name} onChange={(e) => updateDevice(selectedDevice.id, { name: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" /></div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">CT Ratio</label>
+                                                            <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2">
+                                                                <select value={selectedDevice.ctRatio} onChange={(e) => updateDevice(selectedDevice.id, { ctRatio: Number(e.target.value) })} className="w-full bg-transparent border-none py-1.5 text-xs font-mono font-bold outline-none appearance-none">
+                                                                    {[50, 100, 150, 200, 250, 300, 400, 500, 600, 800, 900, 1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000].map(r => <option key={r} value={r}>{r}</option>)}
+                                                                </select>
+                                                                <span className="text-[10px] text-slate-400 font-bold ml-1">:1</span>
+                                                            </div>
                                                         </div>
+                                                        <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Color</label><div className="flex gap-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">{COLORS.slice(0, 4).map(c => (<button key={c} onClick={() => updateDevice(selectedDevice.id, { color: c })} className={`w-4 h-4 rounded-full border-2 transition-transform ${selectedDevice.color === c ? 'border-slate-900 scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />))}</div></div>
                                                     </div>
-                                                    <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Color</label><div className="flex gap-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">{COLORS.slice(0, 4).map(c => (<button key={c} onClick={() => updateDevice(selectedDevice.id, { color: c })} className={`w-4 h-4 rounded-full border-2 transition-transform ${selectedDevice.color === c ? 'border-slate-900 scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />))}</div></div>
+                                                </div>
+                                                <hr className="border-slate-100 dark:border-slate-800" />
+                                                <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Characteristic Curve</label><div className="relative"><select value={selectedDevice.curve} onChange={(e) => updateDevice(selectedDevice.id, { curve: e.target.value })} className="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 pr-8 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer truncate">{CURVE_LIB.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select><ChevronDown className="absolute right-2 top-3 w-3 h-3 text-slate-400 pointer-events-none" /></div></div>
+                                                {/* Manufacturer selector (ANSI curves only) */}
+                                                {selectedDevice.curve?.startsWith('ANSI') && (
+                                                    <div className="bg-amber-50 dark:bg-amber-900/10 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                                                        <label className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-1.5 block">Relay Manufacturer</label>
+                                                        <select value={selectedDevice.manufacturer || 'generic'} onChange={(e) => updateDevice(selectedDevice.id, { manufacturer: e.target.value })} className="w-full appearance-none bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 rounded-lg p-2 text-xs font-bold outline-none">
+                                                            {Object.entries(MANUFACTURERS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                                                        </select>
+                                                        <p className="text-[9px] text-amber-600 dark:text-amber-400 mt-1.5 italic">SEL does not multiply additive constant B by TDS — affects trip times at low multiples.</p>
+                                                    </div>
+                                                )}
+                                                <div className="space-y-6">
+                                                    <Slider
+                                                        label="Pickup (Is)"
+                                                        unit=" A"
+                                                        min={10}
+                                                        max={2000}
+                                                        step={10}
+                                                        value={selectedDevice.pickup}
+                                                        onChange={e => updateDevice(selectedDevice.id, { pickup: Number(e.target.value) })}
+                                                        color="blue"
+                                                        markers={[
+                                                            { value: selectedDevice.ctRatio, label: '1.0x', color: 'bg-emerald-500' },
+                                                            { value: selectedDevice.ctRatio * 1.1, label: '1.1x', color: 'bg-blue-400' },
+                                                            { value: selectedDevice.ctRatio * 1.5, label: '1.5x', color: 'bg-amber-400' }
+                                                        ]}
+                                                    />
+                                                    <Slider
+                                                        label="Time Dial (TMS)"
+                                                        min={0.01}
+                                                        max={1.5}
+                                                        step={0.01}
+                                                        value={selectedDevice.tds}
+                                                        onChange={e => updateDevice(selectedDevice.id, { tds: Number(e.target.value) })}
+                                                        color="purple"
+                                                        markers={[
+                                                            { value: 0.1, label: 'Fast', color: 'bg-emerald-400' },
+                                                            { value: 0.5, label: 'Mid', color: 'bg-amber-400' },
+                                                            { value: 1.0, label: 'Slow', color: 'bg-red-400' }
+                                                        ]}
+                                                    />
+                                                </div>
+                                                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"><div><div className="text-xs font-bold text-slate-700 dark:text-slate-200">Instantaneous (50)</div></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" className="sr-only peer" checked={!!selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: e.target.checked ? selectedDevice.pickup * 10 : undefined })} /><div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div></label></div>
+                                                {selectedDevice.instantaneous && (<div className="animate-fade-in -mt-4 p-3 pt-0 bg-slate-50 dark:bg-slate-800 rounded-b-xl border-x border-b border-slate-200 dark:border-slate-700"><input type="number" min="0" value={selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: Number(e.target.value) })} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-1.5 text-xs font-mono font-bold" /></div>)}
+
+                                                {/* PROTECTION DIAGNOSTIC LAB - Overhauled for high interactivity */}
+                                                {(() => {
+                                                    const dev = selectedDevice;
+                                                    const issues = [];
+                                                    let score = 100;
+
+                                                    // 1. Sensitivity Diagnostic
+                                                    const pickupSec = dev.pickup / dev.ctRatio;
+                                                    if (pickupSec < 0.5) {
+                                                        issues.push({ level: 'warning', title: 'Low Sensitivity', msg: `Relay pickup is only ${pickupSec.toFixed(2)}A sec. Risk of measurement errors.`, action: 'Increase Pickup or use lower CTR.' });
+                                                        score -= 15;
+                                                    } else if (pickupSec > 1.2) {
+                                                        issues.push({ level: 'critical', title: 'Poor Sensitivity', msg: `Relay pickup is ${pickupSec.toFixed(2)}A sec. Standard is 0.5A - 1.0A for feeders.`, action: 'Decrease Pickup or increase CTR.' });
+                                                        score -= 25;
+                                                    } else {
+                                                        issues.push({ level: 'success', title: 'Optimal Sensitivity', msg: 'Pickup is in the ideal secondary range (0.5A - 1.0A).' });
+                                                    }
+
+                                                    // 2. Speed Diagnostic
+                                                    const tripTime = calculateTripTime(faultAmps, dev.pickup, dev.tds, dev.curve, dev.instantaneous);
+                                                    if (tripTime === null) {
+                                                        issues.push({ level: 'critical', title: 'No Operation', msg: `Relay will NOT trip at current fault level (${faultAmps}A).`, action: 'Decrease Pickup below fault current.' });
+                                                        score = 0;
+                                                    } else if (tripTime > 1.5) {
+                                                        issues.push({ level: 'critical', title: 'Critical Slow Speed', msg: `Clearing time (${tripTime.toFixed(2)}s) exceeds equipment thermal limits.`, action: 'Decrease TMS or use More Inverse curve.' });
+                                                        score -= 30;
+                                                    } else if (tripTime < 0.1 && !dev.instantaneous) {
+                                                        issues.push({ level: 'warning', title: 'Ultra-Fast Operation', msg: `Very fast operation (${tripTime.toFixed(3)}s) may cause miscoordination with downstream fuses.` });
+                                                    }
+
+                                                    // 3. Selectivity Diagnostic
+                                                    const reportIdx = coordinationReport.findIndex(r => r.id === dev.id);
+                                                    const marginBelow = coordinationReport[reportIdx - 1]?.type === 'MARGIN' ? coordinationReport[reportIdx - 1] : null;
+                                                    if (marginBelow && marginBelow.violation) {
+                                                        issues.push({ level: 'critical', title: 'Selectivity Failure', msg: `Miscoordination with downstream device (Margin: ${marginBelow.val.toFixed(3)}s).`, action: 'Increase TMS to restore 0.20s margin.' });
+                                                        score -= 40;
+                                                    }
+
+                                                    return (
+                                                        <div className="mt-8 space-y-4 animate-fade-in">
+                                                            <div className="flex items-center justify-between px-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600">
+                                                                        <Factory className="w-4 h-4" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Diagnostic Lab</h4>
+                                                                        <div className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Protection Health Analysis</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <div className={`text-xl font-black ${score > 80 ? 'text-emerald-500' : score > 50 ? 'text-amber-500' : 'text-red-500'}`}>{score}%</div>
+                                                                    <div className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Setting Score</div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Score Bar */}
+                                                            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                                <div className={`h-full transition-all duration-500 ${score > 80 ? 'bg-emerald-500' : score > 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${score}%` }}></div>
+                                                            </div>
+
+                                                            {/* Interactive Diagnostics */}
+                                                            <div className="space-y-2.5">
+                                                                {issues.map((issue, i) => (
+                                                                    <div key={i} className={`p-3 rounded-xl border animate-fade-in-up shadow-sm bg-white dark:bg-slate-900 ${issue.level === 'critical' ? 'border-red-200 dark:border-red-900/50 border-l-4 border-l-red-500' :
+                                                                            issue.level === 'warning' ? 'border-amber-200 dark:border-amber-900/50 border-l-4 border-l-amber-500' :
+                                                                                'border-emerald-200 dark:border-emerald-900/50 border-l-4 border-l-emerald-500'
+                                                                        }`}>
+                                                                        <div className="flex justify-between items-start mb-1.5">
+                                                                            <span className={`text-[10px] font-black uppercase tracking-tight ${issue.level === 'critical' ? 'text-red-600' :
+                                                                                    issue.level === 'warning' ? 'text-amber-600' :
+                                                                                        'text-emerald-600'
+                                                                                }`}>{issue.title}</span>
+                                                                            {issue.level === 'critical' && <AlertOctagon className="w-3.5 h-3.5 text-red-500 animate-pulse" />}
+                                                                        </div>
+                                                                        <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed mb-2 font-medium">{issue.msg}</p>
+                                                                        {issue.action && (
+                                                                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
+                                                                                <span className="text-[9px] font-black text-slate-400 uppercase">Action:</span>
+                                                                                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 underline decoration-blue-500/30 underline-offset-2">{issue.action}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            <div className="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <BrainCircuit className="w-3.5 h-3.5 text-indigo-500" />
+                                                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">The "What-If" Story</span>
+                                                                </div>
+                                                                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed italic font-medium">
+                                                                    "If a {faultAmps.toFixed(0)}A fault occurs today, <strong>{selectedDevice.name}</strong> will wait <strong>{tripTime?.toFixed(2) || '∞'}s</strong>.
+                                                                    During this time, {tripTime && tripTime > 1.0 ? 'the cable insulation will reach critical thermal stress.' : 'the system will clear the fault safely within standard limits.'}
+                                                                    Your choice of <strong>{selectedDevice.curve}</strong> determines the coordination margin for the entire upstream network."
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-xs p-8 text-center"><MousePointer2 className="w-10 h-10 mb-4 opacity-20" /><p>Select a curve to edit settings</p></div>
+                            )
+                        )}
+
+                        {settingsTab === 'analysis' && (
+                            <div className="flex flex-1 flex-col overflow-hidden">
+                                <div className="p-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <GitCompare className="w-4 h-4" /> Pair Analysis
+                                    </h3>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar pb-10">
+
+                                    <div className="space-y-4">
+                                        {/* UPSTREAM CONFIGURATION */}
+                                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                            <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Upstream (Source)</label>
+                                                <div className="relative">
+                                                    <select
+                                                        className="w-full bg-transparent font-bold text-xs outline-none"
+                                                        value={analysisPair.up || ''}
+                                                        onChange={(e) => setAnalysisPair(prev => ({ ...prev, up: e.target.value }))}
+                                                    >
+                                                        <option value="">Select Device...</option>
+                                                        {devices.filter(d => !d.locked).map(d => (
+                                                            <option key={d.id} value={d.id}>{d.name} ({d.pickup}A)</option>
+                                                        ))}
+                                                    </select>
+                                                    <ArrowUpFromLine className="absolute right-0 top-0.5 w-3 h-3 text-blue-500 pointer-events-none" />
                                                 </div>
                                             </div>
-                                            <hr className="border-slate-100 dark:border-slate-800" />
-                                            <div><label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Characteristic Curve</label><div className="relative"><select value={selectedDevice.curve} onChange={(e) => updateDevice(selectedDevice.id, { curve: e.target.value })} className="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 pr-8 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer truncate">{CURVE_LIB.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select><ChevronDown className="absolute right-2 top-3 w-3 h-3 text-slate-400 pointer-events-none" /></div></div>
-                                            {/* Manufacturer selector (ANSI curves only) */}
-                                            {selectedDevice.curve?.startsWith('ANSI') && (
-                                                <div className="bg-amber-50 dark:bg-amber-900/10 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30">
-                                                    <label className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-1.5 block">Relay Manufacturer</label>
-                                                    <select value={selectedDevice.manufacturer || 'generic'} onChange={(e) => updateDevice(selectedDevice.id, { manufacturer: e.target.value })} className="w-full appearance-none bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 rounded-lg p-2 text-xs font-bold outline-none">
-                                                        {Object.entries(MANUFACTURERS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                                                    </select>
-                                                    <p className="text-[9px] text-amber-600 dark:text-amber-400 mt-1.5 italic">SEL does not multiply additive constant B by TDS — affects trip times at low multiples.</p>
+                                            {analysisPair.up && (
+                                                <div className="p-3 grid grid-cols-2 gap-2">
+                                                    <div className="col-span-2">
+                                                        <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Curve Type</label>
+                                                        <select className="w-full text-[10px] bg-slate-100 dark:bg-slate-900 rounded p-1 border-none font-bold"
+                                                            value={devices.find(d => d.id === analysisPair.up)?.curve}
+                                                            onChange={(e) => updateDevice(analysisPair.up, { curve: e.target.value })}
+                                                        >
+                                                            {CURVE_LIB.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Pickup (A)</label>
+                                                        <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                            value={devices.find(d => d.id === analysisPair.up)?.pickup ?? ''}
+                                                            onChange={(e) => updateDevice(analysisPair.up, { pickup: Number(e.target.value) })}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Time Dial</label>
+                                                        <input type="number" min="0" step="0.05" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                            value={devices.find(d => d.id === analysisPair.up)?.tds ?? ''}
+                                                            onChange={(e) => updateDevice(analysisPair.up, { tds: Number(e.target.value) })}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Inst (50)</label>
+                                                        <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                            value={devices.find(d => d.id === analysisPair.up)?.instantaneous ?? ''}
+                                                            placeholder="None"
+                                                            onChange={(e) => updateDevice(analysisPair.up, { instantaneous: e.target.value ? Number(e.target.value) : undefined })}
+                                                        />
+                                                    </div>
                                                 </div>
                                             )}
-                                            <div className="space-y-6">
-                                                <Slider
-                                                    label="Pickup (Is)"
-                                                    unit=" A"
-                                                    min={10}
-                                                    max={2000}
-                                                    step={10}
-                                                    value={selectedDevice.pickup}
-                                                    onChange={e => updateDevice(selectedDevice.id, { pickup: Number(e.target.value) })}
-                                                    color="blue"
-                                                    markers={[
-                                                        { value: selectedDevice.ctRatio, label: '1.0x', color: 'bg-emerald-500' },
-                                                        { value: selectedDevice.ctRatio * 1.1, label: '1.1x', color: 'bg-blue-400' },
-                                                        { value: selectedDevice.ctRatio * 1.5, label: '1.5x', color: 'bg-amber-400' }
-                                                    ]}
-                                                />
-                                                <Slider
-                                                    label="Time Dial (TMS)"
-                                                    min={0.01}
-                                                    max={1.5}
-                                                    step={0.01}
-                                                    value={selectedDevice.tds}
-                                                    onChange={e => updateDevice(selectedDevice.id, { tds: Number(e.target.value) })}
-                                                    color="purple"
-                                                    markers={[
-                                                        { value: 0.1, label: 'Fast', color: 'bg-emerald-400' },
-                                                        { value: 0.5, label: 'Mid', color: 'bg-amber-400' },
-                                                        { value: 1.0, label: 'Slow', color: 'bg-red-400' }
-                                                    ]}
-                                                />
+                                        </div>
+
+                                        <div className="flex justify-center -my-3 z-10 relative">
+                                            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1.5 rounded-full text-slate-400 shadow-sm">
+                                                <ArrowDownToLine className="w-3 h-3" />
                                             </div>
-                                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"><div><div className="text-xs font-bold text-slate-700 dark:text-slate-200">Instantaneous (50)</div></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" className="sr-only peer" checked={!!selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: e.target.checked ? selectedDevice.pickup * 10 : undefined })} /><div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div></label></div>
-                                            {selectedDevice.instantaneous && (<div className="animate-fade-in -mt-4 p-3 pt-0 bg-slate-50 dark:bg-slate-800 rounded-b-xl border-x border-b border-slate-200 dark:border-slate-700"><input type="number" min="0" value={selectedDevice.instantaneous} onChange={(e) => updateDevice(selectedDevice.id, { instantaneous: Number(e.target.value) })} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-1.5 text-xs font-mono font-bold" /></div>)}
+                                        </div>
 
-                                            {/* PROTECTION DIAGNOSTIC LAB - Overhauled for high interactivity */}
-                                            {(() => {
-                                                const dev = selectedDevice;
-                                                const issues = [];
-                                                let score = 100;
+                                        {/* DOWNSTREAM CONFIGURATION */}
+                                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                            <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Downstream (Load)</label>
+                                                <div className="relative">
+                                                    <select
+                                                        className="w-full bg-transparent font-bold text-xs outline-none"
+                                                        value={analysisPair.down || ''}
+                                                        onChange={(e) => setAnalysisPair(prev => ({ ...prev, down: e.target.value }))}
+                                                    >
+                                                        <option value="">Select Device...</option>
+                                                        {devices.filter(d => !d.locked && d.id !== analysisPair.up).map(d => (
+                                                            <option key={d.id} value={d.id}>{d.name} ({d.pickup}A)</option>
+                                                        ))}
+                                                    </select>
+                                                    <ArrowDownToLine className="absolute right-0 top-0.5 w-3 h-3 text-blue-500 pointer-events-none" />
+                                                </div>
+                                            </div>
+                                            {analysisPair.down && (
+                                                <div className="p-3 grid grid-cols-2 gap-2">
+                                                    <div className="col-span-2">
+                                                        <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Curve Type</label>
+                                                        <select className="w-full text-[10px] bg-slate-100 dark:bg-slate-900 rounded p-1 border-none font-bold"
+                                                            value={devices.find(d => d.id === analysisPair.down)?.curve}
+                                                            onChange={(e) => updateDevice(analysisPair.down, { curve: e.target.value })}
+                                                        >
+                                                            {CURVE_LIB.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Pickup (A)</label>
+                                                        <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                            value={devices.find(d => d.id === analysisPair.down)?.pickup ?? ''}
+                                                            onChange={(e) => updateDevice(analysisPair.down, { pickup: Number(e.target.value) })}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Time Dial</label>
+                                                        <input type="number" min="0" step="0.05" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                            value={devices.find(d => d.id === analysisPair.down)?.tds ?? ''}
+                                                            onChange={(e) => updateDevice(analysisPair.down, { tds: Number(e.target.value) })}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Inst (50)</label>
+                                                        <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                            value={devices.find(d => d.id === analysisPair.down)?.instantaneous ?? ''}
+                                                            placeholder="None"
+                                                            onChange={(e) => updateDevice(analysisPair.down, { instantaneous: e.target.value ? Number(e.target.value) : undefined })}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
 
-                                                // 1. Sensitivity Diagnostic
-                                                const pickupSec = dev.pickup / dev.ctRatio;
-                                                if (pickupSec < 0.5) {
-                                                    issues.push({ level: 'warning', title: 'Low Sensitivity', msg: `Relay pickup is only ${pickupSec.toFixed(2)}A sec. Risk of measurement errors.`, action: 'Increase Pickup or use lower CTR.' });
-                                                    score -= 15;
-                                                } else if (pickupSec > 1.2) {
-                                                    issues.push({ level: 'critical', title: 'Poor Sensitivity', msg: `Relay pickup is ${pickupSec.toFixed(2)}A sec. Standard is 0.5A - 1.0A for feeders.`, action: 'Decrease Pickup or increase CTR.' });
-                                                    score -= 25;
-                                                } else {
-                                                    issues.push({ level: 'success', title: 'Optimal Sensitivity', msg: 'Pickup is in the ideal secondary range (0.5A - 1.0A).' });
-                                                }
+                                        {/* CTI CALCULATION PARAMETERS */}
+                                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden mt-4">
+                                            <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase">CTI Parameters (IEEE 242)</label>
+                                                <div className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
+                                                    Req: {reqMargin.toFixed(3)}s
+                                                </div>
+                                            </div>
+                                            <div className="p-3 grid grid-cols-3 gap-2">
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Breaker (s)</label>
+                                                    <input type="number" min="0" step="0.01" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                        value={ctiParams.breakerTime}
+                                                        onChange={(e) => setCtiParams(prev => ({ ...prev, breakerTime: Number(e.target.value) }))}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Overshoot (s)</label>
+                                                    <input type="number" min="0" step="0.01" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                        value={ctiParams.relayOvershoot}
+                                                        onChange={(e) => setCtiParams(prev => ({ ...prev, relayOvershoot: Number(e.target.value) }))}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Safety (s)</label>
+                                                    <input type="number" min="0" step="0.01" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
+                                                        value={ctiParams.safetyMargin}
+                                                        onChange={(e) => setCtiParams(prev => ({ ...prev, safetyMargin: Number(e.target.value) }))}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                                // 2. Speed Diagnostic
-                                                const tripTime = calculateTripTime(faultAmps, dev.pickup, dev.tds, dev.curve, dev.instantaneous);
-                                                if (tripTime === null) {
-                                                    issues.push({ level: 'critical', title: 'No Operation', msg: `Relay will NOT trip at current fault level (${faultAmps}A).`, action: 'Decrease Pickup below fault current.' });
-                                                    score = 0;
-                                                } else if (tripTime > 1.5) {
-                                                    issues.push({ level: 'critical', title: 'Critical Slow Speed', msg: `Clearing time (${tripTime.toFixed(2)}s) exceeds equipment thermal limits.`, action: 'Decrease TMS or use More Inverse curve.' });
-                                                    score -= 30;
-                                                } else if (tripTime < 0.1 && !dev.instantaneous) {
-                                                    issues.push({ level: 'warning', title: 'Ultra-Fast Operation', msg: `Very fast operation (${tripTime.toFixed(3)}s) may cause miscoordination with downstream fuses.` });
-                                                }
+                                <div className="flex-1 p-4 overflow-y-auto">
+                                    {analysisPair.up && analysisPair.down ? (() => {
+                                        const upDev = devices.find(d => d.id === analysisPair.up);
+                                        const downDev = devices.find(d => d.id === analysisPair.down);
+                                        if (!upDev || !downDev) return null;
 
-                                                // 3. Selectivity Diagnostic
-                                                const reportIdx = coordinationReport.findIndex(r => r.id === dev.id);
-                                                const marginBelow = coordinationReport[reportIdx - 1]?.type === 'MARGIN' ? coordinationReport[reportIdx - 1] : null;
-                                                if (marginBelow && marginBelow.violation) {
-                                                    issues.push({ level: 'critical', title: 'Selectivity Failure', msg: `Miscoordination with downstream device (Margin: ${marginBelow.val.toFixed(3)}s).`, action: 'Increase TMS to restore 0.20s margin.' });
-                                                    score -= 40;
-                                                }
+                                        const tUp = calculateTripTime(faultAmps, upDev.pickup, upDev.tds, upDev.curve, upDev.instantaneous, upDev.manufacturer || 'generic');
+                                        const tDown = calculateTripTime(faultAmps, downDev.pickup, downDev.tds, downDev.curve, downDev.instantaneous, downDev.manufacturer || 'generic');
 
-                                                return (
-                                                    <div className="mt-8 space-y-4 animate-fade-in">
-                                                        <div className="flex items-center justify-between px-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600">
-                                                                    <Factory className="w-4 h-4" />
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Diagnostic Lab</h4>
-                                                                    <div className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Protection Health Analysis</div>
-                                                                </div>
+                                        if (tUp === null || tDown === null) return <div className="text-center text-xs text-slate-500 italic mt-4">One or both devices do not operate at {faultAmps}A. Adjust Fault current.</div>;
+
+                                        const margin = tUp - tDown;
+                                        const isCoordinated = margin >= reqMargin;
+
+                                        // Run full-range sweep analysis
+                                        const sweep = sweepCoordination(upDev, downDev);
+                                        const sweepOk = sweep.minMargin !== null && sweep.minMargin >= reqMargin;
+
+                                        return (
+                                            <div className="space-y-4 animate-fade-in">
+                                                {/* Point Analysis */}
+                                                <div className={`p-4 rounded-xl border-l-4 shadow-sm ${isCoordinated ? 'bg-green-50 dark:bg-green-900/10 border-green-500 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/10 border-red-500 text-red-800 dark:text-red-300'}`}>
+                                                    <div className="flex items-center gap-2 mb-2 font-bold text-sm">
+                                                        {isCoordinated ? <CheckCircle className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                                                        {isCoordinated ? 'Coordinated' : 'Coordination Violation'}
+                                                    </div>
+                                                    <div className="text-3xl font-black mb-1">{margin.toFixed(3)}s</div>
+                                                    <div className="text-xs opacity-75">Margin at {faultAmps.toFixed(0)}A (fault line)</div>
+                                                </div>
+
+                                                {/* Sweep Analysis */}
+                                                {sweep.minMargin !== null && (
+                                                    <div className={`p-3 rounded-xl border shadow-sm ${sweepOk ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'}`}>
+                                                        <div className="text-[10px] font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                            <Ruler className="w-3 h-3" /> Full-Range Sweep Analysis
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                                            <div>
+                                                                <span className="text-slate-400 font-bold block text-[9px] uppercase">Worst-Case Margin</span>
+                                                                <span className={`font-mono font-black text-lg ${sweepOk ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>{sweep.minMargin.toFixed(3)}s</span>
                                                             </div>
-                                                            <div className="text-right">
-                                                                <div className={`text-xl font-black ${score > 80 ? 'text-emerald-500' : score > 50 ? 'text-amber-500' : 'text-red-500'}`}>{score}%</div>
-                                                                <div className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Setting Score</div>
+                                                            <div>
+                                                                <span className="text-slate-400 font-bold block text-[9px] uppercase">At Current</span>
+                                                                <span className="font-mono font-black text-lg text-slate-700 dark:text-slate-200">{sweep.worstCurrent.toFixed(0)}A</span>
                                                             </div>
                                                         </div>
-
-                                                        {/* Score Bar */}
-                                                        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                            <div className={`h-full transition-all duration-500 ${score > 80 ? 'bg-emerald-500' : score > 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${score}%` }}></div>
-                                                        </div>
-
-                                                        {/* Interactive Diagnostics */}
-                                                        <div className="space-y-2.5">
-                                                            {issues.map((issue, i) => (
-                                                                <div key={i} className={`p-3 rounded-xl border animate-fade-in-up shadow-sm bg-white dark:bg-slate-900 ${
-                                                                    issue.level === 'critical' ? 'border-red-200 dark:border-red-900/50 border-l-4 border-l-red-500' :
-                                                                    issue.level === 'warning' ? 'border-amber-200 dark:border-amber-900/50 border-l-4 border-l-amber-500' :
-                                                                    'border-emerald-200 dark:border-emerald-900/50 border-l-4 border-l-emerald-500'
-                                                                }`}>
-                                                                    <div className="flex justify-between items-start mb-1.5">
-                                                                        <span className={`text-[10px] font-black uppercase tracking-tight ${
-                                                                            issue.level === 'critical' ? 'text-red-600' :
-                                                                            issue.level === 'warning' ? 'text-amber-600' :
-                                                                            'text-emerald-600'
-                                                                        }`}>{issue.title}</span>
-                                                                        {issue.level === 'critical' && <AlertOctagon className="w-3.5 h-3.5 text-red-500 animate-pulse" />}
-                                                                    </div>
-                                                                    <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed mb-2 font-medium">{issue.msg}</p>
-                                                                    {issue.action && (
-                                                                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
-                                                                            <span className="text-[9px] font-black text-slate-400 uppercase">Action:</span>
-                                                                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 underline decoration-blue-500/30 underline-offset-2">{issue.action}</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-
-                                                        <div className="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                                                            <div className="flex items-center gap-2 mb-2">
-                                                                <BrainCircuit className="w-3.5 h-3.5 text-indigo-500" />
-                                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">The "What-If" Story</span>
+                                                        {sweep.crossings.length > 0 && (
+                                                            <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/20 rounded-lg border border-red-300">
+                                                                <span className="text-[10px] font-bold text-red-800 dark:text-red-300 flex items-center gap-1"><AlertOctagon className="w-3 h-3" /> CROSSOVER DETECTED: Curves cross at {sweep.crossings.map(c => `${c.current.toFixed(0)}A`).join(', ')}</span>
                                                             </div>
-                                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed italic font-medium">
-                                                                "If a {faultAmps.toFixed(0)}A fault occurs today, <strong>{selectedDevice.name}</strong> will wait <strong>{tripTime?.toFixed(2) || '∞'}s</strong>. 
-                                                                During this time, {tripTime && tripTime > 1.0 ? 'the cable insulation will reach critical thermal stress.' : 'the system will clear the fault safely within standard limits.'} 
-                                                                Your choice of <strong>{selectedDevice.curve}</strong> determines the coordination margin for the entire upstream network."
-                                                            </p>
+                                                        )}
+                                                        <div className="mt-2 text-[9px] text-slate-500 dark:text-slate-400">
+                                                            Evaluated {sweep.points.length} points across overlap range. {sweepOk ? `✅ All margins ≥ ${reqMargin}s` : '❌ Violations found — adjust TDS or pickup.'}
                                                         </div>
                                                     </div>
-                                                );
-                                            })()}
-                                        </>
+                                                )}
+
+                                                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
+                                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1.5">
+                                                        <GraduationCap className="w-3.5 h-3.5" /> Learner's Recommendations
+                                                    </h4>
+                                                    <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-3">
+                                                        {(!isCoordinated || !sweepOk) && (
+                                                            <li className="flex gap-2">
+                                                                <ArrowUpFromLine className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                                                                <span>
+                                                                    <strong>Standard Fix (IEEE 242)</strong>: Increase <strong>{upDev.name}</strong> Time Dial (TDS) to at least <strong>{(upDev.tds * (1 + (reqMargin - (sweep.minMargin ?? margin)) / tUp)).toFixed(2)}</strong> to restore the required {reqMargin}s margin.
+                                                                </span>
+                                                            </li>
+                                                        )}
+                                                        <li className="flex gap-2">
+                                                            <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                                                            <span>
+                                                                <strong>Coordination Basis</strong>: The {reqMargin}s interval accounts for <strong>Breaker Opening Time ({ctiParams.breakerTime}s)</strong>, <strong>Relay Overshoot ({ctiParams.relayOvershoot}s)</strong>, and a <strong>Safety Margin ({ctiParams.safetyMargin}s)</strong> as per OEM specs.
+                                                            </span>
+                                                        </li>
+                                                        <li className="flex gap-2 text-slate-400">
+                                                            <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                                            <span><strong>Selective Coordination</strong>: In critical systems (NEC 700.28), upstream devices must remain closed while downstream devices clear the fault.</span>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        );
+                                    })() : (
+                                        <div className="text-center text-slate-400 text-xs mt-10">
+                                            Select both devices to run analysis.
+                                        </div>
                                     )}
                                 </div>
                             </div>
-                        ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-xs p-8 text-center"><MousePointer2 className="w-10 h-10 mb-4 opacity-20" /><p>Select a curve to edit settings</p></div>
-                        )
-                    )}
+                        )}
 
-                    {settingsTab === 'analysis' && (
-                        <div className="flex flex-1 flex-col overflow-hidden">
-                            <div className="p-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
-                                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                    <GitCompare className="w-4 h-4" /> Pair Analysis
-                                </h3>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar pb-10">
-
-                                <div className="space-y-4">
-                                    {/* UPSTREAM CONFIGURATION */}
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                                        <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Upstream (Source)</label>
-                                            <div className="relative">
-                                                <select
-                                                    className="w-full bg-transparent font-bold text-xs outline-none"
-                                                    value={analysisPair.up || ''}
-                                                    onChange={(e) => setAnalysisPair(prev => ({ ...prev, up: e.target.value }))}
-                                                >
-                                                    <option value="">Select Device...</option>
-                                                    {devices.filter(d => !d.locked).map(d => (
-                                                        <option key={d.id} value={d.id}>{d.name} ({d.pickup}A)</option>
-                                                    ))}
-                                                </select>
-                                                <ArrowUpFromLine className="absolute right-0 top-0.5 w-3 h-3 text-blue-500 pointer-events-none" />
-                                            </div>
-                                        </div>
-                                        {analysisPair.up && (
-                                            <div className="p-3 grid grid-cols-2 gap-2">
-                                                <div className="col-span-2">
-                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Curve Type</label>
-                                                    <select className="w-full text-[10px] bg-slate-100 dark:bg-slate-900 rounded p-1 border-none font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.up)?.curve}
-                                                        onChange={(e) => updateDevice(analysisPair.up, { curve: e.target.value })}
-                                                    >
-                                                        {CURVE_LIB.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Pickup (A)</label>
-                                                    <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.up)?.pickup ?? ''}
-                                                        onChange={(e) => updateDevice(analysisPair.up, { pickup: Number(e.target.value) })}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Time Dial</label>
-                                                    <input type="number" min="0" step="0.05" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.up)?.tds ?? ''}
-                                                        onChange={(e) => updateDevice(analysisPair.up, { tds: Number(e.target.value) })}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Inst (50)</label>
-                                                    <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.up)?.instantaneous ?? ''}
-                                                        placeholder="None"
-                                                        onChange={(e) => updateDevice(analysisPair.up, { instantaneous: e.target.value ? Number(e.target.value) : undefined })}
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex justify-center -my-3 z-10 relative">
-                                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1.5 rounded-full text-slate-400 shadow-sm">
-                                            <ArrowDownToLine className="w-3 h-3" />
-                                        </div>
-                                    </div>
-
-                                    {/* DOWNSTREAM CONFIGURATION */}
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                                        <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Downstream (Load)</label>
-                                            <div className="relative">
-                                                <select
-                                                    className="w-full bg-transparent font-bold text-xs outline-none"
-                                                    value={analysisPair.down || ''}
-                                                    onChange={(e) => setAnalysisPair(prev => ({ ...prev, down: e.target.value }))}
-                                                >
-                                                    <option value="">Select Device...</option>
-                                                    {devices.filter(d => !d.locked && d.id !== analysisPair.up).map(d => (
-                                                        <option key={d.id} value={d.id}>{d.name} ({d.pickup}A)</option>
-                                                    ))}
-                                                </select>
-                                                <ArrowDownToLine className="absolute right-0 top-0.5 w-3 h-3 text-blue-500 pointer-events-none" />
-                                            </div>
-                                        </div>
-                                        {analysisPair.down && (
-                                            <div className="p-3 grid grid-cols-2 gap-2">
-                                                <div className="col-span-2">
-                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Curve Type</label>
-                                                    <select className="w-full text-[10px] bg-slate-100 dark:bg-slate-900 rounded p-1 border-none font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.down)?.curve}
-                                                        onChange={(e) => updateDevice(analysisPair.down, { curve: e.target.value })}
-                                                    >
-                                                        {CURVE_LIB.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Pickup (A)</label>
-                                                    <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.down)?.pickup ?? ''}
-                                                        onChange={(e) => updateDevice(analysisPair.down, { pickup: Number(e.target.value) })}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Time Dial</label>
-                                                    <input type="number" min="0" step="0.05" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.down)?.tds ?? ''}
-                                                        onChange={(e) => updateDevice(analysisPair.down, { tds: Number(e.target.value) })}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Inst (50)</label>
-                                                    <input type="number" min="0" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
-                                                        value={devices.find(d => d.id === analysisPair.down)?.instantaneous ?? ''}
-                                                        placeholder="None"
-                                                        onChange={(e) => updateDevice(analysisPair.down, { instantaneous: e.target.value ? Number(e.target.value) : undefined })}
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* CTI CALCULATION PARAMETERS */}
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden mt-4">
-                                        <div className="p-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase">CTI Parameters (IEEE 242)</label>
-                                            <div className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
-                                                Req: {reqMargin.toFixed(3)}s
-                                            </div>
-                                        </div>
-                                        <div className="p-3 grid grid-cols-3 gap-2">
-                                            <div>
-                                                <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Breaker (s)</label>
-                                                <input type="number" min="0" step="0.01" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
-                                                    value={ctiParams.breakerTime}
-                                                    onChange={(e) => setCtiParams(prev => ({ ...prev, breakerTime: Number(e.target.value) }))}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Overshoot (s)</label>
-                                                <input type="number" min="0" step="0.01" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
-                                                    value={ctiParams.relayOvershoot}
-                                                    onChange={(e) => setCtiParams(prev => ({ ...prev, relayOvershoot: Number(e.target.value) }))}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] text-slate-400 font-bold block mb-0.5">Safety (s)</label>
-                                                <input type="number" min="0" step="0.01" className="w-full bg-slate-100 dark:bg-slate-900 rounded p-1 text-[10px] font-mono font-bold"
-                                                    value={ctiParams.safetyMargin}
-                                                    onChange={(e) => setCtiParams(prev => ({ ...prev, safetyMargin: Number(e.target.value) }))}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
+                        {settingsTab === 'sequence' && (
+                            <div className="flex flex-col overflow-hidden">
+                                <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2 tracking-wider"><Clock className="w-3 h-3 text-slate-400" /> Coordination Sequence</span>
                                 </div>
-                            </div>
-
-                            <div className="flex-1 p-4 overflow-y-auto">
-                                {analysisPair.up && analysisPair.down ? (() => {
-                                    const upDev = devices.find(d => d.id === analysisPair.up);
-                                    const downDev = devices.find(d => d.id === analysisPair.down);
-                                    if (!upDev || !downDev) return null;
-
-                                    const tUp = calculateTripTime(faultAmps, upDev.pickup, upDev.tds, upDev.curve, upDev.instantaneous, upDev.manufacturer || 'generic');
-                                    const tDown = calculateTripTime(faultAmps, downDev.pickup, downDev.tds, downDev.curve, downDev.instantaneous, downDev.manufacturer || 'generic');
-
-                                    if (tUp === null || tDown === null) return <div className="text-center text-xs text-slate-500 italic mt-4">One or both devices do not operate at {faultAmps}A. Adjust Fault current.</div>;
-
-                                    const margin = tUp - tDown;
-                                    const isCoordinated = margin >= reqMargin;
-
-                                    // Run full-range sweep analysis
-                                    const sweep = sweepCoordination(upDev, downDev);
-                                    const sweepOk = sweep.minMargin !== null && sweep.minMargin >= reqMargin;
-
-                                    return (
-                                        <div className="space-y-4 animate-fade-in">
-                                            {/* Point Analysis */}
-                                            <div className={`p-4 rounded-xl border-l-4 shadow-sm ${isCoordinated ? 'bg-green-50 dark:bg-green-900/10 border-green-500 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/10 border-red-500 text-red-800 dark:text-red-300'}`}>
-                                                <div className="flex items-center gap-2 mb-2 font-bold text-sm">
-                                                    {isCoordinated ? <CheckCircle className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
-                                                    {isCoordinated ? 'Coordinated' : 'Coordination Violation'}
+                                {/* CTI Validation Banner */}
+                                {coordinationReport.length > 0 && (
+                                    <div className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 border-b ${coordinationReport.some(r => r.violation) ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
+                                        {coordinationReport.some(r => r.violation) ? <><AlertOctagon className="w-3 h-3" /> CTI Check: FAIL</> : <><CheckCircle2 className="w-3 h-3" /> CTI Check: PASS</>}
+                                    </div>
+                                )}
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar relative">
+                                    <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-slate-200 dark:bg-slate-800"></div>
+                                    {coordinationReport.length > 0 ? coordinationReport.map((item, i) => (
+                                        <div key={i} className="relative pl-10 animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+                                            {item.type === 'TRIP' ? (
+                                                <div className="relative group">
+                                                    <div className="absolute -left-[30px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4 border-white dark:border-slate-900 shadow-sm z-10" style={{ backgroundColor: item.color }}></div>
+                                                    <div className="p-2 rounded-lg border bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer" style={{ borderColor: item.color }} onClick={() => setSelectedId(item.id)}>
+                                                        <div className="flex justify-between items-start">
+                                                            <div className="flex flex-col"><span className="text-xs font-bold text-slate-700 dark:text-slate-200">{item.name}</span><span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-0.5">Trip Initiated</span></div>
+                                                            <span className="font-mono text-xs font-black text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded">{item.time.toFixed(3)}s</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="text-3xl font-black mb-1">{margin.toFixed(3)}s</div>
-                                                <div className="text-xs opacity-75">Margin at {faultAmps.toFixed(0)}A (fault line)</div>
-                                            </div>
-
-                                            {/* Sweep Analysis */}
-                                            {sweep.minMargin !== null && (
-                                                <div className={`p-3 rounded-xl border shadow-sm ${sweepOk ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'}`}>
-                                                    <div className="text-[10px] font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
-                                                        <Ruler className="w-3 h-3" /> Full-Range Sweep Analysis
+                                            ) : (
+                                                <div className="my-1 flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        {item.type === 'VIOLATION' ? (
+                                                            <div className="text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-sm flex items-center gap-1.5 bg-red-100 text-red-800 border-red-300 dark:bg-red-900/40 dark:text-red-200">
+                                                                <Flame className="w-3 h-3" /> Violation
+                                                            </div>
+                                                        ) : (
+                                                            <div className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-sm flex items-center gap-1.5 ${item.violation ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400' : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400'}`}>
+                                                                {item.violation ? <AlertOctagon className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />} Margin: {item.val.toFixed(3)}s
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                                        <div>
-                                                            <span className="text-slate-400 font-bold block text-[9px] uppercase">Worst-Case Margin</span>
-                                                            <span className={`font-mono font-black text-lg ${sweepOk ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>{sweep.minMargin.toFixed(3)}s</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-slate-400 font-bold block text-[9px] uppercase">At Current</span>
-                                                            <span className="font-mono font-black text-lg text-slate-700 dark:text-slate-200">{sweep.worstCurrent.toFixed(0)}A</span>
-                                                        </div>
-                                                    </div>
-                                                    {sweep.crossings.length > 0 && (
-                                                        <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/20 rounded-lg border border-red-300">
-                                                            <span className="text-[10px] font-bold text-red-800 dark:text-red-300 flex items-center gap-1"><AlertOctagon className="w-3 h-3" /> CROSSOVER DETECTED: Curves cross at {sweep.crossings.map(c => `${c.current.toFixed(0)}A`).join(', ')}</span>
-                                                        </div>
-                                                    )}
-                                                    <div className="mt-2 text-[9px] text-slate-500 dark:text-slate-400">
-                                                        Evaluated {sweep.points.length} points across overlap range. {sweepOk ? `✅ All margins ≥ ${reqMargin}s` : '❌ Violations found — adjust TDS or pickup.'}
-                                                    </div>
+                                                    {item.violation && <div className="text-[10px] text-red-600 italic bg-red-50/50 p-1 rounded border-l-2 border-red-400">{item.msg}</div>}
                                                 </div>
                                             )}
-
-                                            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
-                                                <h4 className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1.5">
-                                                    <GraduationCap className="w-3.5 h-3.5" /> Learner's Recommendations
-                                                </h4>
-                                                <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-3">
-                                                    {(!isCoordinated || !sweepOk) && (
-                                                        <li className="flex gap-2">
-                                                            <ArrowUpFromLine className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
-                                                            <span>
-                                                                <strong>Standard Fix (IEEE 242)</strong>: Increase <strong>{upDev.name}</strong> Time Dial (TDS) to at least <strong>{(upDev.tds * (1 + (reqMargin - (sweep.minMargin ?? margin)) / tUp)).toFixed(2)}</strong> to restore the required {reqMargin}s margin.
-                                                            </span>
-                                                        </li>
-                                                    )}
-                                                    <li className="flex gap-2">
-                                                        <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                                                        <span>
-                                                            <strong>Coordination Basis</strong>: The {reqMargin}s interval accounts for <strong>Breaker Opening Time ({ctiParams.breakerTime}s)</strong>, <strong>Relay Overshoot ({ctiParams.relayOvershoot}s)</strong>, and a <strong>Safety Margin ({ctiParams.safetyMargin}s)</strong> as per OEM specs.
-                                                        </span>
-                                                    </li>
-                                                    <li className="flex gap-2 text-slate-400">
-                                                        <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                                                        <span><strong>Selective Coordination</strong>: In critical systems (NEC 700.28), upstream devices must remain closed while downstream devices clear the fault.</span>
-                                                    </li>
-                                                </ul>
-                                            </div>
                                         </div>
-                                    );
-                                })() : (
-                                    <div className="text-center text-slate-400 text-xs mt-10">
-                                        Select both devices to run analysis.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {settingsTab === 'sequence' && (
-                        <div className="flex flex-col overflow-hidden">
-                            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2 tracking-wider"><Clock className="w-3 h-3 text-slate-400" /> Coordination Sequence</span>
-                            </div>
-                            {/* CTI Validation Banner */}
-                            {coordinationReport.length > 0 && (
-                                <div className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 border-b ${coordinationReport.some(r => r.violation) ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
-                                    {coordinationReport.some(r => r.violation) ? <><AlertOctagon className="w-3 h-3" /> CTI Check: FAIL</> : <><CheckCircle2 className="w-3 h-3" /> CTI Check: PASS</>}
+                                    )) : (
+                                        <div className="flex flex-col items-center justify-center h-40 text-slate-400 text-xs text-center px-6"><AlertTriangle className="w-8 h-8 mb-2 opacity-20" />No devices operate at {faultAmps}A. <br />Drag the Red Fault Line to test.</div>
+                                    )}
                                 </div>
-                            )}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar relative">
-                                <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-slate-200 dark:bg-slate-800"></div>
-                                {coordinationReport.length > 0 ? coordinationReport.map((item, i) => (
-                                    <div key={i} className="relative pl-10 animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
-                                        {item.type === 'TRIP' ? (
-                                            <div className="relative group">
-                                                <div className="absolute -left-[30px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4 border-white dark:border-slate-900 shadow-sm z-10" style={{ backgroundColor: item.color }}></div>
-                                                <div className="p-2 rounded-lg border bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer" style={{ borderColor: item.color }} onClick={() => setSelectedId(item.id)}>
-                                                    <div className="flex justify-between items-start">
-                                                        <div className="flex flex-col"><span className="text-xs font-bold text-slate-700 dark:text-slate-200">{item.name}</span><span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-0.5">Trip Initiated</span></div>
-                                                        <span className="font-mono text-xs font-black text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded">{item.time.toFixed(3)}s</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="my-1 flex flex-col gap-1">
-                                                <div className="flex items-center gap-2">
-                                                    {item.type === 'VIOLATION' ? (
-                                                        <div className="text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-sm flex items-center gap-1.5 bg-red-100 text-red-800 border-red-300 dark:bg-red-900/40 dark:text-red-200">
-                                                            <Flame className="w-3 h-3" /> Violation
-                                                        </div>
-                                                    ) : (
-                                                        <div className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-sm flex items-center gap-1.5 ${item.violation ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400' : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400'}`}>
-                                                            {item.violation ? <AlertOctagon className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />} Margin: {item.val.toFixed(3)}s
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                {item.violation && <div className="text-[10px] text-red-600 italic bg-red-50/50 p-1 rounded border-l-2 border-red-400">{item.msg}</div>}
-                                            </div>
-                                        )}
-                                    </div>
-                                )) : (
-                                    <div className="flex flex-col items-center justify-center h-40 text-slate-400 text-xs text-center px-6"><AlertTriangle className="w-8 h-8 mb-2 opacity-20" />No devices operate at {faultAmps}A. <br />Drag the Red Fault Line to test.</div>
-                                )}
                             </div>
-                        </div>
-                    )}
+                        )}
 
                     </div>{/* end tab content container */}
 
