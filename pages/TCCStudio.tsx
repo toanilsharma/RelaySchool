@@ -1537,13 +1537,13 @@ const SimulatorView = ({ isActive }) => {
                         </div>
 
                         {/* INNOVATIVE FLOATING DIAGNOSTIC ALERT */}
-                        {coordinationReport.some(r => r.violation) && (
+                        {coordinationReport && coordinationReport.some(r => r.violation) && (
                             <div className="absolute top-4 left-4 z-30 animate-bounce-slow">
                                 <div className="bg-red-600 text-white px-3 py-2 rounded-xl shadow-2xl flex items-center gap-2 border-2 border-red-400/50 backdrop-blur-md">
                                     <AlertOctagon className="w-4 h-4" />
                                     <div className="flex flex-col">
                                         <span className="text-[10px] font-black uppercase leading-tight">Coordination Failure</span>
-                                        <span className="text-[9px] opacity-90 font-bold">{coordinationReport.find(r => r.violation)?.msg}</span>
+                                        <span className="text-[9px] opacity-90 font-bold">{coordinationReport.find(r => r.violation)?.msg || 'Check Settings'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1565,12 +1565,12 @@ const SimulatorView = ({ isActive }) => {
                     <div className="mx-2 mt-2 p-2 bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-xl border border-slate-700 shadow-lg shrink-0">
                         <div className="flex justify-between items-center px-1">
                             <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-full animate-pulse ${coordinationReport.some(r => r.violation) ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`}></div>
+                                <div className={`w-2 h-2 rounded-full animate-pulse ${coordinationReport && coordinationReport.some(r => r.violation) ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`}></div>
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">System Health</span>
                             </div>
                             <div className="flex flex-col items-end">
-                                <span className={`text-lg font-black leading-none ${coordinationReport.some(r => r.violation) ? 'text-red-400' : 'text-emerald-400'}`}>
-                                    {coordinationReport.some(r => r.violation) ? 'FAULT' : 'SECURE'}
+                                <span className={`text-lg font-black leading-none ${coordinationReport && coordinationReport.some(r => r.violation) ? 'text-red-400' : 'text-emerald-400'}`}>
+                                    {coordinationReport && coordinationReport.some(r => r.violation) ? 'FAULT' : 'SECURE'}
                                 </span>
                                 <span className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter">IEEE 242 Compliance</span>
                             </div>

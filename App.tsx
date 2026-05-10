@@ -88,20 +88,14 @@ const DesktopWarningBanner = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Show banner only if it hasn't been dismissed in this session
     const hasSeen = sessionStorage.getItem('hasSeenDesktopWarning');
     if (!hasSeen) {
-      const showTimer = setTimeout(() => setIsVisible(true), 1000);
-      
-      const hideTimer = setTimeout(() => {
+      setIsVisible(true);
+      const timer = setTimeout(() => {
         setIsVisible(false);
         sessionStorage.setItem('hasSeenDesktopWarning', 'true');
-      }, 9000); // 1s delay + 8s display = 9s total
-
-      return () => {
-        clearTimeout(showTimer);
-        clearTimeout(hideTimer);
-      };
+      }, 8000);
+      return () => clearTimeout(timer);
     }
   }, []);
 
