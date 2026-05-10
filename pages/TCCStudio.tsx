@@ -1365,8 +1365,8 @@ const SimulatorView = ({ isActive }) => {
                     <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={() => setTourStep(-1)} />
                     {/* Tour card */}
                     <div className={`absolute pointer-events-auto animate-fade-in ${TOUR_STEPS[tourStep].position === 'center' ? 'inset-0 flex items-center justify-center' :
-                            TOUR_STEPS[tourStep].position === 'below' ? 'top-24 left-1/2 -translate-x-1/2' :
-                                'top-1/2 right-4 md:right-[340px] -translate-y-1/2'
+                        TOUR_STEPS[tourStep].position === 'below' ? 'top-24 left-1/2 -translate-x-1/2' :
+                            'top-1/2 right-4 md:right-[340px] -translate-y-1/2'
                         }`}>
                         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800/50 p-6 max-w-sm w-[90vw] md:w-full">
                             {/* Step indicator */}
@@ -1566,7 +1566,10 @@ const SimulatorView = ({ isActive }) => {
                         <div className="flex justify-between items-center px-1">
                             <div className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full animate-pulse ${coordinationReport && coordinationReport.some(r => r.violation) ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`}></div>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">System Health</span>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">System Coordination</span>
+                                    <span className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter">Selectivity Check</span>
+                                </div>
                             </div>
                             <div className="flex flex-col items-end">
                                 <span className={`text-lg font-black leading-none ${coordinationReport && coordinationReport.some(r => r.violation) ? 'text-red-400' : 'text-emerald-400'}`}>
@@ -1587,8 +1590,8 @@ const SimulatorView = ({ isActive }) => {
                                     if (window.innerWidth < 768) setMobileTab('settings');
                                 }}
                                 className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all min-w-[50px] border ${selectedId === dev.id
-                                        ? 'bg-blue-600 border-blue-500 shadow-md scale-105 z-10'
-                                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-60 hover:opacity-100'
+                                    ? 'bg-blue-600 border-blue-500 shadow-md scale-105 z-10'
+                                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-60 hover:opacity-100'
                                     }`}
                                 title={dev.name}
                             >
@@ -1729,7 +1732,7 @@ const SimulatorView = ({ isActive }) => {
                                                                     </div>
                                                                     <div>
                                                                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Diagnostic Lab</h4>
-                                                                        <div className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Protection Health Analysis</div>
+                                                                        <div className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Relay Sensitivity Analysis</div>
                                                                     </div>
                                                                 </div>
                                                                 <div className="text-right">
@@ -1747,13 +1750,13 @@ const SimulatorView = ({ isActive }) => {
                                                             <div className="space-y-2.5">
                                                                 {issues.map((issue, i) => (
                                                                     <div key={i} className={`p-3 rounded-xl border animate-fade-in-up shadow-sm bg-white dark:bg-slate-900 ${issue.level === 'critical' ? 'border-red-200 dark:border-red-900/50 border-l-4 border-l-red-500' :
-                                                                            issue.level === 'warning' ? 'border-amber-200 dark:border-amber-900/50 border-l-4 border-l-amber-500' :
-                                                                                'border-emerald-200 dark:border-emerald-900/50 border-l-4 border-l-emerald-500'
+                                                                        issue.level === 'warning' ? 'border-amber-200 dark:border-amber-900/50 border-l-4 border-l-amber-500' :
+                                                                            'border-emerald-200 dark:border-emerald-900/50 border-l-4 border-l-emerald-500'
                                                                         }`}>
                                                                         <div className="flex justify-between items-start mb-1.5">
                                                                             <span className={`text-[10px] font-black uppercase tracking-tight ${issue.level === 'critical' ? 'text-red-600' :
-                                                                                    issue.level === 'warning' ? 'text-amber-600' :
-                                                                                        'text-emerald-600'
+                                                                                issue.level === 'warning' ? 'text-amber-600' :
+                                                                                    'text-emerald-600'
                                                                                 }`}>{issue.title}</span>
                                                                             {issue.level === 'critical' && <AlertOctagon className="w-3.5 h-3.5 text-red-500 animate-pulse" />}
                                                                         </div>
