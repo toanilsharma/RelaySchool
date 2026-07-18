@@ -10,84 +10,102 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PageSEO } from "../components/SEO/PageSEO";
 
 // ─────────────────────────────────────────────────────
-// HERO — Mobile-first, clean, no overflow tricks
+// HERO — Mobile-first, two-column on lg desktop
 // ─────────────────────────────────────────────────────
 const HeroSection = () => {
   const [breakerClosed, setBreakerClosed] = useState(true);
   const [freq, setFreq] = useState(50.0);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     const i = setInterval(() => {
-      setFreq(50 + (Math.random() - 0.5) * (breakerClosed ? 0.03 : 0.45));
-    }, 1200);
+      setFreq((f) => {
+        const next = 50 + (Math.random() - 0.5) * (breakerClosed ? 0.03 : 0.45);
+        return next;
+      });
+      setTick((t) => t + 1);
+    }, 120);
     return () => clearInterval(i);
   }, [breakerClosed]);
 
   const deviation = Math.abs(freq - 50);
 
+  // Build SVG waveform path (60 points across 600 viewBox units)
+  const amplitude = breakerClosed ? 22 : 3;
+  const wavePath = `M 0 40 ` +
+    Array.from({ length: 61 }, (_, i) =>
+      `L ${i * 10} ${40 + Math.sin((i * 0.45) + tick * 0.18) * amplitude}`
+    ).join(" ");
+
   return (
     <section className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-900 border border-slate-800">
-      {/* Subtle grid */}
+      {/* Subtle grid dot */}
       <div className="absolute inset-0 opacity-[0.06] bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]" />
-      {/* Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-40 bg-blue-600/15 blur-3xl rounded-full pointer-events-none" />
+      {/* Top glow */}
+      <div className="absolute top-0 left-1/3 w-[500px] h-40 bg-blue-600/12 blur-3xl rounded-full pointer-events-none" />
 
-      <div className="relative z-10 p-5 sm:p-9 lg:p-14">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-5">
-          <span className="relative flex h-2 w-2 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-          </span>
-          100% Free · No Login Required
+      {/* Two-column on lg: left = copy, right = demo widget */}
+      <div className="relative z-10 p-5 sm:p-8 lg:p-12 flex flex-col lg:flex-row lg:items-center lg:gap-10">
+
+        {/* ── LEFT: Value proposition ── */}
+        <div className="flex-1 min-w-0 mb-8 lg:mb-0">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-5">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            100% Free · No Login Required
+          </div>
+
+          {/* Headline */}
+          <h1 className="text-[1.85rem] sm:text-5xl lg:text-[3.2rem] xl:text-6xl font-black tracking-tight leading-[1.1] text-white mb-4">
+            Master Power Systems
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
+              Through Simulation
+            </span>
+          </h1>
+
+          <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-lg mb-5">
+            See fault currents, relay curves, and GOOSE packets come alive in real-time.{" "}
+            <strong className="text-white">40+ physics-accurate simulators</strong> running
+            directly in your browser — no installs, no fees.
+          </p>
+
+          {/* Trust checks */}
+          <div className="flex flex-wrap gap-x-5 gap-y-2 mb-7">
+            {["IEEE & IEC aligned", "Works offline (PWA)", "Used worldwide"].map((t) => (
+              <div key={t} className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                {t}
+              </div>
+            ))}
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/academy"
+              className="flex items-center justify-center gap-2 px-5 py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-blue-500/20 group"
+            >
+              <Play className="w-4 h-4 shrink-0" />
+              Launch Simulation Lab
+              <ArrowRight className="w-4 h-4 ml-auto group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+            <Link
+              to="/tcc"
+              className="flex items-center justify-center gap-2 px-5 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl font-bold text-sm transition-all"
+            >
+              <Activity className="w-4 h-4 text-blue-400 shrink-0" />
+              Open TCC Studio
+            </Link>
+          </div>
         </div>
 
-        {/* Headline */}
-        <h1 className="text-[1.85rem] sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-white mb-4">
-          Master Power Systems
-          <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-            Through Simulation
-          </span>
-        </h1>
-
-        <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl mb-5">
-          See fault currents, relay curves, and GOOSE packets come alive in real-time.{" "}
-          <strong className="text-white">40+ physics-accurate simulators</strong> running
-          directly in your browser — no installs, no fees.
-        </p>
-
-        {/* Trust checkmarks */}
-        <div className="flex flex-wrap gap-x-4 gap-y-2 mb-6">
-          {["IEEE & IEC aligned", "Works offline (PWA)", "Used worldwide"].map((t) => (
-            <div key={t} className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              {t}
-            </div>
-          ))}
-        </div>
-
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-8">
-          <Link
-            to="/academy"
-            className="flex items-center justify-center gap-2 px-5 py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-blue-500/20 group"
-          >
-            <Play className="w-4 h-4 shrink-0" />
-            Launch Simulation Lab
-            <ArrowRight className="w-4 h-4 ml-auto group-hover:translate-x-0.5 transition-transform" />
-          </Link>
-          <Link
-            to="/tcc"
-            className="flex items-center justify-center gap-2 px-5 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl font-bold text-sm transition-all"
-          >
-            <Activity className="w-4 h-4 text-blue-400 shrink-0" />
-            Open TCC Studio
-          </Link>
-        </div>
-
-        {/* Live Demo Widget — compact, no overflow */}
-        <div className="bg-slate-950/80 border border-slate-700/60 rounded-2xl p-4 backdrop-blur-sm">
+        {/* ── RIGHT: Live Demo Widget ── */}
+        <div className="w-full lg:w-[400px] xl:w-[440px] shrink-0 bg-slate-950/80 border border-slate-700/60 rounded-2xl p-4 sm:p-5 backdrop-blur-sm">
+          {/* Header row */}
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={() => setBreakerClosed(!breakerClosed)}
@@ -98,13 +116,15 @@ const HeroSection = () => {
             >
               <Power className="w-4 h-4 text-white" />
             </button>
-            <div className="min-w-0">
-              <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Interactive Demo — Tap breaker</div>
-              <div className={`text-xs font-bold uppercase truncate ${breakerClosed ? "text-red-400" : "text-emerald-400"}`}>
+            <div className="min-w-0 flex-1">
+              <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none">
+                Interactive Demo — Tap breaker
+              </div>
+              <div className={`text-xs font-bold uppercase truncate mt-0.5 ${breakerClosed ? "text-red-400" : "text-emerald-400"}`}>
                 CB-101 {breakerClosed ? "CLOSED (LIVE)" : "OPEN (TRIPPED)"}
               </div>
             </div>
-            <div className="ml-auto flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 shrink-0">
+            <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 shrink-0">
               <Wifi className={`w-3 h-3 ${breakerClosed ? "text-emerald-500 animate-pulse" : "text-slate-600"}`} />
               <span className={`text-[10px] font-mono font-bold ${breakerClosed ? "text-emerald-500" : "text-slate-500"}`}>
                 {breakerClosed ? "SYNCED" : "OFFLINE"}
@@ -112,33 +132,67 @@ const HeroSection = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <div className="col-span-2 bg-slate-900/70 rounded-xl p-3 flex items-end justify-between gap-2">
-              <div>
-                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Grid Freq</div>
-                <div className="font-mono text-2xl font-black text-white leading-none mt-1">{freq.toFixed(3)}</div>
-                <div className="text-[10px] text-slate-500 font-bold mt-0.5">Hz</div>
-              </div>
-              <div className={`text-[10px] font-bold px-2 py-1 rounded-lg border shrink-0 ${
-                deviation < 0.05
-                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                  : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-              }`}>
-                {deviation < 0.05 ? "NORMAL" : "DEVIATED"}
+          {/* Frequency readout */}
+          <div className="flex items-end justify-between mb-2">
+            <div>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">System Frequency</div>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="font-mono text-3xl font-black text-white leading-none">{freq.toFixed(3)}</span>
+                <span className="text-slate-500 text-sm font-bold">Hz</span>
               </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex-1 bg-slate-900/70 rounded-xl p-2 text-center">
-                <div className="text-[9px] text-slate-500 font-bold uppercase">PTP</div>
-                <div className="text-xs font-mono text-blue-400 font-bold mt-0.5">0.002ms</div>
-              </div>
-              <div className="flex-1 bg-slate-900/70 rounded-xl p-2 text-center">
-                <div className="text-[9px] text-slate-500 font-bold uppercase">GOOSE</div>
-                <div className="text-xs font-mono text-purple-400 font-bold mt-0.5">3.4ms</div>
-              </div>
+            <div className={`text-[10px] font-bold px-2 py-1 rounded-lg border ${
+              deviation < 0.05
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+            }`}>
+              {deviation < 0.05 ? "NORMAL" : "DEVIATED"}
+            </div>
+          </div>
+
+          {/* ── Animated waveform ── */}
+          <div className="h-16 w-full bg-slate-900/60 rounded-xl border border-white/5 overflow-hidden mb-3">
+            <svg
+              className="w-full h-full"
+              viewBox="0 0 600 80"
+              preserveAspectRatio="none"
+            >
+              {/* Grid lines */}
+              <line x1="0" y1="40" x2="600" y2="40" stroke="#334155" strokeWidth="0.5" />
+              <line x1="0" y1="20" x2="600" y2="20" stroke="#1e293b" strokeWidth="0.5" />
+              <line x1="0" y1="60" x2="600" y2="60" stroke="#1e293b" strokeWidth="0.5" />
+              {/* Waveform */}
+              <path
+                d={wavePath}
+                fill="none"
+                stroke={breakerClosed ? "#3b82f6" : "#475569"}
+                strokeWidth="2"
+                vectorEffect="non-scaling-stroke"
+              />
+              {/* Glow copy */}
+              <path
+                d={wavePath}
+                fill="none"
+                stroke={breakerClosed ? "#3b82f680" : "transparent"}
+                strokeWidth="4"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+          </div>
+
+          {/* Bottom stats row */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-slate-900/70 rounded-xl p-2.5 text-center">
+              <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">PTP Drift</div>
+              <div className="text-xs font-mono text-blue-400 font-bold mt-0.5">0.002 ms</div>
+            </div>
+            <div className="bg-slate-900/70 rounded-xl p-2.5 text-center">
+              <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">GOOSE Latency</div>
+              <div className="text-xs font-mono text-purple-400 font-bold mt-0.5">3.4 ms</div>
             </div>
           </div>
         </div>
+
       </div>
     </section>
   );
