@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import CookieConsent from './components/CookieConsent';
 import ErrorBoundary from './components/ErrorBoundary';
+import RoutePreloader from './components/RoutePreloader';
 import { Menu, Loader2, Command, Monitor, Expand, X } from 'lucide-react';
 import { CommandPalette } from './components/UI/CommandPalette';
 
@@ -196,12 +197,12 @@ const App = () => {
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   return (
-    // FIX #1: ErrorBoundary wraps the entire app so any uncaught simulator crash
-    // shows a recovery UI instead of a blank white screen.
     <ErrorBoundary>
       <BrowserRouter>
         <ScrollToTop />
         <RouteTracker />
+        {/* Silently prefetch all lazy route chunks after app shell renders */}
+        <RoutePreloader />
         <AppLayout theme={theme} toggleTheme={toggleTheme} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       </BrowserRouter>
     </ErrorBoundary>

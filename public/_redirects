@@ -1,1 +1,5 @@
+# Netlify Redirects & Headers
+
+# ─── SPA fallback ───
+# All unknown paths serve index.html so React Router handles routing
 /* /index.html 200
