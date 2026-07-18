@@ -1,18 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Activity, Zap, Power, AlertTriangle, RotateCcw, Play, Pause, 
   ShieldAlert, Settings, Share2, Download, Cpu, ZapOff, Check, 
-  BookOpen, GitMerge, FileText, Info, BarChart2, Radio, Compass
+  BookOpen, GitMerge, FileText, Info, BarChart2, Radio, Compass, Network
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { InlineMath, BlockMath } from 'react-katex';
-import 'katex/dist/katex.min.css';
 import { PageSEO } from "../components/SEO/PageSEO";
 
 const twinSchema: Record<string, any> = {
     "@type": "WebApplication",
-    "name": "Digital Twin — GridMaster Pro",
-    "description": "Real-time substation digital twin simulator. Visualize load flow, fault propagation, and IED logic across a 132/33kV mesh network.",
+    "name": "IEC 61850 Substation Digital Twin — GridMaster Pro",
+    "description": "Real-time substation digital twin simulator. Visualize load flow, fault propagation, symmetrical components, and GOOSE logic.",
     "applicationCategory": "EngineeringApplication",
     "operatingSystem": "WebBrowser",
 };
@@ -20,8 +18,7 @@ const twinSchema: Record<string, any> = {
 // ==============================
 // UTILS & EXPORT
 // ==============================
-
-const downloadTextFile = (content, filename) => {
+const downloadTextFile = (content: string, filename: string) => {
   const blob = new Blob([content], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -36,7 +33,6 @@ const downloadTextFile = (content, filename) => {
 // ==============================
 // TOPOLOGY & DATA MODELS
 // ==============================
-
 const NODE_TYPES = {
   GRID: 'GRID', BUS: 'BUS', BREAKER: 'BREAKER', TRANSFORMER: 'TRANSFORMER', LOAD: 'LOAD', TIE: 'TIE'
 };
@@ -130,44 +126,39 @@ const SCENARIOS = {
   normal: { id: 'normal', name: "Standard Operation", load: [10, 22, 18, 8], fault: null },
   peak: { id: 'peak', name: "Peak Industrial Demand", load: [12, 45, 25, 10], fault: null },
   overload: { id: 'overload', name: "ANSI 51 Trip Simulation", load: [10, 85, 18, 8], fault: null }, 
-  fault: { id: 'fault', name: "ANSI 50 Bolted Fault", load: [10, 22, 18, 8], fault: 'bus_b' }
+  fault: { id: 'fault', name: "ANSI 50 Bolted Fault", load: [10, 22, 18, 8], fault: 'load2' }
 };
 
 // ==============================
-// ADVANCED DETERMINISTIC PHYSICS
+// DET-PHYSICS & MESH LAWS
 // ==============================
-
 const calculateThermalTripTime = (current, pickup, td) => {
   const M = current / pickup;
   if (M <= 1.0) return 9999;
-  // IEEE Extremely Inverse: t = TD * ( (28.2 / (M^2 - 1)) + 0.1217 )
   return td * ((28.2 / (Math.pow(M, 2) - 1)) + 0.1217);
 };
 
 const calculateMeshPhysics = (nodes) => {
-  const c = {}; // Currents
-  const e = new Set(); // Energized nodes
+  const c = {}; 
+  const e = new Set(); 
   const n = (id) => nodes.find(x => x.id === id);
   const isC = (id) => n(id)?.status === 'CLOSED';
 
-  // Base Loads (1 MW ≈ 17.5 Amps at 33kV, PF=0.9)
   const getL = (id) => { 
     const node = n(id); 
     if (node.faulted) {
-      // Different fault types draw different short-circuit currents
-      if (node.faultType === 'LG') return 7000;  // Line-to-Ground
-      if (node.faultType === 'LL') return 10400; // Line-to-Line (~0.866 of LLL)
-      return 12000; // LLL Bolted
+      if (node.faultType === 'LG') return 7000;  
+      if (node.faultType === 'LL') return 10400; 
+      return 12000; 
     }
     return (node.loadMW * 17.5); 
   };
   const L1 = getL('load1'), L2 = getL('load2'), L3 = getL('load3'), L4 = getL('load4');
 
-  // Topology State
   const srcA = isC('cb_m1'), srcB = isC('cb_m2'), tie = isC('cb_tie'), ring = isC('cb_ring');
   const f1 = isC('cb_f1'), f2 = isC('cb_f2'), f3 = isC('cb_f3'), f4 = isC('cb_f4');
 
-  // Ring Main Load Sharing
+  // Ring Main Sharing
   let iF2 = 0, iF3 = 0, iRing = 0; 
   if (ring) {
     if (f2 && f3) { iF2 = (L2 + L3) / 2; iF3 = (L2 + L3) / 2; iRing = iF2 - L2; } 
@@ -178,13 +169,11 @@ const calculateMeshPhysics = (nodes) => {
   const iF1 = f1 ? L1 : 0;
   const iF4 = f4 ? L4 : 0;
 
-  // Bus Aggregation
   const busAFault = n('bus_a').faulted ? 25000 : 0;
   const busBFault = n('bus_b').faulted ? 25000 : 0;
   const reqA = iF1 + iF2 + busAFault;
   const reqB = iF3 + iF4 + busBFault;
 
-  // Main Tie Sharing
   let iT1 = 0, iT2 = 0, iTie = 0;
   if (tie) {
     if (srcA && srcB) { const total = reqA + reqB; iT1 = total / 2; iT2 = total / 2; iTie = iT1 - reqA; } 
@@ -197,10 +186,9 @@ const calculateMeshPhysics = (nodes) => {
   c['bus_a'] = iT1 - iTie; c['bus_b'] = iT2 + iTie;
   c['cb_tie'] = Math.abs(iTie); c['cb_ring'] = Math.abs(iRing);
   c['tx1'] = iT1; c['tx2'] = iT2;
-  c['cb_m1'] = iT1 * (33/132); c['cb_m2'] = iT2 * (33/132); // 132kV primary mapping
+  c['cb_m1'] = iT1 * (33/132); c['cb_m2'] = iT2 * (33/132); 
   c['grid_a'] = c['cb_m1']; c['grid_b'] = c['cb_m2'];
 
-  // Energization Tracing
   if (srcA) { e.add('grid_a'); e.add('cb_m1'); e.add('tx1'); e.add('bus_a'); }
   if (srcB) { e.add('grid_b'); e.add('cb_m2'); e.add('tx2'); e.add('bus_b'); }
   if (tie && srcA) e.add('bus_b'); if (tie && srcB) e.add('bus_a');
@@ -214,270 +202,142 @@ const calculateMeshPhysics = (nodes) => {
 };
 
 // ==============================
-// SVG VISUAL COMPONENTS
+// COMPLEX CONVERT FOR PHASORS
 // ==============================
+interface ComplexVector { re: number; im: number; }
+const polarToComplex = (mag: number, deg: number): ComplexVector => {
+  const rad = (deg * Math.PI) / 180;
+  return { re: mag * Math.cos(rad), im: mag * Math.sin(rad) };
+};
+const addComplex = (x: ComplexVector, y: ComplexVector): ComplexVector => ({ re: x.re + y.re, im: x.im + y.im });
+const mulComplex = (x: ComplexVector, y: ComplexVector): ComplexVector => ({
+  re: x.re * y.re - x.im * y.im,
+  im: x.re * y.im + x.im * y.re
+});
+const getMag = (x: ComplexVector) => Math.sqrt(x.re * x.re + x.im * x.im);
 
-const BreakerSymbol = ({ x, y, status, stress, isEnergized, horizontal = false }) => {
+const aComplex = polarToComplex(1, 120);
+const a2Complex = polarToComplex(1, 240);
+
+const calcPhasorComponents = (Ia: ComplexVector, Ib: ComplexVector, Ic: ComplexVector) => {
+  const I0 = { re: (Ia.re + Ib.re + Ic.re) / 3, im: (Ia.im + Ib.im + Ic.im) / 3 };
+  const a_Ib = mulComplex(aComplex, Ib);
+  const a2_Ic = mulComplex(a2Complex, Ic);
+  const I1 = { re: (Ia.re + a_Ib.re + a2_Ic.re) / 3, im: (Ia.im + a_Ib.im + a2_Ic.im) / 3 };
+  const a2_Ib = mulComplex(a2Complex, Ib);
+  const a_Ic = mulComplex(aComplex, Ic);
+  const I2 = { re: (Ia.re + a2_Ib.re + a_Ic.re) / 3, im: (Ia.im + a2_Ib.im + a_Ic.im) / 3 };
+  return { I0: getMag(I0), I1: getMag(I1), I2: getMag(I2) };
+};
+
+// ==============================
+// SVG VISUAL SUB-COMPONENTS
+// ==============================
+const BreakerSymbol = ({ x, y, status, stress, isEnergized, horizontal = false }: any) => {
   const isOpen = status === 'OPEN' || status === 'TRIPPED';
   const color = isOpen ? (status === 'TRIPPED' ? '#ef4444' : '#64748b') : (isEnergized ? '#10b981' : '#64748b');
   
   return (
     <g transform={`translate(${x}, ${y}) ${horizontal ? 'rotate(90)' : ''}`}>
-      {/* Thermal Glow Aura */}
       {stress > 0 && status === 'CLOSED' && (
-        <circle r={28} fill={`rgba(239, 68, 68, ${stress / 100})`} filter="blur(6px)" />
+        <circle r={25} fill={`rgba(239, 68, 68, ${stress / 100})`} filter="blur(4px)" />
       )}
-      <rect x={-16} y={-16} width={32} height={32} rx={4} fill="#030712" stroke={color} strokeWidth={2} />
-      
-      {/* Mechanical Contact Animation */}
-      <motion.line x1={-8} y1={isOpen ? -10 : 0} x2={8} y2={isOpen ? -10 : 0} stroke={color} strokeWidth={3} strokeLinecap="round" animate={{ y1: isOpen ? -10 : 0, y2: isOpen ? -10 : 0 }} transition={{ type: "spring", stiffness: 500, damping: 25 }} />
-      <motion.line x1={-8} y1={isOpen ? 10 : 0} x2={8} y2={isOpen ? 10 : 0} stroke={color} strokeWidth={3} strokeLinecap="round" animate={{ y1: isOpen ? 10 : 0, y2: isOpen ? 10 : 0 }} transition={{ type: "spring", stiffness: 500, damping: 25 }} />
-      
-      {status === 'TRIPPED' && <text x={22} y={4} fill="#ef4444" fontSize="10" fontWeight="bold" transform={horizontal ? 'rotate(-90 22 4)' : ''}>TRIP</text>}
+      <rect x={-14} y={-14} width={28} height={28} rx={4} fill="#030712" stroke={color} strokeWidth={2} />
+      <motion.line x1={-6} y1={isOpen ? -8 : 0} x2={6} y2={isOpen ? -8 : 0} stroke={color} strokeWidth={2.5} strokeLinecap="round" animate={{ y1: isOpen ? -8 : 0, y2: isOpen ? -8 : 0 }} />
+      <motion.line x1={-6} y1={isOpen ? 8 : 0} x2={6} y2={isOpen ? 8 : 0} stroke={color} strokeWidth={2.5} strokeLinecap="round" animate={{ y1: isOpen ? 8 : 0, y2: isOpen ? 8 : 0 }} />
+      {status === 'TRIPPED' && <text x={20} y={4} fill="#ef4444" fontSize="9" fontWeight="black" transform={horizontal ? 'rotate(-90 20 4)' : ''}>TRIP</text>}
     </g>
   );
 };
 
-const TransformerSymbol = ({ x, y, isEnergized }) => (
+const TransformerSymbol = ({ x, y, isEnergized }: any) => (
   <g transform={`translate(${x}, ${y})`}>
-    <circle r={14} cy={-8} fill="#030712" stroke={isEnergized ? '#f59e0b' : '#64748b'} strokeWidth={2} />
-    <circle r={14} cy={8} fill="none" stroke={isEnergized ? '#f59e0b' : '#64748b'} strokeWidth={2} />
+    <circle r={12} cy={-6} fill="#030712" stroke={isEnergized ? '#f59e0b' : '#64748b'} strokeWidth={2} />
+    <circle r={12} cy={6} fill="none" stroke={isEnergized ? '#f59e0b' : '#64748b'} strokeWidth={2} />
   </g>
 );
 
-const ArcFlash = ({ x, y }) => (
+const ArcFlash = ({ x, y }: any) => (
   <g transform={`translate(${x}, ${y})`}>
-    <motion.circle r={60} fill="url(#arc-flash)" animate={{ opacity: [0.2, 1, 0.2], scale: [0.5, 1.2, 0.8] }} transition={{ repeat: Infinity, duration: 0.15 }} />
-    <motion.path d="M-15,-25 L10,-5 L-10,5 L20,30" fill="none" stroke="#ffffff" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 8px #ef4444)' }} animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 0.1 }} />
-    <motion.path d="M15,-15 L-5,-5 L10,5 L-20,20" fill="none" stroke="#fcd34d" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 5px #f59e0b)' }} animate={{ opacity: [1, 0, 1] }} transition={{ repeat: Infinity, duration: 0.12 }} />
+    <motion.circle r={50} fill="url(#arc-flash)" animate={{ opacity: [0.3, 0.9, 0.3], scale: [0.6, 1.1, 0.8] }} transition={{ repeat: Infinity, duration: 0.12 }} />
+    <motion.path d="M-12,-20 L8,-4 L-8,4 L16,24" fill="none" stroke="#ffffff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 6px #ef4444)' }} />
   </g>
 );
 
 // ==============================
-// ACADEMY & THEORY HUB (MATH)
+// MAIN APP COMPONENT
 // ==============================
-
-const TheoryHub = () => (
-  <div className="w-full h-full overflow-y-auto bg-[#030712] p-8 space-y-8 custom-scrollbar">
-    <div className="max-w-5xl mx-auto">
-      <h2 className="text-3xl font-black text-white uppercase tracking-widest border-b border-slate-800 pb-4 mb-8">
-        <BookOpen className="inline mr-3 w-8 h-8 text-cyan-500"/> Substation Protection Academy
-      </h2>
-
-      {/* VISUAL: DIRECTIONAL PROTECTION (ANSI 67) */}
-      <div className="bg-[#0a0f1c] border border-slate-800 p-8 rounded-2xl mb-8 flex flex-col lg:flex-row-reverse gap-8 items-center shadow-xl">
-        <div className="flex-1">
-          <h3 className="text-xl font-bold text-purple-400 mb-4 flex items-center gap-2"><Compass className="w-5 h-5"/> ANSI 67 (Directional Overcurrent)</h3>
-          <p className="text-slate-400 text-sm leading-relaxed mb-4">
-            In ring networks (like the 52-Ring tie between Ankleshwar and Jhagadia), current can flow in either direction. ANSI 67 relays compare the phase angle between Current (I) and Voltage (V) to determine fault direction.
-          </p>
-          <div className="bg-[#040812] p-4 rounded-lg border border-slate-800 font-mono text-xs text-amber-400 overflow-x-auto">
-            <div className="text-slate-500 mb-2">// Directional Operating Torque Calculation</div>
-            <div><span className="text-emerald-400">Torque</span> = |V| &times; |I| &times; cos(&theta; - &tau;)</div>
-            <div className="text-slate-400 mt-2">&theta; = Angle of Current relative to Voltage</div>
-            <div className="text-slate-400">&tau; = Relay Characteristic Angle (RCA), typically 45&deg; or 60&deg;</div>
-            <div className="text-purple-400 mt-2 font-bold">TRIP IF: Torque &gt; 0 AND <InlineMath math="|I| > I_{pickup}" /></div>
-          </div>
-        </div>
-        <div className="w-full lg:w-96 bg-[#040812] border border-slate-800 rounded-xl p-4 flex justify-center items-center">
-          <svg viewBox="0 0 200 200" className="w-full h-auto max-w-[250px]">
-            {/* Axes */}
-            <line x1="100" y1="20" x2="100" y2="180" stroke="#475569" strokeWidth="1" />
-            <line x1="20" y1="100" x2="180" y2="100" stroke="#475569" strokeWidth="1" />
-            <text x="100" y="15" fill="#94a3b8" fontSize="10" textAnchor="middle">+jX</text>
-            <text x="185" y="103" fill="#94a3b8" fontSize="10">+R (V_ref)</text>
-
-            {/* Operating Region */}
-            <path d="M 100 100 L 170 30 A 100 100 0 0 1 30 170 Z" fill="rgba(168, 85, 246, 0.2)" />
-            <line x1="30" y1="170" x2="170" y2="30" stroke="#a855f6" strokeWidth="2" strokeDasharray="4 4" />
-            <text x="140" y="50" fill="#a855f6" fontSize="10" fontWeight="bold">TRIP REGION</text>
-
-            {/* Restraint Region */}
-            <text x="50" y="150" fill="#64748b" fontSize="10" fontWeight="bold">BLOCK REGION</text>
-
-            {/* Vectors */}
-            <line x1="100" y1="100" x2="150" y2="100" stroke="#38bdf8" strokeWidth="2" />
-            <polygon points="150,100 145,97 145,103" fill="#38bdf8" />
-            <text x="130" y="95" fill="#38bdf8" fontSize="10" fontWeight="bold">V_pol</text>
-
-            <line x1="100" y1="100" x2="135" y2="65" stroke="#ef4444" strokeWidth="2" />
-            <polygon points="135,65 130,68 132,73" fill="#ef4444" />
-            <text x="140" y="65" fill="#ef4444" fontSize="10" fontWeight="bold">I_fault</text>
-          </svg>
-        </div>
-      </div>
-
-      {/* CALCULATION 1: ANSI 51 */}
-      <div className="bg-[#0a0f1c] border border-slate-800 p-8 rounded-2xl mb-8 shadow-xl">
-        <h3 className="text-xl font-bold text-cyan-400 mb-6 flex items-center gap-2"><Activity className="w-5 h-5"/> Mathematical Example 1: ANSI 51 (Inverse Time Overcurrent)</h3>
-        <p className="text-slate-400 text-sm leading-relaxed mb-6">
-          The simulation uses the exact IEEE C37.112 Extremely Inverse formula. Let's calculate the trip time for a feeder during an overload.
-        </p>
-        
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-[#030712] p-6 rounded-lg border border-slate-800 font-mono text-sm space-y-4">
-            <div className="text-slate-500 font-bold border-b border-slate-800 pb-2">Given Parameters:</div>
-            <div>• <span className="text-pink-400"><InlineMath math="I_{pickup}" /></span> (Relay Setting) = 1,260 A <span className="text-slate-500 text-xs">(1.05 × 1200A Rating)</span></div>
-            <div>• <span className="text-purple-400"><InlineMath math="I_{fault}" /></span> (Measured Load) = 2,500 A</div>
-            <div>• <span className="text-cyan-400">TD</span> (Time Dial) = 0.5</div>
-            
-            <div className="text-slate-500 font-bold border-b border-slate-800 pb-2 mt-6">Step 1: Calculate Multiple (M)</div>
-            <div className="overflow-x-auto my-2 text-center text-lg"><BlockMath math="M = \frac{I_{fault}}{I_{pickup}} = \frac{2500}{1260} = 1.984" /></div>
-          </div>
-
-          <div className="bg-[#030712] p-6 rounded-lg border border-slate-800 font-mono text-sm space-y-4 overflow-x-auto custom-scrollbar">
-            <div className="text-slate-500 font-bold border-b border-slate-800 pb-2">Step 2: IEEE Extremely Inverse Formula</div>
-            <div className="text-emerald-400"><BlockMath math="t = TD \times \left[ \frac{28.2}{M^{2.0} - 1} + 0.1217 \right]" /></div>
-            
-            <div className="text-slate-500 font-bold border-b border-slate-800 pb-2 mt-6">Step 3: Solve for Trip Time (t)</div>
-            <div className="space-y-2 overflow-x-auto">
-              <BlockMath math="t = 0.5 \times \left[ \frac{28.2}{1.984^2 - 1} + 0.1217 \right]" />
-              <BlockMath math="t = 0.5 \times \left[ \frac{28.2}{3.936 - 1} + 0.1217 \right]" />
-              <BlockMath math="t = 0.5 \times \left[ \frac{28.2}{2.936} + 0.1217 \right]" />
-              <BlockMath math="t = 0.5 \times [ 9.605 + 0.1217 ]" />
-            </div>
-            <div className="text-lg text-emerald-400 font-bold bg-emerald-950/30 p-2 rounded inline-block mt-2">t = 4.86 seconds</div>
-          </div>
-        </div>
-      </div>
-
-      {/* CALCULATION 2: ANSI 87T */}
-      <div className="bg-[#0a0f1c] border border-slate-800 p-8 rounded-2xl shadow-xl">
-        <h3 className="text-xl font-bold text-amber-400 mb-6 flex items-center gap-2"><GitMerge className="w-5 h-5"/> Mathematical Example 2: ANSI 87T (Transformer Differential)</h3>
-        <p className="text-slate-400 text-sm leading-relaxed mb-6">
-          Differential protection compares current entering and leaving. It uses a "Slope" to prevent false tripping from CT inaccuracies during heavy through-faults.
-        </p>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-[#030712] p-6 rounded-lg border border-slate-800 font-mono text-sm space-y-4">
-            <div className="text-slate-500 font-bold border-b border-slate-800 pb-2">Transformer & CT Specs:</div>
-            <div>• Capacity = 50 MVA, 132kV / 33kV</div>
-            <div>• Primary CT Ratio = <span className="text-pink-400">300 : 5</span></div>
-            <div>• Secondary CT Ratio = <span className="text-purple-400">1000 : 5</span></div>
-            <div>• Slope Setting = <span className="text-amber-400">20% (0.2)</span></div>
-
-            <div className="text-slate-500 font-bold border-b border-slate-800 pb-2 mt-6">Step 1: Calculate Rated Line Currents</div>
-            <div className="overflow-x-auto"><InlineMath math="I_{L\_pri} = \frac{50,000}{\sqrt{3} \times 132} =" /> <strong className="text-white">218.7 A</strong></div>
-            <div className="overflow-x-auto"><InlineMath math="I_{L\_sec} = \frac{50,000}{\sqrt{3} \times 33} =" /> <strong className="text-white">874.8 A</strong></div>
-          </div>
-
-          <div className="bg-[#030712] p-6 rounded-lg border border-slate-800 font-mono text-sm space-y-4">
-            <div className="text-slate-500 font-bold border-b border-slate-800 pb-2">Step 2: Calculate CT Secondary Currents</div>
-            <div className="overflow-x-auto"><InlineMath math="I_{pri\_sec} = 218.7 \times \left(\frac{5}{300}\right) =" /> <span className="text-pink-400">3.645 A</span></div>
-            <div className="overflow-x-auto"><InlineMath math="I_{sec\_sec} = 874.8 \times \left(\frac{5}{1000}\right) =" /> <span className="text-purple-400">4.374 A</span></div>
-
-            <div className="text-slate-500 font-bold border-b border-slate-800 pb-2 mt-6">Step 3: Restraint vs Operating</div>
-            <div className="overflow-x-auto"><InlineMath math="I_{OP}" /> (Mismatch) = <InlineMath math="|3.645 - 4.374| =" /> <strong className="text-red-400">0.729 A</strong></div>
-            <div className="overflow-x-auto"><InlineMath math="I_{RES}" /> (Average) = <InlineMath math="\frac{3.645 + 4.374}{2} =" /> <strong className="text-cyan-400">4.010 A</strong></div>
-            
-            <div className="mt-4 p-3 bg-slate-900 border border-slate-800 rounded">
-              <div className="text-xs text-slate-500 mb-1">Check Trip Condition: <InlineMath math="I_{OP} > \text{Slope} \times I_{RES}" /></div>
-              <div>0.729 &gt; 0.2 &times; 4.010</div>
-              <div>0.729 &gt; 0.802 &rarr; <span className="text-emerald-400 font-bold text-lg">FALSE (No Trip)</span></div>
-              <div className="text-xs text-slate-400 mt-1">The relay successfully restrains under normal load despite CT mismatch.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// ==============================
-// GLOBAL OVERVIEW COMPONENT
-// ==============================
-
-interface Scenario {
-  id: string;
-  name: string;
-  load: number[];
-  fault: string | null;
-}
-
-const GlobalOverviewPanel = ({ nodes, scenarios, loadScenario, activeScenario }: { nodes: any[], scenarios: Record<string, Scenario>, loadScenario: (id: string) => void, activeScenario: string }) => {
-  const totalLoad = nodes.filter(n => n.type === 'LOAD').reduce((s, n) => s + (n.loadMW || 0), 0);
-  const activeFaults = nodes.filter(n => n.faulted).length;
-  const trippedBreakers = nodes.filter(n => n.status === 'TRIPPED').length;
-
-  return (
-    <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar bg-[#0a0f1c]">
-      <div className="text-center pb-4 border-b border-slate-800">
-        <Activity className="w-12 h-12 text-cyan-500 mx-auto mb-3 opacity-50" />
-        <h2 className="text-lg font-black text-white tracking-widest uppercase">Grid Overview</h2>
-        <p className="text-[10px] text-slate-500 font-mono">SELECT A NODE ON THE SLD FOR IED CONTROLS</p>
-      </div>
-
-      {/* Global Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-[#030712] border border-slate-800 p-4 rounded-lg text-center">
-          <div className="text-[10px] font-bold text-slate-500 mb-1">TOTAL DEMAND</div>
-          <div className="text-2xl font-mono font-bold text-cyan-400">{totalLoad} <span className="text-sm">MW</span></div>
-        </div>
-        <div className="bg-[#030712] border border-slate-800 p-4 rounded-lg text-center">
-          <div className="text-[10px] font-bold text-slate-500 mb-1">GRID FREQ</div>
-          <div className="text-2xl font-mono font-bold text-emerald-400">50.0 <span className="text-sm">Hz</span></div>
-        </div>
-        <div className={`col-span-2 border p-4 rounded-lg text-center transition-colors ${activeFaults > 0 || trippedBreakers > 0 ? 'bg-red-950/30 border-red-900/50' : 'bg-emerald-950/30 border-emerald-900/50'}`}>
-          <div className="text-[10px] font-bold text-slate-500 mb-1">SYSTEM ALARMS</div>
-          <div className={`text-xl font-mono font-bold ${activeFaults > 0 || trippedBreakers > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-            {activeFaults} FAULTS | {trippedBreakers} TRIPS
-          </div>
-        </div>
-      </div>
-
-      {/* Scenario Dispatcher */}
-      <div>
-        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-2 mb-3">Load Scenarios</h3>
-        <div className="space-y-2">
-          {Object.values(scenarios).map(sc => (
-            <button 
-              key={sc.id} 
-              onClick={() => loadScenario(sc.id)} 
-              className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center justify-between group ${activeScenario === sc.id ? 'bg-cyan-950/40 border-cyan-800/50' : 'bg-[#030712] border-slate-800 hover:border-cyan-900/50'}`}
-            >
-              <div>
-                <div className={`text-xs font-bold uppercase tracking-wider ${activeScenario === sc.id ? 'text-cyan-400' : 'text-slate-300'}`}>{sc.name}</div>
-                <div className="text-[10px] font-mono text-slate-500">ID: {sc.id}</div>
-              </div>
-              <Play className={`w-4 h-4 ${activeScenario === sc.id ? 'text-cyan-400' : 'text-slate-600 group-hover:text-cyan-500'}`} />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==============================
-// MAIN APP & SIMULATION LOOP
-// ==============================
-
-export default function App() {
+export default function DigitalTwin() {
+  const isDark = useThemeObserver();
   const [nodes, setNodes] = useState<Node[]>(INITIAL_NODES as Node[]);
   const [physics, setPhysics] = useState<any>({ energized: new Set<string>(['grid_a', 'grid_b']), currents: {}, flows: {} });
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(true);
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [goosePackets, setGoosePackets] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('sim'); 
   const [activeScenario, setActiveScenario] = useState('normal');
+  const [activeConsoleTab, setActiveConsoleTab] = useState<'soe' | 'goose' | 'interlocks'>('soe');
+  const [activeControlTab, setActiveControlTab] = useState<'overview' | 'settings' | 'labs'>('overview');
+
+  // GOOSE Animation Trigger
+  const [gooseTrigger, setGooseTrigger] = useState(false);
+
+  // Labs State
+  const [currentLab, setCurrentLab] = useState<number | null>(null);
+  const [labStatus, setLabStatus] = useState<('not_started' | 'passed' | 'failed')[]>([
+    'not_started', 'not_started', 'not_started'
+  ]);
+  const [labMessage, setLabMessage] = useState<string | null>(null);
 
   const masterReset = () => {
-    setNodes(INITIAL_NODES.map(n => ({ ...n, status: n.type === NODE_TYPES.BREAKER ? 'CLOSED' : n.status, faulted: false, stress: 0, settings: n.settings ? {...DEFAULT_SETTINGS} : undefined })));
-    setLogs([{ id: 'reset', time: new Date().toISOString().substring(11,23), device: 'MASTER', event: 'SYSTEM RESET', details: 'All faults cleared. Relays reset.', type: 'INFO' }]);
+    setNodes(INITIAL_NODES.map(n => ({ 
+      ...n, 
+      status: n.type === NODE_TYPES.BREAKER ? 'CLOSED' : n.status, 
+      faulted: false, 
+      stress: 0, 
+      settings: n.settings ? {...DEFAULT_SETTINGS} : undefined,
+      loadMW: n.loadMW
+    })) as Node[]);
+    setLogs([{ id: 'reset', time: new Date().toISOString().substring(11,23), device: 'SYS_ENG', event: 'RELOAD CONFIG', details: 'Digital Twin reset. All interlocks active.', type: 'INFO' }]);
+    setGoosePackets([]);
     setActiveScenario('normal');
     setSelectedId(null);
+    setCurrentLab(null);
+    setLabMessage(null);
   };
 
-  const addLog = (device, event, details, type = 'INFO') => {
-    setLogs(prev => [{ id: Math.random().toString(36).substr(2,9), time: new Date().toISOString().substring(11, 23), device, event, details, type }, ...prev].slice(0, 50));
+  const addLog = (device: string, event: string, details: string, type: 'INFO' | 'TRIP' | 'WARN' = 'INFO') => {
+    const time = new Date().toISOString().substring(11, 23);
+    setLogs(prev => [{ id: Math.random().toString(), time, device, event, details, type }, ...prev].slice(0, 30));
   };
 
-  // Update specific node setting
-  const updateNodeSetting = (nodeId, settingKey, value) => {
+  const addGoosePacket = (src: string, dest: string, event: string, status: string) => {
+    const time = new Date().toISOString().substring(11, 23);
+    const packet = {
+      id: Math.random().toString(),
+      time,
+      mac: `01:0c:cd:01:00:${Math.floor(Math.random() * 90 + 10)}`,
+      goid: `GoID_${src.toUpperCase()}_LD0`,
+      stNum: Math.floor(Math.random() * 5 + 1),
+      sqNum: Math.floor(Math.random() * 20 + 1),
+      src,
+      dest,
+      event,
+      status
+    };
+    setGoosePackets(prev => [packet, ...prev].slice(0, 35));
+    // Trigger flashing Ethernet animation
+    setGooseTrigger(true);
+    setTimeout(() => setGooseTrigger(false), 800);
+  };
+
+  // Dynamic Settings Update
+  const updateNodeSetting = (nodeId: string, settingKey: string, value: any) => {
     setNodes(nodes.map(n => n.id === nodeId && n.settings ? { ...n, settings: { ...n.settings, [settingKey]: parseFloat(value) } } : n));
   };
 
-  // Nodal Physics Loop (10Hz)
+  // Substation Loop (10Hz)
   useEffect(() => {
     if (!isRunning) return;
     let animationFrameId;
@@ -501,35 +361,35 @@ export default function App() {
             const current = nextPhysics.currents[n.id] || 0;
             const limit = n.ratingAmps || 1000;
             
-            // Apply Dynamic Settings
+            // Dynamic Pickups
             const pickup50 = limit * (n.settings?.pickup50Mult || 5.0);
             const pickup51 = limit * (n.settings?.pickup51Mult || 1.05);
             const td51 = n.settings?.td51 || 0.5;
 
-            // ANSI 50 (Instantaneous)
+            // ANSI 50 Instantaneous
             if (current > pickup50) {
-              addLog(n.label, 'GOOSE TRIP', `ANSI 50 Fast Trip. Current=${current.toFixed(0)}A (> ${pickup50}A setpoint)`, 'TRIP');
-              stateChanged = true; return { ...n, status: 'TRIPPED', stress: 0 };
+              addLog(n.label, 'TRIP (50)', `ANSI 50 Overcurrent Trip: ${current.toFixed(0)}A`, 'TRIP');
+              addGoosePacket(n.id, 'BUS_SWITCH', 'ANSI 50 TRIP CMD', 'OPENED');
+              stateChanged = true; 
+              return { ...n, status: 'TRIPPED', stress: 0 };
             }
 
-            // ANSI 51 (Thermal / I²t)
+            // ANSI 51 Inverse Time Overcurrent
             let newStress = n.stress || 0;
             if (current > pickup51) {
-              // Calculate exactly based on IEEE curve
-              const M = current / pickup51;
-              const tripTimeSeconds = calculateThermalTripTime(current, pickup51, td51);
-              
-              // 10Hz tick means we accumulate (100% / tripTime) / 10 per tick
-              const accumulationPerTick = (100 / tripTimeSeconds) / 10;
-              newStress += accumulationPerTick;
+              const tripTimeSec = calculateThermalTripTime(current, pickup51, td51);
+              const accumulation = (100 / tripTimeSec) / 10;
+              newStress += accumulation;
 
               if (newStress >= 100) {
-                addLog(n.label, 'GOOSE TRIP', `ANSI 51 Thermal Overload Trip (IEEE Extremely Inverse).`, 'TRIP');
-                stateChanged = true; return { ...n, status: 'TRIPPED', stress: 0 };
+                addLog(n.label, 'TRIP (51)', `ANSI 51 Thermal Trip (IEEE Extremely Inverse)`, 'TRIP');
+                addGoosePacket(n.id, 'BUS_SWITCH', 'ANSI 51 TRIP CMD', 'OPENED');
+                stateChanged = true; 
+                return { ...n, status: 'TRIPPED', stress: 0 };
               }
               stateChanged = true;
             } else if (newStress > 0) {
-              newStress = Math.max(0, newStress - 1.5); 
+              newStress = Math.max(0, newStress - 2.5); 
               stateChanged = true;
             }
             return { ...n, stress: newStress };
@@ -546,7 +406,7 @@ export default function App() {
     return () => cancelAnimationFrame(animationFrameId);
   }, [nodes, isRunning]);
 
-  const loadScenario = (key) => {
+  const loadScenario = (key: string) => {
     const scen = SCENARIOS[key];
     setNodes(INITIAL_NODES.map(n => {
       let overrides: any = { status: n.type === NODE_TYPES.BREAKER ? 'CLOSED' : (n as any).status, faulted: false, stress: 0, faultType: (n as any).faultType || 'LLL' };
@@ -556,297 +416,623 @@ export default function App() {
       if (n.id === 'load4') overrides.loadMW = scen.load[3];
       if (n.id === scen.fault) overrides.faulted = true;
       return { ...n, ...overrides };
-    }));
+    }) as Node[]);
     setActiveScenario(key);
-    addLog('SYSTEM', 'SCENARIO', `Loaded: ${scen.name}`);
+    addLog('SYS', 'SCENARIO', `Loaded preset scenario: ${scen.name}`);
     setSelectedId(null);
   };
 
   const selectedNode = nodes.find(n => n.id === selectedId);
 
+  // Math components for specific selected node phasor displays
+  const nodePhasorStats = useMemo(() => {
+    if (!selectedNode) return null;
+    const mag = physics.currents[selectedNode.id] || 0;
+    
+    // Balanced system phase offsets
+    const phA = polarToComplex(mag, 0);
+    const phB = polarToComplex(mag, -120);
+    const phC = polarToComplex(mag, 120);
+
+    // If unbalanced fault injected
+    let fa = phA, fb = phB, fc = phC;
+    if (selectedNode.faulted && selectedNode.type === NODE_TYPES.LOAD) {
+      if (selectedNode.faultType === 'LG') {
+        fa = polarToComplex(mag * 2.5, 0);
+      } else if (selectedNode.faultType === 'LL') {
+        fb = polarToComplex(mag * 2.0, -150);
+        fc = polarToComplex(mag * 2.0, 30);
+      } else {
+        fa = polarToComplex(mag, 0);
+        fb = polarToComplex(mag, -120);
+        fc = polarToComplex(mag, 120);
+      }
+    }
+
+    const comps = calcPhasorComponents(fa, fb, fc);
+    return { fa, fb, fc, ...comps };
+  }, [selectedNode, physics, nodes]);
+
+  // Substation Graded Labs Definitions
+  const labs = useMemo(() => [
+    {
+      id: 0,
+      name: "Challenge 1: Ring Main Selectivity coordination",
+      objective: "Isolate a fault on load 2 (Ankleshwar GIDC) while keeping Jhagadia powered.",
+      description: "Ankleshwar GIDC (Load 2) is fed in a ring network. To enable ring feed, close Ring Tie breaker 'cb_ring' and inject a fault on Load 2. You must coordinate the protection settings such that Feeder F2 ('cb_f2') and Ring Tie ('cb_ring') trip first to isolate Ankleshwar, keeping Jhagadia Zone (Feeder F3) alive! Upstream incomers must NOT trip.",
+      setup: () => {
+        setNodes(INITIAL_NODES.map(n => {
+          let overrides: any = { status: n.type === NODE_TYPES.BREAKER ? 'CLOSED' : n.status };
+          if (n.id === 'cb_ring') overrides.status = 'CLOSED'; // Enable ring
+          if (n.id === 'load2') overrides.faulted = true; // Injected fault
+          return { ...n, ...overrides };
+        }) as Node[]);
+        reset();
+      },
+      check: () => {
+        const isClosed = (id) => nodes.find(x => x.id === id)?.status === 'CLOSED';
+        const isTripped = (id) => {
+          const s = nodes.find(x => x.id === id)?.status;
+          return s === 'OPEN' || s === 'TRIPPED';
+        };
+        // Ankleshwar isolated: cb_f2 and cb_ring tripped. Upstream incomers and load3 remain online.
+        return isTripped('cb_f2') && isTripped('cb_ring') && isClosed('cb_m1') && isClosed('cb_m2') && isClosed('cb_f3');
+      },
+      hint: "Configure Feeder F2 and Ring Tie pickups and TD dial to lower values (e.g. TD=0.10) compared to your primary incomers (e.g. Incomer TD=0.8)."
+    },
+    {
+      id: 1,
+      name: "Challenge 2: Bus Transfer Logic (ATS)",
+      objective: "Recover power on Bus A after incomer loss without overloading Transformer 2.",
+      description: "Incomer 52-M1 ('cb_m1') trips due to line loss. Bus A goes dead, blacking out Bharuch and Ankleshwar. You must close the Bus Tie 'cb_tie' to restore power to Bus A. However, closing the tie places both buses under Transformer 2. If the total load exceeds Tx 2 rating (50MVA / 875A), Incomer 52-M2 will overload and trip! You must shed load (reduce Load 2 to <= 10MW) before closing cb_tie.",
+      setup: () => {
+        setNodes(INITIAL_NODES.map(n => {
+          let overrides: any = { status: n.type === NODE_TYPES.BREAKER ? 'CLOSED' : n.status };
+          if (n.id === 'cb_m1') overrides.status = 'OPEN'; // Lost incomer
+          return { ...n, ...overrides };
+        }) as Node[]);
+        reset();
+      },
+      check: () => {
+        const isClosed = (id) => nodes.find(x => x.id === id)?.status === 'CLOSED';
+        const m2Current = physics.currents['cb_m2'] || 0;
+        // Bus tie closed, incomer m2 remains closed and current stays below secondary rated limit (approx 875A)
+        return isClosed('cb_tie') && isClosed('cb_m2') && m2Current < 875;
+      },
+      hint: "Select Load 2 on the diagram and slide the Demand Setpoint down to 10MW before closing Bus Tie 52-T."
+    },
+    {
+      id: 2,
+      name: "Challenge 3: Parallel Bus Coordination",
+      objective: "Coordinate relays to handle parallel incomer grid synchronization.",
+      description: "Both incomers cb_m1 and cb_m2 are CLOSED, and the Bus Tie cb_tie is CLOSED (parallel bus operation). This doubles the short-circuit rating on the bus. Trigger a LLL bolted fault on Bus B. The primary incomer cb_m2 and tie cb_tie must trip instantaneously (under 50ms) to protect the bus.",
+      setup: () => {
+        setNodes(INITIAL_NODES.map(n => {
+          let overrides: any = { status: n.type === NODE_TYPES.BREAKER ? 'CLOSED' : n.status };
+          if (n.id === 'cb_tie') overrides.status = 'CLOSED'; // Enable parallel
+          if (n.id === 'bus_b') overrides.faulted = true; // Inject bus fault
+          return { ...n, ...overrides };
+        }) as Node[]);
+        reset();
+      },
+      check: () => {
+        const isTripped = (id) => nodes.find(x => x.id === id)?.status === 'TRIPPED';
+        return isTripped('cb_m2') && isTripped('cb_tie');
+      },
+      hint: "Lower the ANSI 50 instantaneous pickup settings on cb_m2 and cb_tie to ensure fast coordinated tripping."
+    }
+  ], [nodes, physics]);
+
+  const verifyLab = () => {
+    if (currentLab === null) return;
+    const success = labs[currentLab].check();
+    setLabStatus(prev => {
+      const next = [...prev];
+      next[currentLab] = success ? 'passed' : 'failed';
+      return next;
+    });
+    if (success) {
+      setLabMessage("🎉 Success! Grid automation parameters are properly graded. Substation recovered.");
+    } else {
+      setLabMessage(`❌ Verification Failed. Hint: ${labs[currentLab].hint}`);
+    }
+  };
+
+  const tabs = [
+    { id: 'sim', label: 'GRID MONITOR', icon: <Activity className="w-4 h-4" /> },
+    { id: 'theory', label: 'ACADEMY', icon: <BookOpen className="w-4 h-4" /> }
+  ];
+
   return (
-    <div className="min-h-[100dvh] bg-[#020617] text-slate-200 font-sans overflow-hidden flex flex-col selection:bg-cyan-500/30">
+    <div className={`min-h-screen transition-colors duration-500 font-sans selection:bg-cyan-500/30 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       <PageSEO 
-        title="Digital Twin | Substation Automation & Mesh Network Simulator"
-        description="Interact with a live digital twin of a 132/33kV substation. Simulate bus faults, ring network load sharing, and IEC 61850 GOOSE communications."
+        title="Substation Digital Twin (IEC 61850 & GOOSE) | GridMaster Pro"
+        description="Interact with a live digital twin of a 132/33kV substation. Simulate load flows, loop configurations, and fiber-optic communication packets."
         url="/twin"
         schema={twinSchema}
-        keywords={["digital twin", "substation automation", "load flow simulation", "IEC 61850", "GOOSE messages", "mesh network"]}
       />
-      
+
       {/* HEADER */}
-      <header className="h-16 shrink-0 bg-[#0a0f1c] border-b border-cyan-900/50 flex items-center justify-between px-6 z-40 relative shadow-2xl">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-900 via-cyan-400 to-cyan-900 opacity-80"></div>
-        
-        <div className="flex items-center gap-4">
-          <div className="bg-cyan-950/50 border border-cyan-800 p-2 rounded text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.3)]">
-            <Activity className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="font-black text-lg tracking-widest uppercase text-white shadow-cyan-500 leading-none">GridMaster <span className="text-cyan-400">Pro</span></h1>
-            <div className="text-[10px] font-mono text-cyan-500/80 tracking-widest flex items-center gap-2 mt-1">
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span> IEC 61850 MESH SIMULATOR
-            </div>
-          </div>
+      <header className={`h-24 backdrop-blur-xl border-b px-6 lg:px-10 flex items-center justify-between sticky top-0 z-50 transition-colors duration-500 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-white/80 border-slate-200 shadow-sm'}`}>
+        <div className="flex items-center gap-5">
+           <div className="bg-cyan-600 p-3 rounded-2xl text-white shadow-[0_0_25px_rgba(6,182,212,0.5)]"><Network className="w-8 h-8"/></div>
+           <div>
+             <h1 className="font-black text-2xl lg:text-3xl tracking-tighter uppercase leading-none text-adaptive">GRID<span className="text-cyan-500">MASTER</span> PRO</h1>
+             <div className="text-[10px] font-black text-slate-550 uppercase tracking-[0.3em] mt-1">IEC 61850 | Substation Digital Twin</div>
+           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button onClick={masterReset} className="px-4 py-2 bg-red-950/40 hover:bg-red-900/80 border border-red-900/50 text-red-400 font-bold text-xs uppercase tracking-widest rounded transition-all flex items-center gap-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
-            <RotateCcw className="w-4 h-4"/> Master Reset
-          </button>
-          
-          <div className="w-px h-8 bg-slate-800 mx-2"></div>
+        <nav className={`hidden md:flex p-1.5 rounded-2xl border transition-colors duration-500 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-250 shadow-inner'}`}>
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase transition-all ${activeTab === t.id ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-850 dark:hover:text-slate-350'}`}>
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </nav>
 
-          <div className="bg-[#0f172a] p-1 rounded-md border border-slate-800 flex">
-            <button onClick={() => setActiveTab('sim')} className={`px-5 py-2 rounded text-[11px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'sim' ? 'bg-cyan-950/60 text-cyan-400 shadow-sm border border-cyan-800' : 'text-slate-500 hover:text-slate-300 border border-transparent'}`}>
-              <Activity className="w-3 h-3" /> Grid View
-            </button>
-            <button onClick={() => setActiveTab('theory')} className={`px-5 py-2 rounded text-[11px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'theory' ? 'bg-cyan-950/60 text-cyan-400 shadow-sm border border-cyan-800' : 'text-slate-500 hover:text-slate-300 border border-transparent'}`}>
-              <BookOpen className="w-3 h-3" /> Academy
-            </button>
-          </div>
+        <div className="flex items-center gap-4">
+          <button onClick={masterReset} className="px-4 py-2.5 bg-red-950/40 hover:bg-red-900 border border-red-900/40 text-red-400 font-bold text-xs uppercase tracking-widest rounded-xl transition-all flex items-center gap-2">
+            <RotateCcw className="w-4 h-4"/> System Reset
+          </button>
         </div>
       </header>
 
-      {/* STRICT PERSISTENT FLEXBOX LAYOUT */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden w-full h-full min-h-0">
-        
-        {activeTab === 'sim' ? (
-          <>
-            {/* LEFT COLUMN: SLD + SOE LOG */}
-            <div className="flex-1 flex flex-col min-w-0 min-h-[500px] lg:min-h-0 border-r border-slate-800 bg-[#030712] relative lg:overflow-hidden">
-              
-              {/* TOP: ENLARGED SVG SLD CANVAS */}
-              <div className="flex-1 relative cursor-crosshair overflow-hidden" onClick={() => setSelectedId(null)}>
-                <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0 L40 0 L40 40 L0 40 Z' fill='none' stroke='%2338bdf8' stroke-width='1'/%3E%3C/svg%3E")` }}></div>
+      {/* MOBILE NAV */}
+      <div className="md:hidden flex justify-around p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955/40">
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-4 py-2 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${activeTab === t.id ? 'text-cyan-500 border-b-2 border-cyan-500' : 'text-slate-500'}`}>
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      <main className="w-full mx-auto p-4 lg:p-6 min-h-[calc(100vh-6rem)] max-w-7xl">
+        <AnimatePresence mode="wait">
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            
+            {activeTab === 'sim' ? (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
-                {/* Tighter viewBox to naturally enlarge the SLD elements */}
-                <svg className="w-full h-full" viewBox="100 50 850 600" preserveAspectRatio="xMidYMid meet">
-                  <defs>
-                    <filter id="thermal-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
-                    <radialGradient id="arc-flash"><stop offset="0%" stopColor="#ffffff" stopOpacity="1"/><stop offset="30%" stopColor="#38bdf8" stopOpacity="0.8"/><stop offset="100%" stopColor="#0284c7" stopOpacity="0"/></radialGradient>
-                  </defs>
-
-                  {/* Draw Links (Cables) */}
-                  {INITIAL_LINKS.map(link => {
-                    const isEnergized = physics.energized.has(link.source) && physics.energized.has(link.target);
-                    let current = Math.max(physics.currents[link.target] || 0, physics.currents[link.source] || 0);
-                    
-                    let flowDirection = 1; 
-                    if (link.id === 'l_tie_a' || link.id === 'l_tie_b') { current = Math.abs(physics.flows.iTie || 0); flowDirection = (physics.flows.iTie > 0) ? 1 : -1; }
-                    if (link.id === 'l_ring_a' || link.id === 'l_ring_b') { current = Math.abs(physics.flows.iRing || 0); flowDirection = (physics.flows.iRing > 0) ? 1 : -1; }
-
-                    const overload = current / ((link as any).ratingAmps || 1000);
-                    let stroke = '#1e293b';
-                    if (isEnergized) { stroke = overload > 1.2 ? '#ef4444' : overload > 0.9 ? '#f59e0b' : '#0ea5e9'; }
-
-                    return (
-                      <g key={link.id}>
-                        <path d={link.path} fill="none" stroke={stroke} strokeWidth={isEnergized ? 4 : 2} style={{ filter: isEnergized && overload > 1 ? 'url(#thermal-glow)' : 'none', transition: 'stroke 0.3s' }} />
-                        {isEnergized && current > 5 && (
-                          <motion.path 
-                            d={link.path} fill="none" stroke="#ffffff" strokeWidth={2} strokeDasharray="4 24"
-                            animate={{ strokeDashoffset: flowDirection > 0 ? -28 : 28 }}
-                            transition={{ repeat: Infinity, ease: "linear", duration: Math.max(0.15, 1.5 - overload) }}
-                            style={{ filter: 'drop-shadow(0 0 4px #ffffff)', opacity: 0.9 }}
-                          />
-                        )}
-                      </g>
-                    );
-                  })}
-
-                  {/* Draw Nodes */}
-                  {nodes.map(node => {
-                    const isE = physics.energized.has(node.id);
-                    const isS = selectedId === node.id;
-                    const cur = physics.currents[node.id] || 0;
-                    
-                    return (
-                      <g key={node.id} onClick={(e) => { e.stopPropagation(); setSelectedId(node.id); }} className="cursor-pointer outline-none">
-                        
-                        {/* Selected Indicator */}
-                        <AnimatePresence>
-                          {isS && (
-                            <motion.circle r={35} cx={node.x} cy={node.y} fill="none" stroke="#22d3ee" strokeWidth={1.5} strokeDasharray="4 4" initial={{ opacity: 0 }} animate={{ opacity: 1, rotate: 360 }} exit={{opacity: 0}} transition={{ duration: 8, repeat: Infinity, ease: "linear" }} style={{ transformOrigin: `${node.x}px ${node.y}px` }} />
-                          )}
-                        </AnimatePresence>
-
-                        {/* Intense Fault Animation */}
-                        {node.faulted && <ArcFlash x={node.x} y={node.y} />}
-
-                        {/* Actual Components */}
-                        {node.type === NODE_TYPES.BUS && (
-                          <rect x={node.x - node.width/2} y={node.y - 4} width={node.width} height={8} fill={node.faulted ? '#ef4444' : isE ? '#0ea5e9' : '#1e293b'} style={{ filter: isE && !node.faulted ? 'drop-shadow(0 0 6px rgba(14,165,233,0.5))' : 'none' }} />
-                        )}
-                        
-                        {(node.type === NODE_TYPES.BREAKER || node.type === NODE_TYPES.TIE) && (
-                          <BreakerSymbol x={node.x} y={node.y} status={node.status} stress={node.stress} isEnergized={isE} horizontal={node.type === NODE_TYPES.TIE} />
-                        )}
-
-                        {node.type === NODE_TYPES.TRANSFORMER && <TransformerSymbol x={node.x} y={node.y} isEnergized={isE} />}
-                        
-                        {node.type === NODE_TYPES.GRID && (
-                          <g transform={`translate(${node.x}, ${node.y})`}>
-                            <circle r={22} fill="#0a0f1c" stroke="#38bdf8" strokeWidth={2} />
-                            <Activity className="w-6 h-6 text-[#38bdf8]" x={-12} y={-12} />
-                          </g>
-                        )}
-
-                        {node.type === NODE_TYPES.LOAD && (
-                          <g transform={`translate(${node.x}, ${node.y})`}>
-                            <polygon points="0,-18 18,12 -18,12" fill="#0a0f1c" stroke={isE ? '#8b5cf6' : '#475569'} strokeWidth={2} style={{ filter: isE ? 'drop-shadow(0 0 5px rgba(139,92,246,0.6))' : 'none' }} />
-                          </g>
-                        )}
-
-                        {/* Labels & Telemetry */}
-                        {node.type !== NODE_TYPES.BUS && (
-                          <text x={node.x} y={node.y + (node.type===NODE_TYPES.TIE && node.id==='cb_tie' ? -35 : 38)} textAnchor="middle" fill="#94a3b8" fontSize="12" fontFamily="monospace" fontWeight="bold">
-                            {node.label}
-                          </text>
-                        )}
-                        {isE && cur > 5 && node.type !== NODE_TYPES.BUS && (
-                          <text x={node.x} y={node.y + (node.type===NODE_TYPES.TIE && node.id==='cb_tie' ? -22 : 52)} textAnchor="middle" fill={cur > (node.ratingAmps||9999) ? '#ef4444' : '#38bdf8'} fontSize="13" fontFamily="monospace" fontWeight="bold" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-                            {cur.toFixed(0)} A
-                          </text>
-                        )}
-                      </g>
-                    );
-                  })}
-                </svg>
-              </div>
-
-              {/* BOTTOM: SOE LOG TERMINAL (Docked & Persistent) */}
-              <div className="h-[180px] shrink-0 bg-[#0a0f1c] border-t border-slate-800 flex flex-col z-20">
-                <div className="bg-[#040812] px-4 py-2 border-b border-slate-800 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  <span className="flex items-center gap-2"><Activity className="w-3 h-3 text-cyan-500" /> Station Bus IEC 61850 Log</span>
-                  <div className="flex gap-4">
-                    <button onClick={() => {
-                        const txt = logs.map(l => `[${l.time}] ${l.type} | ${l.device} | ${l.event} | ${l.details}`).join('\n');
-                        downloadTextFile(txt, 'Substation_SOE_Log.txt');
-                    }} className="hover:text-cyan-400 flex items-center gap-1 transition-colors"><Download className="w-3 h-3"/> EXPORT</button>
-                    <button onClick={() => setLogs([])} className="hover:text-white transition-colors">CLEAR</button>
-                  </div>
-                </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-1 font-mono text-[10px] custom-scrollbar">
-                  {logs.length === 0 && <span className="text-slate-600 pl-2">Listening to Process Bus... System Normal.</span>}
-                  <AnimatePresence>
-                    {logs.map((log) => (
-                      <motion.div key={log.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className={`flex gap-3 hover:bg-slate-800/40 p-1.5 rounded ${log.type === 'TRIP' ? 'text-red-400 border-l-2 border-red-500 bg-red-950/20' : 'text-cyan-400'}`}>
-                        <span className="text-slate-600 shrink-0">[{log.time}]</span>
-                        <span className="w-32 font-bold truncate shrink-0">{log.device}</span>
-                        <span className="w-32 truncate text-slate-300 shrink-0">{log.event}</span>
-                        <span className="flex-1 opacity-80">{log.details}</span>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </div>
-
-            </div>
-
-            {/* RIGHT COLUMN: PERSISTENT IED/OVERVIEW PANEL (Reduced Width) */}
-            <div className="w-full lg:w-[340px] shrink-0 min-h-[400px] lg:min-h-0 bg-[#0a0f1c] flex flex-col z-30 lg:shadow-[-10px_0_20px_rgba(0,0,0,0.5)] border-t lg:border-t-0 border-slate-800">
-              {selectedNode ? (
-                // IED Dashboard
-                <div className="flex flex-col h-full">
-                  <div className="p-4 border-b border-slate-800 flex justify-between items-start bg-[#040812]">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1"><span className="bg-cyan-900/40 text-cyan-400 text-[9px] px-1.5 py-0.5 rounded font-mono border border-cyan-800/50">IED DASHBOARD</span><span className="text-slate-500 text-[10px] font-mono">{selectedNode.id}</span></div>
-                      <h2 className="text-lg font-black text-white">{selectedNode.label}</h2>
-                    </div>
-                    <button onClick={() => setSelectedId(null)} className="text-slate-500 hover:text-white transition-colors p-1"><ZapOff className="w-5 h-5" /></button>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar bg-[#0a0f1c]">
-                    {/* Live SV Stream */}
-                    <div className="bg-[#030712] border border-slate-800 rounded-lg p-4 shadow-inner relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none"><Cpu size={60} /></div>
-                      <h3 className="text-[10px] font-mono text-slate-500 mb-2">SAMPLED VALUE (RMS)</h3>
-                      <div className="flex items-end justify-between">
-                        <span className="text-3xl font-mono font-bold text-cyan-400">{physics.currents[selectedNode.id]?.toFixed(0) || 0}</span>
-                        <span className="text-xs font-mono text-slate-500 mb-1">AMPS</span>
+                {/* Left Column: SLD Map + SOE Terminal */}
+                <div className="lg:col-span-8 space-y-6">
+                  
+                  {/* SLD INTERACTIVE VIEW */}
+                  <Card isDark={isDark} noPadding className="overflow-hidden flex flex-col h-[480px]">
+                    <div className="p-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/30">
+                      <h3 className="font-black text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-350 flex items-center gap-1.5">
+                        <Activity className="w-3.5 h-3.5 text-cyan-500" /> Substation mesh grid SLD
+                      </h3>
+                      <div className="flex items-center gap-4 text-[9px] font-mono">
+                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" /> Closed</span>
+                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" /> Tripped</span>
+                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-slate-500 rounded-full" /> Open</span>
                       </div>
-                      {selectedNode.ratingAmps && (
-                        <div className="mt-3 h-1 w-full bg-slate-900 rounded-full overflow-hidden relative">
-                          <div className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10" style={{ left: `${Math.min(100, (selectedNode.ratingAmps / Math.max(selectedNode.ratingAmps * 1.5, physics.currents[selectedNode.id] || 0)) * 100)}%` }}></div>
-                          <motion.div className="h-full bg-cyan-500" animate={{ width: `${Math.min(100, (physics.currents[selectedNode.id] / (selectedNode.ratingAmps * 1.5)) * 100)}%`, backgroundColor: physics.currents[selectedNode.id] > selectedNode.ratingAmps ? '#ef4444' : '#06b6d4' }} />
+                    </div>
+
+                    <div className="flex-1 min-h-0 relative bg-[#030712] cursor-crosshair overflow-hidden" onClick={() => setSelectedId(null)}>
+                      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0 L40 0 L40 40 L0 40 Z' fill='none' stroke='%2322d3ee' stroke-width='1'/%3E%3C/svg%3E")` }}></div>
+
+                      <svg className="w-full h-full" viewBox="100 50 850 550" preserveAspectRatio="xMidYMid meet">
+                        <defs>
+                          <filter id="thermal-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
+                          <radialGradient id="arc-flash"><stop offset="0%" stopColor="#ffffff" stopOpacity="1"/><stop offset="30%" stopColor="#38bdf8" stopOpacity="0.8"/><stop offset="100%" stopColor="#0284c7" stopOpacity="0"/></radialGradient>
+                          
+                          {/* Animated fiber optic dash pattern */}
+                          <pattern id="fiber-active" width="20" height="20" patternUnits="userSpaceOnUse">
+                            <circle cx="10" cy="10" r="2" fill="#ec4899" className="animate-ping" />
+                          </pattern>
+                        </defs>
+
+                        {/* IEC 61850 Process Bus Ethernet fiber Ring (Background Ring) */}
+                        <path d="M 250,160 L 150,440 L 350,440 L 500,320 L 650,440 L 850,440 L 750,160 Z" fill="none" stroke={gooseTrigger ? "#ec4899" : "#64748b"} strokeWidth={gooseTrigger ? "3" : "1.5"} strokeDasharray={gooseTrigger ? "5,5" : "none"} strokeOpacity="0.35" className="transition-all duration-300" />
+                        {gooseTrigger && (
+                          <path d="M 250,160 L 150,440 L 350,440 L 500,320 L 650,440 L 850,440 L 750,160 Z" fill="none" stroke="#fff" strokeWidth="2.5" strokeDasharray="4 20" className="animate-pulse" style={{ animationDuration: '0.1s' }} />
+                        )}
+
+                        {/* Power Bus links */}
+                        {INITIAL_LINKS.map(link => {
+                          const isEnergized = physics.energized.has(link.source) && physics.energized.has(link.target);
+                          let current = Math.max(physics.currents[link.target] || 0, physics.currents[link.source] || 0);
+                          
+                          let flowDirection = 1; 
+                          if (link.id === 'l_tie_a' || link.id === 'l_tie_b') { current = Math.abs(physics.flows.iTie || 0); flowDirection = (physics.flows.iTie > 0) ? 1 : -1; }
+                          if (link.id === 'l_ring_a' || link.id === 'l_ring_b') { current = Math.abs(physics.flows.iRing || 0); flowDirection = (physics.flows.iRing > 0) ? 1 : -1; }
+
+                          const overload = current / ((link as any).ratingAmps || 1000);
+                          let stroke = '#1e293b';
+                          if (isEnergized) { stroke = overload > 1.2 ? '#ef4444' : overload > 0.9 ? '#f59e0b' : '#0ea5e9'; }
+
+                          return (
+                            <g key={link.id}>
+                              <path d={link.path} fill="none" stroke={stroke} strokeWidth={isEnergized ? 4 : 2} style={{ filter: isEnergized && overload > 1 ? 'url(#thermal-glow)' : 'none', transition: 'stroke 0.3s' }} />
+                              {isEnergized && current > 5 && (
+                                <motion.path 
+                                  d={link.path} fill="none" stroke="#ffffff" strokeWidth={2} strokeDasharray="4 24"
+                                  animate={{ strokeDashoffset: flowDirection > 0 ? -28 : 28 }}
+                                  transition={{ repeat: Infinity, ease: "linear", duration: Math.max(0.15, 1.5 - overload) }}
+                                  style={{ filter: 'drop-shadow(0 0 4px #ffffff)', opacity: 0.9 }}
+                                />
+                              )}
+                            </g>
+                          );
+                        })}
+
+                        {/* Station Nodes */}
+                        {nodes.map(node => {
+                          const isE = physics.energized.has(node.id);
+                          const isS = selectedId === node.id;
+                          const cur = physics.currents[node.id] || 0;
+                          
+                          return (
+                            <g key={node.id} onClick={(e) => { e.stopPropagation(); setSelectedId(node.id); }} className="cursor-pointer">
+                              <AnimatePresence>
+                                {isS && (
+                                  <motion.circle r={28} cx={node.x} cy={node.y} fill="none" stroke="#22d3ee" strokeWidth={1.5} strokeDasharray="4 4" initial={{ opacity: 0 }} animate={{ opacity: 1, rotate: 360 }} exit={{opacity: 0}} transition={{ duration: 8, repeat: Infinity, ease: "linear" }} style={{ transformOrigin: `${node.x}px ${node.y}px` }} />
+                                )}
+                              </AnimatePresence>
+
+                              {node.faulted && <ArcFlash x={node.x} y={node.y} />}
+
+                              {node.type === NODE_TYPES.BUS && (
+                                <rect x={node.x - (node.width || 100)/2} y={node.y - 4} width={node.width} height={8} fill={node.faulted ? '#ef4444' : isE ? '#0ea5e9' : '#1e293b'} style={{ filter: isE && !node.faulted ? 'drop-shadow(0 0 6px rgba(14,165,233,0.5))' : 'none' }} />
+                              )}
+                              
+                              {(node.type === NODE_TYPES.BREAKER || node.type === NODE_TYPES.TIE) && (
+                                <BreakerSymbol x={node.x} y={node.y} status={node.status} stress={node.stress} isEnergized={isE} horizontal={node.type === NODE_TYPES.TIE} />
+                              )}
+
+                              {node.type === NODE_TYPES.TRANSFORMER && <TransformerSymbol x={node.x} y={node.y} isEnergized={isE} />}
+                              
+                              {node.type === NODE_TYPES.GRID && (
+                                <g transform={`translate(${node.x}, ${node.y})`}>
+                                  <circle r={18} fill="#0a0f1c" stroke="#38bdf8" strokeWidth={2} />
+                                  <Activity className="w-5 h-5 text-[#38bdf8]" x={-10} y={-10} />
+                                </g>
+                              )}
+
+                              {node.type === NODE_TYPES.LOAD && (
+                                <g transform={`translate(${node.x}, ${node.y})`}>
+                                  <polygon points="0,-15 15,10 -15,10" fill="#0a0f1c" stroke={isE ? '#8b5cf6' : '#475569'} strokeWidth={2} />
+                                </g>
+                              )}
+
+                              {node.type !== NODE_TYPES.BUS && (
+                                <text x={node.x} y={node.y + (node.type===NODE_TYPES.TIE && node.id==='cb_tie' ? -30 : 34)} textAnchor="middle" fill="#94a3b8" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                                  {node.label}
+                                </text>
+                              )}
+                              {isE && cur > 5 && node.type !== NODE_TYPES.BUS && (
+                                <text x={node.x} y={node.y + (node.type===NODE_TYPES.TIE && node.id==='cb_tie' ? -18 : 46)} textAnchor="middle" fill={cur > (node.ratingAmps||9999) ? '#ef4444' : '#38bdf8'} fontSize="11" fontFamily="monospace" fontWeight="bold">
+                                  {cur.toFixed(0)} A
+                                </text>
+                              )}
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    </div>
+                  </Card>
+
+                  {/* BOTTOM TABS: IEC 61850 GOOSE MESSAGE STREAM & EVENTS LOG */}
+                  <Card isDark={isDark} noPadding className="h-[200px] flex flex-col overflow-hidden">
+                    <div className="p-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/30 flex-wrap gap-2">
+                      
+                      <div className="flex p-0.5 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-850">
+                        {[
+                          { id: 'soe', label: 'Event Log (SOE)' },
+                          { id: 'goose', label: 'IEC 61850 GOOSE Stream' }
+                        ].map(t => (
+                          <button
+                            key={t.id}
+                            onClick={() => setActiveConsoleTab(t.id as any)}
+                            className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all ${
+                              activeConsoleTab === t.id
+                                ? 'bg-cyan-600 text-white shadow-md font-bold'
+                                : 'text-slate-500 hover:text-slate-850 dark:hover:text-slate-300'
+                            }`}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex gap-3 text-[9px] font-black uppercase text-slate-500">
+                        <button onClick={() => {
+                          const txt = logs.map(l => `[${l.time}] ${l.type} | ${l.device} | ${l.event} | ${l.details}`).join('\n');
+                          downloadTextFile(txt, 'Substation_SOE_Log.txt');
+                        }} className="hover:text-cyan-500 flex items-center gap-1.5"><Download className="w-3.5 h-3.5"/> Export</button>
+                        <button onClick={() => { setLogs([]); setGoosePackets([]); }} className="hover:text-cyan-500">Clear</button>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-1.5 font-mono text-[9px] bg-[#020712] custom-scrollbar">
+                      {activeConsoleTab === 'soe' ? (
+                        <>
+                          {logs.length === 0 && <span className="text-slate-650 italic pl-1 uppercase">Listening to station process bus... System Healthy.</span>}
+                          {logs.map(log => (
+                            <div key={log.id} className={`flex gap-3 leading-relaxed ${log.type === 'TRIP' ? 'text-red-400 border-l border-red-500 bg-red-950/15 px-2 py-0.5' : log.type === 'WARN' ? 'text-amber-400' : 'text-cyan-400'}`}>
+                              <span className="text-slate-600">[{log.time}]</span>
+                              <span className="w-28 font-bold truncate">{log.device}</span>
+                              <span className="w-24 truncate text-slate-350">{log.event}</span>
+                              <span className="flex-1 text-slate-300">{log.details}</span>
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          {goosePackets.length === 0 && <span className="text-slate-650 italic pl-1 uppercase">Waiting for dynamic multicast network frames...</span>}
+                          {goosePackets.map(p => (
+                            <div key={p.id} className="flex gap-2 text-pink-400 border-l border-pink-500 bg-pink-950/10 px-2 py-0.5 leading-relaxed">
+                              <span className="text-slate-600">[{p.time}]</span>
+                              <span className="text-slate-400 font-bold shrink-0">{p.mac}</span>
+                              <span className="text-slate-300 shrink-0 font-bold">{p.goid}</span>
+                              <span className="text-indigo-400 shrink-0">stNum:{p.stNum} sqNum:{p.sqNum}</span>
+                              <span className="text-pink-300 font-bold truncate">{p.event}</span>
+                              <span className="flex-1 text-slate-400 truncate">&rarr; dest:{p.dest} ({p.status})</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Right Column: Dynamic IED Dashboard & Station Controllers */}
+                <div className="lg:col-span-4 space-y-6">
+                  
+                  {/* DYNAMIC CONTROL CARD */}
+                  <Card isDark={isDark} className="flex flex-col h-[700px] overflow-hidden">
+                    <div className="border-b border-slate-200 dark:border-slate-800 pb-3 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/30 -mx-6 -mt-6 p-4">
+                      <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-350 flex items-center gap-1.5">
+                        <Settings className="w-4 h-4 text-cyan-500 animate-spin-slow" /> Station Dashboard
+                      </h3>
+                      
+                      <div className="flex p-0.5 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-850">
+                        {[
+                          { id: 'overview', label: 'Grid' },
+                          { id: 'settings', label: 'IEDs' },
+                          { id: 'labs', label: 'Labs' }
+                        ].map(tab => (
+                          <button
+                            key={tab.id}
+                            onClick={() => setActiveControlTab(tab.id as any)}
+                            className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all ${
+                              activeControlTab === tab.id
+                                ? 'bg-cyan-600 text-white shadow-md font-bold'
+                                : 'text-slate-500 hover:text-slate-850 dark:hover:text-slate-300'
+                            }`}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto mt-4 space-y-6 custom-scrollbar pr-1">
+                      
+                      {/* TAB 1: Grid Overview */}
+                      {activeControlTab === 'overview' && (
+                        <div className="space-y-6">
+                          
+                          {/* Live Substation stats */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 p-4 rounded-xl text-center">
+                              <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1">MVA Active Capacity</span>
+                              <span className="text-xl font-mono font-bold text-cyan-500">
+                                {nodes.filter(n => n.type === 'LOAD').reduce((s, n) => s + (n.loadMW || 0), 0)} MW
+                              </span>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-[#030712] border border-slate-200 dark:border-slate-800 p-4 rounded-xl text-center">
+                              <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1">Interlock state</span>
+                              <span className="text-xl font-mono font-bold text-emerald-500">Active</span>
+                            </div>
+                          </div>
+
+                          {/* Parallel Bus Overload Rating Check */}
+                          {(() => {
+                            const tieClosed = nodes.find(x => x.id === 'cb_tie')?.status === 'CLOSED';
+                            const m1Closed = nodes.find(x => x.id === 'cb_m1')?.status === 'CLOSED';
+                            const m2Closed = nodes.find(x => x.id === 'cb_m2')?.status === 'CLOSED';
+                            if (tieClosed && m1Closed && m2Closed) {
+                              return (
+                                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[9px] font-bold uppercase text-amber-500 leading-relaxed">
+                                  ⚠️ Warning: Parallel Incomers Closed. Bus fault level increased to 40kA (Breaker Switchgear Limit: 31.5kA)!
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+
+                          {/* Scenario presets selection */}
+                          <div className="space-y-3">
+                            <span className="text-[9px] font-black text-slate-550 uppercase tracking-wider block">Grid Loading Scenarios</span>
+                            <div className="space-y-2">
+                              {Object.values(SCENARIOS).map(sc => (
+                                <button
+                                  key={sc.id}
+                                  onClick={() => loadScenario(sc.id)}
+                                  className={`w-full text-left p-3 border rounded-xl flex items-center justify-between transition-all ${
+                                    activeScenario === sc.id
+                                      ? 'bg-cyan-500/10 border-cyan-500 text-cyan-600 dark:text-cyan-400 font-bold'
+                                      : 'bg-white dark:bg-[#030712] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                                  }`}
+                                >
+                                  <div>
+                                    <div className="text-[9px] uppercase tracking-wider">{sc.name}</div>
+                                    <div className="text-[8px] opacity-70 font-mono tracking-normal leading-normal mt-0.5">Preset {sc.id} configuration</div>
+                                  </div>
+                                  <Play className="w-3.5 h-3.5" />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* TAB 2: Dynamic IED controllers */}
+                      {activeControlTab === 'settings' && (
+                        <div className="space-y-6">
+                          {selectedNode ? (
+                            <div className="space-y-5">
+                              <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl">
+                                <span className="text-[8px] font-mono text-slate-500 block mb-1">IED COMPONENT IDENTIFIER</span>
+                                <h4 className="text-xs font-black uppercase text-adaptive">{selectedNode.label} ({selectedNode.voltagekV}kV)</h4>
+                              </div>
+
+                              {/* SV Current measurement */}
+                              <div className="bg-[#030712] border border-slate-800 rounded-xl p-4 text-center space-y-1 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none"><Cpu size={60} /></div>
+                                <span className="text-[8px] font-mono text-slate-500 block">SAMPLED VALUE (RMS CURRENT)</span>
+                                <span className="text-4xl font-mono font-bold text-cyan-500 block">
+                                  {physics.currents[selectedNode.id]?.toFixed(0) || 0} <span className="text-xs text-slate-500">AMPS</span>
+                                </span>
+                              </div>
+
+                              {/* Interactive oscilloscope widget */}
+                              {physics.currents[selectedNode.id] > 0 && nodePhasorStats && (
+                                <div className="bg-[#040812] border border-slate-800 rounded-xl p-3 space-y-2">
+                                  <span className="text-[8px] font-mono text-slate-500 block">LIVE IED OSCILLOSCOPE CHANNELS</span>
+                                  <svg className="w-full h-24" viewBox="0 0 300 100">
+                                    <line x1="0" y1="50" x2="300" y2="50" stroke="#0f2619" strokeWidth="1" />
+                                    {(() => {
+                                      const pathA: string[] = [];
+                                      const pathB: string[] = [];
+                                      const pathC: string[] = [];
+                                      const mag = getMag(nodePhasorStats.fa);
+                                      for (let x = 0; x <= 300; x += 3) {
+                                        const angle = (x / 300) * Math.PI * 4; // 2 cycles
+                                        const yA = 50 - (mag / 5000) * 35 * Math.sin(angle);
+                                        const yB = 50 - (mag / 5000) * 35 * Math.sin(angle - (2*Math.PI/3));
+                                        const yC = 50 - (mag / 5000) * 35 * Math.sin(angle + (2*Math.PI/3));
+                                        pathA.push(`${x},${yA}`);
+                                        pathB.push(`${x},${yB}`);
+                                        pathC.push(`${x},${yC}`);
+                                      }
+                                      return (
+                                        <g fill="none" strokeWidth="1.5">
+                                          <path d={`M ${pathB.join(' L ')}`} stroke="#06b6d4" />
+                                          <path d={`M ${pathC.join(' L ')}`} stroke="#ef4444" />
+                                          <path d={`M ${pathA.join(' L ')}`} stroke="#eab308" />
+                                        </g>
+                                      );
+                                    })()}
+                                  </svg>
+                                </div>
+                              )}
+
+                              {/* Slider controls for breaker relays */}
+                              {(selectedNode.type === NODE_TYPES.BREAKER || selectedNode.type === NODE_TYPES.TIE) && (
+                                <div className="space-y-4">
+                                  <span className="text-[9px] font-black text-slate-550 uppercase tracking-wider block border-b border-slate-200 dark:border-slate-800 pb-1">ANSI Settings</span>
+                                  <div className="space-y-3 bg-[#030712] border border-slate-800 p-3 rounded-xl">
+                                    <Slider label="pickup multiplier (Ip)" min={1.0} max={1.8} step={0.05} value={selectedNode.settings?.pickup51Mult || 1.05} onChange={e => updateNodeSetting(selectedNode.id, 'pickup51Mult', e.target.value)} color="blue" />
+                                    <Slider label="Time Dial Dial (TD)" min={0.05} max={1.5} step={0.05} value={selectedNode.settings?.td51 || 0.5} onChange={e => updateNodeSetting(selectedNode.id, 'td51', e.target.value)} color="blue" />
+                                    <Slider label="Instantaneous Pickup (50)" min={2.0} max={10.0} step={0.5} value={selectedNode.settings?.pickup50Mult || 5.0} onChange={e => updateNodeSetting(selectedNode.id, 'pickup50Mult', e.target.value)} color="red" />
+                                  </div>
+
+                                  <span className="text-[9px] font-black text-slate-550 uppercase tracking-wider block border-b border-slate-200 dark:border-slate-800 pb-1 pt-2">Manual Control overrides</span>
+                                  <div className="flex gap-2">
+                                    <button onClick={() => {
+                                      setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, status: 'CLOSED', faulted: false, stress: 0 } : n) as Node[]);
+                                      addLog(selectedNode.label, 'CMD EXEC', 'Breaker contacts CLOSED', 'INFO');
+                                      addGoosePacket(selectedNode.id, 'PROCESS_BUS', 'CMD CLOSE', 'CLOSED');
+                                    }} disabled={selectedNode.status === 'CLOSED'} className="flex-1 py-2.5 bg-emerald-950/40 hover:bg-emerald-900 border border-emerald-900/50 disabled:opacity-20 text-emerald-400 font-bold text-[10px] rounded-xl transition-all">52-CLOSE</button>
+                                    <button onClick={() => {
+                                      setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, status: 'OPEN' } : n) as Node[]);
+                                      addLog(selectedNode.label, 'CMD EXEC', 'Breaker contacts OPENED', 'WARN');
+                                      addGoosePacket(selectedNode.id, 'PROCESS_BUS', 'CMD OPEN', 'OPENED');
+                                    }} disabled={selectedNode.status === 'OPEN' || selectedNode.status === 'TRIPPED'} className="flex-1 py-2.5 bg-red-950/40 hover:bg-red-900 border border-red-900/50 disabled:opacity-20 text-red-400 font-bold text-[10px] rounded-xl transition-all">52-TRIP</button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Load setpoint sliders & Fault Injector */}
+                              {selectedNode.type === NODE_TYPES.LOAD && (
+                                <div className="space-y-4">
+                                  <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl">
+                                    <Slider label="Feeder Demand Level (MW)" min={0} max={100} step={1} value={selectedNode.loadMW || 0} onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, loadMW: parseInt(e.target.value) } : n) as Node[])} color="blue" />
+                                  </div>
+
+                                  <div className="bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 p-4 rounded-xl space-y-3">
+                                    <span className="text-[9px] font-black text-slate-550 uppercase tracking-wider block border-b border-slate-200 dark:border-slate-800 pb-1">Feeder Fault Simulation</span>
+                                    <select value={selectedNode.faultType || 'LLL'} onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, faultType: e.target.value } : n) as Node[])} className="w-full bg-[#0a0f1c] border border-slate-700 text-cyan-400 rounded-lg p-2 text-xs font-bold outline-none focus:border-cyan-500">
+                                      <option value="LLL">3-Phase Bolted (LLL)</option>
+                                      <option value="LL">Line-to-Line (LL)</option>
+                                      <option value="LG">Line-to-Ground (LG)</option>
+                                    </select>
+                                    <button onClick={() => {
+                                      const isFault = !selectedNode.faulted;
+                                      setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, faulted: isFault } : n) as Node[]);
+                                      addLog(selectedNode.label, isFault ? 'FAULT INJ' : 'FAULT CLR', isFault ? `${selectedNode.faultType} Fault Active!` : 'Fault cleared.', isFault ? 'WARN' : 'INFO');
+                                      addGoosePacket(selectedNode.id, 'BUS_COUPLER', isFault ? 'FAULT INITIATED' : 'FAULT RESET', isFault ? 'ACTIVE' : 'NORMAL');
+                                    }} className={`w-full py-3 border rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${selectedNode.faulted ? 'bg-amber-950/40 border-amber-900/50 text-amber-500 hover:bg-amber-900' : 'bg-red-950/20 border-red-900/30 text-red-400 hover:border-red-900/80'}`}>
+                                      <AlertTriangle className="w-3.5 h-3.5" /> {selectedNode.faulted ? 'Clear Fault' : 'Inject Fault'}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="h-full flex items-center justify-center text-[10px] font-black text-slate-500 uppercase italic tracking-widest text-center py-20">
+                              No Node Selected.<br/>Click any component on the SLD layout.
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* TAB 3: Labs & challenges */}
+                      {activeControlTab === 'labs' && (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 gap-2">
+                            {labs.map((l, idx) => (
+                              <button key={l.id} onClick={() => startLab(idx)}
+                                className={`w-full text-left p-3.5 rounded-2xl border transition-all ${
+                                  currentLab === idx 
+                                    ? 'bg-cyan-500/10 border-cyan-500 text-cyan-700 dark:text-cyan-400 font-bold' 
+                                    : 'bg-white dark:bg-[#030712] border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-350'
+                                }`}>
+                                <div className="flex justify-between items-center mb-1.5">
+                                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest font-mono">IED Lab {idx + 1}</span>
+                                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${labStatus[idx] === 'passed' ? 'bg-emerald-500/25 text-emerald-600 dark:text-emerald-400' : labStatus[idx] === 'failed' ? 'bg-red-500/25 text-red-600 dark:text-red-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-655 dark:text-slate-400'}`}>
+                                    {labStatus[idx] === 'passed' ? 'Passed' : labStatus[idx] === 'failed' ? 'Failed' : 'Not Started'}
+                                  </span>
+                                </div>
+                                <h4 className="text-xs font-bold leading-tight mb-1">{l.name}</h4>
+                                <p className="text-[9px] text-slate-550 dark:text-slate-450 uppercase tracking-wider">{l.objective}</p>
+                              </button>
+                            ))}
+                          </div>
+
+                          {currentLab !== null && (
+                            <Card isDark={isDark} className="bg-slate-100 dark:bg-[#030712] border border-slate-200 dark:border-slate-850 p-4 space-y-4">
+                              <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
+                                <h4 className="text-[10px] font-black text-cyan-500 uppercase tracking-widest">Grading Workspace</h4>
+                                <button onClick={verifyLab} className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-[9px] font-black rounded-lg uppercase tracking-wider flex items-center gap-1.5 transition-all">
+                                  <Check className="w-3.5 h-3.5" /> Verify Setup
+                                </button>
+                              </div>
+
+                              <p className="text-[10px] text-slate-650 dark:text-slate-350 leading-relaxed uppercase tracking-wider">{labs[currentLab].description}</p>
+                              
+                              {labMessage && (
+                                <div className={`p-3 rounded-lg border text-[9px] font-bold leading-relaxed uppercase tracking-wider ${labMessage.startsWith('🎉') ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'}`}>
+                                  {labMessage}
+                                </div>
+                              )}
+                            </Card>
+                          )}
                         </div>
                       )}
                     </div>
-
-                    {/* Interactive Breaker Settings & Controls */}
-                    {(selectedNode.type === NODE_TYPES.BREAKER || selectedNode.type === NODE_TYPES.TIE) && (
-                      <div className="space-y-4">
-                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-1">Protection Settings</h3>
-                        <div className="space-y-3 bg-[#030712] border border-slate-800 p-3 rounded text-xs font-mono">
-                          
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-slate-400"><label>ANSI 51 Pickup (x In)</label> <span className="text-cyan-400">{selectedNode.settings?.pickup51Mult?.toFixed(2) || '1.05'}</span></div>
-                            <input type="range" min="1.0" max="1.5" step="0.05" value={selectedNode.settings?.pickup51Mult || 1.05} onChange={(e) => updateNodeSetting(selectedNode.id, 'pickup51Mult', e.target.value)} className="w-full h-1 bg-slate-800 rounded appearance-none accent-cyan-500" />
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-slate-400"><label>ANSI 51 Time Dial (TD)</label> <span className="text-cyan-400">{selectedNode.settings?.td51?.toFixed(2) || '0.50'}</span></div>
-                            <input type="range" min="0.1" max="1.5" step="0.05" value={selectedNode.settings?.td51 || 0.5} onChange={(e) => updateNodeSetting(selectedNode.id, 'td51', e.target.value)} className="w-full h-1 bg-slate-800 rounded appearance-none accent-cyan-500" />
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-slate-400"><label>ANSI 50 Inst (x In)</label> <span className="text-cyan-400">{selectedNode.settings?.pickup50Mult?.toFixed(1) || '5.0'}</span></div>
-                            <input type="range" min="2.0" max="10.0" step="0.5" value={selectedNode.settings?.pickup50Mult || 5.0} onChange={(e) => updateNodeSetting(selectedNode.id, 'pickup50Mult', e.target.value)} className="w-full h-1 bg-slate-800 rounded appearance-none accent-cyan-500" />
-                          </div>
-
-                        </div>
-
-                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-1 mt-4">Manual Operation</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button onClick={() => { setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, status: 'CLOSED', faulted: false, stress: 0 } : n)); addLog(selectedNode.label, 'CMD', 'CLOSE Executed'); }} disabled={selectedNode.status === 'CLOSED'} className="py-2.5 bg-emerald-950/40 hover:bg-emerald-900 border border-emerald-900/50 disabled:opacity-20 text-emerald-400 font-bold text-[10px] rounded transition-all">52-CLOSE</button>
-                          <button onClick={() => { setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, status: 'OPEN' } : n)); addLog(selectedNode.label, 'CMD', 'TRIP Executed'); }} disabled={selectedNode.status === 'OPEN' || selectedNode.status === 'TRIPPED'} className="py-2.5 bg-red-950/40 hover:bg-red-900 border border-red-900/50 disabled:opacity-20 text-red-400 font-bold text-[10px] rounded transition-all">52-TRIP</button>
-                        </div>
-                        
-                        {selectedNode.stress > 0 && selectedNode.status === 'CLOSED' && (
-                          <div className="mt-3 bg-slate-900/50 p-2 rounded border border-red-900/30">
-                            <div className="flex justify-between text-[10px] text-red-400 mb-1"><span>Thermal I²t Stress</span> <span>{selectedNode.stress.toFixed(1)}%</span></div>
-                            <div className="w-full h-1 bg-slate-800 rounded overflow-hidden"><motion.div className="h-full bg-red-500" animate={{ width: `${selectedNode.stress}%` }} /></div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Interactive Load & Fault Settings */}
-                    {selectedNode.type === NODE_TYPES.LOAD && (
-                      <div className="space-y-4">
-                        <div className="bg-[#030712] border border-slate-800 p-4 rounded-lg">
-                          <div className="flex justify-between text-[10px] font-mono mb-3 text-slate-400"><span>DEMAND SETPOINT</span> <span className="text-cyan-400 font-bold">{selectedNode.loadMW} MW</span></div>
-                          <input type="range" min={0} max={100} step={1} value={selectedNode.loadMW} onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, loadMW: parseInt(e.target.value) } : n))} className="w-full h-1 bg-slate-800 rounded appearance-none accent-cyan-500" />
-                        </div>
-
-                        <div className="bg-[#030712] border border-slate-800 p-4 rounded-lg space-y-3">
-                           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-1">Fault Simulator</h3>
-                           <div className="text-xs font-mono text-slate-400">Select Fault Type:</div>
-                           <select value={selectedNode.faultType || 'LLL'} onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, faultType: e.target.value } : n))} className="w-full bg-[#0a0f1c] border border-slate-700 text-cyan-400 rounded p-1 text-xs font-bold outline-none focus:border-cyan-500">
-                             <option value="LLL">3-Phase Bolted (LLL)</option>
-                             <option value="LL">Line-to-Line (LL)</option>
-                             <option value="LG">Line-to-Ground (LG)</option>
-                           </select>
-
-                           <button onClick={() => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, faulted: !n.faulted } : n))} className={`mt-2 w-full py-2.5 rounded font-bold text-[10px] border transition-all flex items-center justify-center gap-2 ${selectedNode.faulted ? 'bg-amber-950/40 border-amber-900/50 text-amber-500 hover:bg-amber-900' : 'bg-red-950/20 border-red-900/30 text-red-400 hover:border-red-900/80 hover:bg-red-950/40'}`}>
-                            {selectedNode.faulted ? <Check className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {selectedNode.faulted ? 'CLEAR FAULT' : 'INJECT FAULT'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  </Card>
                 </div>
-              ) : (
-                <GlobalOverviewPanel nodes={nodes} scenarios={SCENARIOS} loadScenario={loadScenario} activeScenario={activeScenario} />
-              )}
-            </div>
-
-          </>
-        ) : (
-          <TheoryHub />
-        )}
-      </div>
+              </div>
+            ) : (
+              <TheoryHub />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </main>
 
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
@@ -860,3 +1046,55 @@ export default function App() {
     </div>
   );
 }
+
+// ==============================
+// ACADEMY & THEORY GUIDE
+// ==============================
+const TheoryHub = () => (
+  <div className="max-w-4xl mx-auto space-y-6 pb-20">
+    <Card isDark={true} className="space-y-6">
+      <div className="border-b border-slate-800 pb-4">
+        <h2 className="text-xl font-bold text-white">Substation Automation & Protection Academy</h2>
+        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">IEC 61850 Design and System Gridding</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-xs leading-relaxed uppercase tracking-wider text-slate-350">
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h4 className="font-bold text-cyan-400 text-sm">1. IEC 61850 Architecture</h4>
+            <p>
+              Modern digital substations replace copper cables with high-speed fiber Ethernet. It defines two main buses:
+            </p>
+            <p className="text-[10px] text-slate-450 mt-1 pl-4 border-l border-slate-700">
+              • <strong>Station Bus</strong>: Carries GOOSE and MMS messages for protection interlock signals between IEDs.<br/>
+              • <strong>Process Bus</strong>: Transmits Sampled Values (SV) of currents and voltages from Merging Units to protective relays.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-bold text-cyan-400 text-sm">2. GOOSE Multicast Messaging</h4>
+            <p>
+              Generic Object Oriented Substation Events (GOOSE) are high-priority Ethernet frames bypassed directly to Layer 2 MAC addresses to achieve trip delays under 4ms. They are repeatedly retransmitted in an exponential heartbeat decay to ensure absolute packet delivery during intense electromagnetic noise.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h4 className="font-bold text-cyan-400 text-sm">3. Ring Main Loop coordination</h4>
+            <p>
+              Closed loop systems protect load supplies against loss of a single cable feeder. By routing current in both directions, direction-selective relays (ANSI 67) must coordinate their pickup angles so only the breakers directly bounding a faulty line segments trip, isolating the fault without dropping downstream loads.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-bold text-cyan-400 text-sm">4. Parallel Bus Operations</h4>
+            <p>
+              Closing a Bus Tie breaker while both primary incomers are active runs the transformer in parallel. This halves the source impedance, thereby doubling the short circuit current during a fault. It requires careful overcurrent setpoint adjustment to prevent exceeding the breaker breaking rating.
+            </p>
+          </div>
+        </div>
+      </div>
+    </Card>
+  </div>
+);
