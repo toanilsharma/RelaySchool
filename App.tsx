@@ -136,19 +136,24 @@ const AppLayout = ({ theme, toggleTheme, mobileMenuOpen, setMobileMenuOpen }: an
   const isFullscreenApp = location.pathname === '/tcc';
 
   return (
-        <div className={`bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans antialiased selection:bg-blue-50 selection:text-white transition-colors duration-300 flex flex-col ${isFullscreenApp ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+        <div className={`bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans antialiased selection:bg-blue-50 selection:text-white transition-colors duration-300 flex flex-col overflow-x-hidden ${isFullscreenApp ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
           <CommandPalette />
           
           {/* UNIVERSAL DESKTOP WARNING BANNER */}
           <DesktopWarningBanner />
 
           {!isFullscreenApp && (
-            <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white sticky top-0 z-30 shadow-md">
-              <Link to="/" onClick={() => setMobileMenuOpen(false)} className="font-bold text-lg flex items-center gap-2 hover:text-blue-400 transition-colors">RelaySchool</Link>
-              <div className="flex items-center gap-3">
+            <div className="md:hidden flex items-center justify-between px-4 py-3 bg-slate-900 text-white sticky top-0 z-30 shadow-md border-b border-slate-800 min-h-[56px]">
+              <Link to="/" onClick={() => setMobileMenuOpen(false)} className="font-bold text-lg flex items-center gap-2 hover:text-blue-400 transition-colors">
+                <div className="w-7 h-7 rounded-lg overflow-hidden shrink-0">
+                  <img src="/android-chrome-192x192.png" alt="Logo" className="w-full h-full object-cover" />
+                </div>
+                RelaySchool
+              </Link>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-                  className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="p-2.5 hover:bg-slate-800 rounded-xl text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   aria-label="Search tools"
                 >
                   <Command className="w-5 h-5" />
@@ -156,9 +161,9 @@ const AppLayout = ({ theme, toggleTheme, mobileMenuOpen, setMobileMenuOpen }: an
                 <button
                   onClick={() => setMobileMenuOpen(true)}
                   aria-label="Open navigation menu"
-                  className="p-2 hover:bg-slate-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="p-2.5 hover:bg-slate-800 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <Menu className="w-6 h-6" />
+                  <Menu className="w-5 h-5" />
                 </button>
               </div>
             </div>

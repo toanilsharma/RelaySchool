@@ -45,6 +45,13 @@
 /* =====================================================
    GLOBAL BASE STYLES
    ===================================================== */
+html {
+  /* Prevent horizontal scroll from wide simulator SVGs/canvases on mobile */
+  overflow-x: hidden;
+  /* Compensate for mobile sticky header height (56px) */
+  scroll-padding-top: 56px;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: #0f172a;
@@ -52,6 +59,10 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  /* Support iPhone/Android safe-area (notch/home bar) */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .dark body {
@@ -93,10 +104,11 @@ body {
 /* =====================================================
    PERFORMANCE: GPU compositing
    ===================================================== */
-main > section,
-main > div {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 500px;
+/* Removed content-visibility:auto — it caused layout shifts and
+   incorrect scroll positions on mobile Safari/Chrome.
+   Performance is handled by React lazy + Suspense instead. */
+main > section {
+  /* reserve-space only — no content-visibility to avoid reflow bugs */
 }
 
 /* =====================================================
@@ -188,11 +200,25 @@ main > div {
   outline: 3px solid #60a5fa;
 }
 
-/* Touch-friendly scrollbars for mobile */
+/* Touch-friendly scrollbars and interactions for mobile */
 @media (pointer: coarse) {
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* Prevent callout/selection on simulator controls */
+.sim-canvas {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Better tap targets — all interactive elements min 44px */
+@media (max-width: 768px) {
+  button, a[role="button"] {
+    min-height: 40px;
   }
 }
 

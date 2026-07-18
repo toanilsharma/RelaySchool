@@ -7,7 +7,7 @@ const Footer = () => {
     const shareUrl = "https://wa.me/?text=Check%20out%20RelaySchool%20-%20Advanced%20Power%20System%20Protection%20App!%20%23Engineering%20%23Simulation";
 
     return (
-        <footer className="relative bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 pt-16 pb-8 transition-colors duration-300 print:hidden overflow-hidden">
+        <footer className="relative bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 pt-10 sm:pt-16 pb-8 transition-colors duration-300 print:hidden overflow-hidden">
             {/* Decorative Background Elements */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>

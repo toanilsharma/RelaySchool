@@ -119,7 +119,7 @@ const GridPulseHero = () => {
       )}
       <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px]"></div>
 
-      <div className="relative z-10 p-8 lg:p-12 flex flex-col lg:flex-row items-center justify-between gap-12">
+      <div className="relative z-10 p-5 sm:p-8 lg:p-12 flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12">
         {/* LEFT — Value Proposition */}
         <div className="space-y-6 max-w-xl">
           <div className="flex flex-wrap gap-3">
@@ -132,7 +132,7 @@ const GridPulseHero = () => {
             </div>
           </div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-black tracking-tight leading-[1.1]">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-black tracking-tight leading-[1.1]">
             Experience Power Systems
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
@@ -159,7 +159,7 @@ const GridPulseHero = () => {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Link
               to="/academy"
               className="px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/25 flex items-center justify-between gap-4 group/btn"
@@ -195,7 +195,7 @@ const GridPulseHero = () => {
         </div>
 
         {/* RIGHT — Live Interactive Monitor */}
-        <div className="flex-1 w-full max-w-md bg-slate-950/90 rounded-2xl border border-slate-700 p-6 shadow-2xl relative overflow-hidden group/monitor hover:border-slate-600 transition-colors">
+        <div className="flex-1 w-full max-w-md min-w-0 bg-slate-950/90 rounded-2xl border border-slate-700 p-5 sm:p-6 shadow-2xl relative overflow-hidden group/monitor hover:border-slate-600 transition-colors">
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
             <div className="flex items-center gap-3">
               <button
@@ -921,7 +921,7 @@ const AudienceSection = () => {
 
 const Dashboard = () => {
   return (
-    <main className="space-y-16 animate-fade-in max-w-7xl mx-auto pb-12 overflow-hidden">
+    <main className="space-y-12 sm:space-y-16 animate-fade-in max-w-7xl mx-auto pb-12">
       <PageSEO
         title="RelaySchool — Free Power System Protection Simulators"
         description="40+ interactive simulators for relay coordination, fault analysis, IEC 61850, and protection engineering. Free, browser-based, works offline."
@@ -930,7 +930,7 @@ const Dashboard = () => {
 
       {/* 1. HERO */}
       <div className="relative -mx-4 md:-mx-8 lg:-mx-10">
-        <div className="px-4 md:px-8 lg:px-10 pb-6">
+        <div className="px-4 md:px-8 lg:px-10 pb-4 sm:pb-6">
           <GridPulseHero />
         </div>
       </div>
@@ -957,8 +957,8 @@ const Dashboard = () => {
       <MissionSection />
 
       {/* 9. FAQ */}
-      <section className="bg-slate-50 dark:bg-slate-900/50 rounded-3xl p-8 border border-slate-200 dark:border-slate-800">
-        <div className="flex flex-col md:flex-row gap-8">
+      <section className="bg-slate-50 dark:bg-slate-900/50 rounded-3xl p-5 sm:p-8 border border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8">
           <div className="md:w-1/3">
             <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl w-fit mb-4">
               <HelpCircle className="w-6 h-6 text-purple-600 dark:text-purple-400" />
