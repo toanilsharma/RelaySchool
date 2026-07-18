@@ -6,6 +6,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageSEO } from "../components/SEO/PageSEO";
+import { useThemeObserver } from '../hooks/useThemeObserver';
+import { Card } from '../components/UI/Card';
+import { Slider } from '../components/UI/Slider';
 
 const twinSchema: Record<string, any> = {
     "@type": "WebApplication",
@@ -925,9 +928,9 @@ export default function DigitalTwin() {
                                 <div className="space-y-4">
                                   <span className="text-[9px] font-black text-slate-550 uppercase tracking-wider block border-b border-slate-200 dark:border-slate-800 pb-1">ANSI Settings</span>
                                   <div className="space-y-3 bg-[#030712] border border-slate-800 p-3 rounded-xl">
-                                    <Slider label="pickup multiplier (Ip)" min={1.0} max={1.8} step={0.05} value={selectedNode.settings?.pickup51Mult || 1.05} onChange={e => updateNodeSetting(selectedNode.id, 'pickup51Mult', e.target.value)} color="blue" />
-                                    <Slider label="Time Dial Dial (TD)" min={0.05} max={1.5} step={0.05} value={selectedNode.settings?.td51 || 0.5} onChange={e => updateNodeSetting(selectedNode.id, 'td51', e.target.value)} color="blue" />
-                                    <Slider label="Instantaneous Pickup (50)" min={2.0} max={10.0} step={0.5} value={selectedNode.settings?.pickup50Mult || 5.0} onChange={e => updateNodeSetting(selectedNode.id, 'pickup50Mult', e.target.value)} color="red" />
+                                    <Slider label="pickup multiplier (Ip)" unit="x" min={1.0} max={1.8} step={0.05} value={selectedNode.settings?.pickup51Mult || 1.05} onChange={e => updateNodeSetting(selectedNode.id, 'pickup51Mult', e.target.value)} color="blue" />
+                                    <Slider label="Time Dial Dial (TD)" unit="" min={0.05} max={1.5} step={0.05} value={selectedNode.settings?.td51 || 0.5} onChange={e => updateNodeSetting(selectedNode.id, 'td51', e.target.value)} color="blue" />
+                                    <Slider label="Instantaneous Pickup (50)" unit="x" min={2.0} max={10.0} step={0.5} value={selectedNode.settings?.pickup50Mult || 5.0} onChange={e => updateNodeSetting(selectedNode.id, 'pickup50Mult', e.target.value)} color="red" />
                                   </div>
 
                                   <span className="text-[9px] font-black text-slate-550 uppercase tracking-wider block border-b border-slate-200 dark:border-slate-800 pb-1 pt-2">Manual Control overrides</span>
@@ -950,7 +953,7 @@ export default function DigitalTwin() {
                               {selectedNode.type === NODE_TYPES.LOAD && (
                                 <div className="space-y-4">
                                   <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl">
-                                    <Slider label="Feeder Demand Level (MW)" min={0} max={100} step={1} value={selectedNode.loadMW || 0} onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, loadMW: parseInt(e.target.value) } : n) as Node[])} color="blue" />
+                                    <Slider label="Feeder Demand Level (MW)" unit="MW" min={0} max={100} step={1} value={selectedNode.loadMW || 0} onChange={e => setNodes(nodes.map(n => n.id === selectedNode.id ? { ...n, loadMW: parseInt(e.target.value) } : n) as Node[])} color="blue" />
                                   </div>
 
                                   <div className="bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 p-4 rounded-xl space-y-3">

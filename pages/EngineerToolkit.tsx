@@ -6,6 +6,7 @@ import {
     Plug, Fan, Triangle, Magnet
 } from 'lucide-react';
 import PageSEO from '../components/SEO/PageSEO';
+import { useThemeObserver } from '../hooks/useThemeObserver';
 
 // --- INLINED COMPONENTS ---
 
