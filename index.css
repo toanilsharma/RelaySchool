@@ -189,7 +189,7 @@ main > div {
 }
 
 /* Touch-friendly scrollbars for mobile */
-@media (max-pointer: coarse) {
+@media (pointer: coarse) {
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
