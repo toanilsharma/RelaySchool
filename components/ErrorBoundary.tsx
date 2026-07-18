@@ -25,6 +25,25 @@ class ErrorBoundary extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
     this.setState({ errorInfo });
+
+    // Auto-reload on Vite chunk/dynamic import load failures
+    const isChunkError = error.message && (
+      error.message.includes('Failed to fetch dynamically imported module') ||
+      error.message.includes('Loading chunk') ||
+      error.message.includes('dynamic import') ||
+      error.message.includes('dynamically imported module')
+    );
+
+    if (isChunkError) {
+      const lastReload = sessionStorage.getItem('chunk_error_reload_ts');
+      const now = Date.now();
+      // Only auto-reload if we haven't done so in the last 15 seconds (prevents infinite loop if net is down)
+      if (!lastReload || now - parseInt(lastReload, 10) > 15000) {
+        sessionStorage.setItem('chunk_error_reload_ts', now.toString());
+        console.warn('Chunk load failed. Reloading page to fetch latest build assets...');
+        window.location.reload();
+      }
+    }
   }
 
   public render() {
